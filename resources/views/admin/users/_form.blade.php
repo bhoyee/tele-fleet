@@ -48,11 +48,12 @@
     </div>
     <div class="col-md-6">
         <label class="form-label" for="password">Password</label>
-        <input class="form-control" id="password" name="password" type="password" {{ isset($user) ? '' : 'required' }}>
+        <input class="form-control" id="password" name="password" type="password">
+        <div class="form-text">Leave blank to auto-generate a temporary password.</div>
         @error('password') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
         <label class="form-label" for="password_confirmation">Confirm Password</label>
-        <input class="form-control" id="password_confirmation" name="password_confirmation" type="password" {{ isset($user) ? '' : 'required' }}>
+        <input class="form-control" id="password_confirmation" name="password_confirmation" type="password">
     </div>
 </div>

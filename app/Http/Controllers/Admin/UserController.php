@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -32,13 +33,16 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['password'] = Hash::make($data['password']);
+        $passwordProvided = $request->filled('password');
+        $plainPassword = $passwordProvided ? $data['password'] : Str::random(12);
+        $data['password'] = Hash::make($plainPassword);
 
         User::create($data);
 
         return redirect()
             ->route('admin.users.index')
-            ->with('success', 'User created successfully.');
+            ->with('success', 'User created successfully.')
+            ->with('generated_password', $passwordProvided ? null : $plainPassword);
     }
 
     public function edit(User $user): View

@@ -28,7 +28,7 @@ class StoreUserRequest extends FormRequest
             ])],
             'branch_id' => ['nullable', 'exists:branches,id'],
             'status' => ['required', Rule::in([User::STATUS_ACTIVE, User::STATUS_INACTIVE])],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['nullable', 'confirmed', Password::defaults()],
         ];
     }
 }

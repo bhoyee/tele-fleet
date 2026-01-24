@@ -1,17 +1,41 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Dashboard</h1>
+            <p class="text-muted mb-0">Welcome back, {{ auth()->user()->name }}.</p>
+        </div>
+        <div class="text-muted small">
+            {{ now()->format('M d, Y') }}
+        </div>
+    </div>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    {{ __("You're logged in!") }}
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Active Vehicles</div>
+                    <div class="fs-3 fw-bold">--</div>
+                    <div class="text-muted small">Update after seeding data.</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Drivers On Duty</div>
+                    <div class="fs-3 fw-bold">--</div>
+                    <div class="text-muted small">Track availability in real time.</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Trips This Week</div>
+                    <div class="fs-3 fw-bold">--</div>
+                    <div class="text-muted small">Approval workflow overview.</div>
                 </div>
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

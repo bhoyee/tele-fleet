@@ -9,6 +9,11 @@
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
+            @if (session('generated_password'))
+                <div class="alert alert-warning">
+                    Temporary password for the new user: <strong>{{ session('generated_password') }}</strong>
+                </div>
+            @endif
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead class="table-light">
