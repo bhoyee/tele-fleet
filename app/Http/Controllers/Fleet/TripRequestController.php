@@ -12,11 +12,16 @@ use App\Models\TripLog;
 use App\Models\TripRequest;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Notifications\TripRequestApproved;
+use App\Notifications\TripRequestAssigned;
+use App\Notifications\TripRequestCreated;
 use App\Services\AuditLogService;
+use App\Services\SmsService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 
 class TripRequestController extends Controller
 {
@@ -79,6 +84,9 @@ class TripRequestController extends Controller
 
         $auditLog->log('trip_request.created', $tripRequest, [], $tripRequest->toArray());
 
+        $recipients = $this->buildNotificationRecipients($tripRequest);
+        Notification::send($recipients, new TripRequestCreated($tripRequest));
+
         return redirect()
             ->route('trips.show', $tripRequest)
             ->with('success', 'Trip request submitted successfully.');
@@ -101,6 +109,9 @@ class TripRequestController extends Controller
         ]);
 
         $auditLog->log('trip_request.approved', $tripRequest, [], $tripRequest->toArray());
+
+        $recipients = $this->buildNotificationRecipients($tripRequest, $tripRequest->requestedBy);
+        Notification::send($recipients, new TripRequestApproved($tripRequest));
 
         return redirect()
             ->route('trips.show', $tripRequest)
@@ -127,7 +138,7 @@ class TripRequestController extends Controller
             ->with('success', 'Trip request rejected.');
     }
 
-    public function assign(AssignTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
+    public function assign(AssignTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog, SmsService $sms): RedirectResponse
     {
         $tripRequest->update([
             'status' => 'assigned',
@@ -137,6 +148,20 @@ class TripRequestController extends Controller
         ]);
 
         $auditLog->log('trip_request.assigned', $tripRequest, [], $tripRequest->toArray());
+
+        $tripRequest->load(['assignedVehicle', 'assignedDriver', 'requestedBy']);
+        $recipients = $this->buildNotificationRecipients($tripRequest, $tripRequest->requestedBy);
+        Notification::send($recipients, new TripRequestAssigned($tripRequest));
+
+        if ($tripRequest->assignedDriver?->phone) {
+            $sms->send($tripRequest->assignedDriver->phone, sprintf(
+                'Trip %s assigned. Vehicle %s. Destination: %s. Date: %s.',
+                $tripRequest->request_number,
+                $tripRequest->assignedVehicle?->registration_number ?? 'N/A',
+                $tripRequest->destination,
+                $tripRequest->trip_date?->format('Y-m-d') ?? ''
+            ));
+        }
 
         return redirect()
             ->route('trips.show', $tripRequest)
@@ -217,5 +242,23 @@ class TripRequestController extends Controller
         $count = TripRequest::whereDate('created_at', now()->toDateString())->count() + 1;
 
         return sprintf('TR-%s-%03d', $today, $count);
+    }
+
+    private function buildNotificationRecipients(TripRequest $tripRequest, ?User $requester = null)
+    {
+        $recipients = collect();
+
+        $fleetManagers = User::where('role', User::ROLE_FLEET_MANAGER)->get();
+        $branchHeads = User::where('role', User::ROLE_BRANCH_HEAD)
+            ->where('branch_id', $tripRequest->branch_id)
+            ->get();
+
+        $recipients = $recipients->merge($fleetManagers)->merge($branchHeads);
+
+        if ($requester) {
+            $recipients->push($requester);
+        }
+
+        return $recipients->unique('id')->values();
     }
 }

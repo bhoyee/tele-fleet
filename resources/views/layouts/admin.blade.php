@@ -424,7 +424,18 @@
                         </nav>
                     </div>
                     
-                    <div class="dropdown">
+                    <div class="d-flex align-items-center gap-3">
+                        <a href="{{ route('notifications.index') }}" class="btn btn-light position-relative">
+                            <i class="bi bi-bell"></i>
+                            @php($unreadCount = auth()->user()?->unreadNotifications()->count() ?? 0)
+                            @if ($unreadCount > 0)
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ $unreadCount }}
+                                </span>
+                            @endif
+                        </a>
+
+                        <div class="dropdown">
                         <button class="btn user-dropdown d-flex align-items-center" type="button" data-bs-toggle="dropdown">
                             <div class="user-avatar me-2">
                                 {{ strtoupper(substr(auth()->user()?->name, 0, 1)) }}
@@ -453,6 +464,7 @@
                                 </form>
                             </li>
                         </ul>
+                        </div>
                     </div>
                 </header>
 

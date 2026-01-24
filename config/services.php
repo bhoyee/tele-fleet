@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'termii' => [
+        'key' => env('TERMII_API_KEY'),
+        'sender_id' => env('TERMII_SENDER_ID', 'TeleFleet'),
+        'base_url' => env('TERMII_BASE_URL', 'https://api.ng.termii.com'),
+    ],
+
 ];
