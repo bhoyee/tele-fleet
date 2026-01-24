@@ -14,9 +14,10 @@
 
         <style>
             :root {
-                --primary: #4361ee;
-                --primary-dark: #3a56d4;
-                --primary-light: rgba(67, 97, 238, 0.1);
+                --primary: #056CA3;
+                --primary-dark: #065E8C;
+                --primary-light: rgba(5, 108, 163, 0.1);
+                --primary-lighter: rgba(5, 108, 163, 0.05);
                 --secondary: #64748b;
                 --success: #06d6a0;
                 --danger: #ef476f;
@@ -24,10 +25,11 @@
                 --dark: #1e293b;
                 --light: #f8fafc;
                 --surface: #ffffff;
-                --gradient-primary: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-                --gradient-bg: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-                --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-                --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.05);
+                --gradient-primary: linear-gradient(135deg, #056CA3 0%, #065E8C 100%);
+                --gradient-light: linear-gradient(135deg, #056CA3 0%, #0A8BC4 100%);
+                --gradient-bg: linear-gradient(135deg, #f1f9ff 0%, #e6f2ff 100%);
+                --shadow-lg: 0 25px 50px -12px rgba(5, 108, 163, 0.1);
+                --shadow-md: 0 10px 25px rgba(5, 108, 163, 0.08);
                 --radius-xl: 32px;
                 --radius-lg: 24px;
                 --radius-md: 16px;
@@ -63,7 +65,7 @@
             .bg-shape {
                 position: absolute;
                 border-radius: 50%;
-                background: linear-gradient(135deg, rgba(67, 97, 238, 0.08) 0%, rgba(58, 12, 163, 0.04) 100%);
+                background: linear-gradient(135deg, rgba(5, 108, 163, 0.08) 0%, rgba(6, 94, 140, 0.04) 100%);
                 filter: blur(40px);
                 animation: float 20s infinite ease-in-out;
             }
@@ -170,6 +172,7 @@
 
             .brand-logo i {
                 font-size: 1.75rem;
+                color: white; /* Made icon white */
             }
 
             .brand-logo h1 {
@@ -227,6 +230,11 @@
                 align-items: center;
                 justify-content: center;
                 flex-shrink: 0;
+            }
+
+            .feature-icon i {
+                color: white;
+                font-size: 1rem;
             }
 
             .hero-footer {
@@ -410,6 +418,7 @@
             .auth-btn:hover {
                 transform: translateY(-2px);
                 box-shadow: var(--shadow-md);
+                background: var(--gradient-light);
             }
 
             .auth-btn:active {
@@ -523,11 +532,45 @@
                 to { transform: rotate(360deg); }
             }
 
+            /* Stats (for hero section) */
+            .stats-container {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+                margin: 2rem 0;
+            }
+
+            .stat-item {
+                text-align: center;
+                padding: 1rem;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: var(--radius-md);
+                backdrop-filter: blur(10px);
+            }
+
+            .stat-value {
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: white;
+                display: block;
+                line-height: 1;
+                margin-bottom: 0.25rem;
+            }
+
+            .stat-label {
+                font-size: 0.875rem;
+                color: rgba(255, 255, 255, 0.8);
+            }
+
             /* Responsive Design */
             @media (max-width: 1199.98px) {
                 .auth-hero,
                 .auth-form-section {
                     padding: 3rem;
+                }
+                
+                .stats-container {
+                    grid-template-columns: repeat(2, 1fr);
                 }
             }
 
@@ -553,6 +596,10 @@
 
                 .form-title {
                     font-size: 1.75rem;
+                }
+                
+                .stats-container {
+                    grid-template-columns: repeat(3, 1fr);
                 }
             }
 
@@ -587,6 +634,11 @@
                     align-items: flex-start;
                     gap: 1rem;
                 }
+                
+                .stats-container {
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 1rem;
+                }
             }
 
             @media (max-width: 575.98px) {
@@ -601,6 +653,10 @@
 
                 .bg-shape {
                     display: none;
+                }
+                
+                .stats-container {
+                    grid-template-columns: 1fr;
                 }
             }
         </style>
@@ -629,11 +685,27 @@
 
                             <div class="hero-content">
                                 <h2 class="hero-title">
-                                    @yield('hero-title', 'Intelligent Fleet Management')
+                                    @yield('hero-title', 'Enterprise-Grade Fleet Management')
                                 </h2>
                                 <p class="hero-description">
-                                    @yield('hero-description', 'Streamline your fleet operations with our comprehensive management platform. Track, analyze, and optimize your vehicles in real-time.')
+                                    @yield('hero-description', 'Streamline Your Corporate Fleet Operations with comprehensive vehicle management, trip coordination, and real-time tracking.')
                                 </p>
+
+                                <!-- Stats Section -->
+                                <div class="stats-container">
+                                    <div class="stat-item">
+                                        <span class="stat-value">150+</span>
+                                        <span class="stat-label">Managed Vehicles</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-value">85+</span>
+                                        <span class="stat-label">Professional Drivers</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-value">15+</span>
+                                        <span class="stat-label">Branch Locations</span>
+                                    </div>
+                                </div>
 
                                 <div class="features-grid">
                                     <div class="feature-item">
@@ -685,7 +757,7 @@
                                         @yield('form-title', 'Welcome Back')
                                     </h1>
                                     <p class="form-subtitle">
-                                        @yield('form-subtitle', 'Please sign in to continue')
+                                        @yield('form-subtitle', 'Access the fleet operations dashboard')
                                     </p>
                                 </div>
 
@@ -736,7 +808,7 @@
                     // Add focus effect
                     input.addEventListener('focus', function() {
                         const icon = this.parentElement.querySelector('.input-icon');
-                        if (icon) icon.style.color = '#4361ee';
+                        if (icon) icon.style.color = '#056CA3';
                     });
 
                     input.addEventListener('blur', function() {

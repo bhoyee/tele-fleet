@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\Branch;
 use App\Models\User;
+use App\Notifications\UserWelcomeCredentials;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
@@ -37,7 +38,8 @@ class UserController extends Controller
         $plainPassword = $passwordProvided ? $data['password'] : Str::random(12);
         $data['password'] = Hash::make($plainPassword);
 
-        User::create($data);
+        $newUser = User::create($data);
+        $newUser->notify(new UserWelcomeCredentials($plainPassword));
 
         return redirect()
             ->route('admin.users.index')

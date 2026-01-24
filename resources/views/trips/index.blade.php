@@ -20,6 +20,7 @@
                             <th>Purpose</th>
                             <th>Trip Date</th>
                             <th>Status</th>
+                            <th>Assignment</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -34,6 +35,13 @@
                                     <span class="badge bg-{{ $trip->status === 'approved' ? 'success' : ($trip->status === 'rejected' ? 'danger' : ($trip->status === 'assigned' ? 'primary' : ($trip->status === 'completed' ? 'dark' : 'secondary'))) }}">
                                         {{ ucfirst($trip->status) }}
                                     </span>
+                                </td>
+                                <td>
+                                    @if ($trip->assigned_vehicle_id && $trip->assigned_driver_id)
+                                        <span class="badge bg-primary">Assigned</span>
+                                    @else
+                                        <span class="badge bg-secondary">Unassigned</span>
+                                    @endif
                                 </td>
                                 <td class="text-end">
                                     <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary">View</a>

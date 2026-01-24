@@ -425,15 +425,63 @@
                     </div>
                     
                     <div class="d-flex align-items-center gap-3">
-                        <a href="{{ route('notifications.index') }}" class="btn btn-light position-relative">
-                            <i class="bi bi-bell"></i>
-                            @php($unreadCount = auth()->user()?->unreadNotifications()->count() ?? 0)
-                            @if ($unreadCount > 0)
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                    {{ $unreadCount }}
-                                </span>
-                            @endif
-                        </a>
+                        @php
+                            $unreadCount = auth()->user()?->unreadNotifications()->count() ?? 0;
+                            $latestNotifications = auth()->user()?->notifications()->latest()->take(5)->get() ?? collect();
+                        @endphp
+                        <div class="dropdown">
+                            <button class="btn btn-light position-relative" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-bell"></i>
+                                @if ($unreadCount > 0)
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        {{ $unreadCount }}
+                                    </span>
+                                @endif
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-0" style="min-width: 320px;">
+                                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                                    <span class="fw-semibold">Notifications</span>
+                                    <form method="POST" action="{{ route('notifications.read_all') }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button class="btn btn-link btn-sm text-decoration-none" type="submit">Mark all read</button>
+                                    </form>
+                                </div>
+                                @forelse ($latestNotifications as $notification)
+                                    <div class="px-3 py-2 border-bottom">
+                                        <div class="d-flex justify-content-between">
+                                            <div class="fw-semibold small">
+                                                {{ $notification->data['request_number'] ?? 'Trip Update' }}
+                                                @if (! $notification->read_at)
+                                                    <span class="badge bg-primary ms-1">New</span>
+                                                @endif
+                                            </div>
+                                            <small class="text-muted">{{ $notification->created_at->diffForHumans() }}</small>
+                                        </div>
+                                        <div class="text-muted small">
+                                            {{ $notification->data['purpose'] ?? 'Trip status updated' }}
+                                        </div>
+                                        <div class="d-flex gap-2 mt-2">
+                                            @if (! $notification->read_at)
+                                                <form method="POST" action="{{ route('notifications.read', $notification->id) }}">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button class="btn btn-outline-primary btn-sm" type="submit">Mark read</button>
+                                                </form>
+                                            @endif
+                                            @if (! empty($notification->data['trip_request_id']))
+                                                <a class="btn btn-light btn-sm" href="{{ route('trips.show', $notification->data['trip_request_id']) }}">View</a>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="px-3 py-4 text-center text-muted">No notifications yet.</div>
+                                @endforelse
+                                <div class="px-3 py-2 text-center">
+                                    <a class="text-decoration-none fw-semibold" href="{{ route('notifications.index') }}">View all notifications</a>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="dropdown">
                         <button class="btn user-dropdown d-flex align-items-center" type="button" data-bs-toggle="dropdown">

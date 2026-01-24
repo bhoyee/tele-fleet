@@ -140,12 +140,32 @@ class TripRequestController extends Controller
 
     public function assign(AssignTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog, SmsService $sms): RedirectResponse
     {
+        $vehicle = Vehicle::findOrFail($request->assigned_vehicle_id);
+        $driver = Driver::findOrFail($request->assigned_driver_id);
+
+        if ($vehicle->status !== 'available') {
+            return redirect()
+                ->back()
+                ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is not available.'])
+                ->withInput();
+        }
+
+        if ($driver->status !== 'active') {
+            return redirect()
+                ->back()
+                ->withErrors(['assigned_driver_id' => 'Selected driver is not available.'])
+                ->withInput();
+        }
+
         $tripRequest->update([
             'status' => 'assigned',
             'assigned_vehicle_id' => $request->assigned_vehicle_id,
             'assigned_driver_id' => $request->assigned_driver_id,
             'assigned_at' => now(),
         ]);
+
+        $vehicle->update(['status' => 'in_use']);
+        $driver->update(['status' => 'inactive']);
 
         $auditLog->log('trip_request.assigned', $tripRequest, [], $tripRequest->toArray());
 
@@ -218,6 +238,16 @@ class TripRequestController extends Controller
             'logbook_entered_by' => $request->user()->id,
             'logbook_entered_at' => now(),
         ]);
+
+        $tripRequest->load(['assignedVehicle', 'assignedDriver']);
+
+        if ($tripRequest->assignedVehicle) {
+            $tripRequest->assignedVehicle->update(['status' => 'available']);
+        }
+
+        if ($tripRequest->assignedDriver) {
+            $tripRequest->assignedDriver->update(['status' => 'active']);
+        }
 
         $auditLog->log('trip_request.logbook_entered', $tripRequest, [], [
             'trip_log_id' => $tripLog->id,

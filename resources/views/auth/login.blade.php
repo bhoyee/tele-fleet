@@ -20,11 +20,11 @@
 
         <div class="mb-4">
             <label class="form-label fw-semibold text-dark mb-2" for="email">
-                <i class="bi bi-envelope me-1"></i> Email Address
+                <i class="bi bi-envelope me-1" style="color: #056CA3;"></i> Email Address
             </label>
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0">
-                    <i class="bi bi-envelope text-muted"></i>
+                    <i class="bi bi-envelope" style="color: #056CA3;"></i>
                 </span>
                 <input id="email" class="form-control ps-3 py-3 border-start-0" 
                        type="email" 
@@ -46,17 +46,17 @@
         <div class="mb-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <label class="form-label fw-semibold text-dark" for="password">
-                    <i class="bi bi-lock me-1"></i> Password
+                    <i class="bi bi-lock me-1" style="color: #056CA3;"></i> Password
                 </label>
                 @if (Route::has('password.request'))
-                    <a class="text-decoration-none text-primary fw-medium small" href="{{ route('password.request') }}">
+                    <a class="text-decoration-none fw-medium small" href="{{ route('password.request') }}" style="color: #056CA3;">
                         Forgot password?
                     </a>
                 @endif
             </div>
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0">
-                    <i class="bi bi-lock text-muted"></i>
+                    <i class="bi bi-lock" style="color: #056CA3;"></i>
                 </span>
                 <input id="password" class="form-control ps-3 py-3 border-start-0" 
                        type="password" 
@@ -64,8 +64,8 @@
                        required 
                        autocomplete="current-password"
                        placeholder="Enter your password">
-                <button class="btn btn-outline-secondary border-start-0" type="button" id="togglePassword">
-                    <i class="bi bi-eye"></i>
+                <button class="btn btn-outline-secondary border-start-0" type="button" id="togglePassword" style="border-color: #dee2e6;">
+                    <i class="bi bi-eye" style="color: #056CA3;"></i>
                 </button>
             </div>
             @error('password') 
@@ -85,14 +85,14 @@
             </div>
         </div>
 
-        <button class="btn btn-primary w-100 py-3 mb-4 fw-semibold" type="submit" id="submitBtn">
+        <button class="btn w-100 py-3 mb-4 fw-semibold" type="submit" id="submitBtn" style="background: #056CA3; color: white;">
             <span class="btn-text">Sign In</span>
             <span class="spinner-border spinner-border-sm d-none" role="status"></span>
         </button>
 
         <div class="text-center pt-4 border-top">
             <p class="text-muted mb-0">Don't have an account? 
-                <a href="#" class="text-primary fw-semibold text-decoration-none">Contact Administrator</a>
+                <a href="#" class="fw-semibold text-decoration-none" style="color: #056CA3;">Contact Administrator</a>
             </p>
         </div>
     </form>
@@ -101,7 +101,7 @@
         .avatar-circle {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            background: linear-gradient(135deg, #056CA3 0%, #065E8C 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -115,8 +115,8 @@
         }
         
         .form-control:focus {
-            border-color: #4361ee;
-            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+            border-color: #056CA3;
+            box-shadow: 0 0 0 0.25rem rgba(5, 108, 163, 0.25);
         }
         
         .input-group-text {
@@ -124,11 +124,11 @@
         }
         
         .form-control:focus + .input-group-text {
-            border-color: #4361ee;
+            border-color: #056CA3;
         }
         
         #submitBtn {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            background: linear-gradient(135deg, #056CA3 0%, #065E8C 100%);
             border: none;
             transition: all 0.3s ease;
             position: relative;
@@ -137,7 +137,8 @@
         
         #submitBtn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.3);
+            box-shadow: 0 10px 25px rgba(5, 108, 163, 0.3);
+            background: linear-gradient(135deg, #065E8C 0%, #056CA3 100%);
         }
         
         #submitBtn:active {
@@ -146,9 +147,14 @@
         
         .alert {
             border: none;
-            border-left: 4px solid #198754;
+            border-left: 4px solid #056CA3;
             border-radius: 8px;
-            background: rgba(25, 135, 84, 0.1);
+            background: rgba(5, 108, 163, 0.1);
+        }
+        
+        .alert-success {
+            border-left: 4px solid #28a745;
+            background: rgba(40, 167, 69, 0.1);
         }
         
         .form-label {
@@ -160,8 +166,8 @@
         }
         
         .input-group .btn-outline-secondary:hover {
-            background-color: #f8f9fa;
-            border-color: #dee2e6;
+            background-color: rgba(5, 108, 163, 0.05);
+            border-color: #056CA3;
         }
         
         /* Loading animation */
@@ -171,6 +177,22 @@
         
         #submitBtn.loading .spinner-border {
             display: inline-block !important;
+        }
+        
+        /* Custom focus styles */
+        .form-check-input:checked {
+            background-color: #056CA3;
+            border-color: #056CA3;
+        }
+        
+        .form-check-input:focus {
+            border-color: #056CA3;
+            box-shadow: 0 0 0 0.25rem rgba(5, 108, 163, 0.25);
+        }
+        
+        /* Link hover effects */
+        a:hover {
+            color: #065E8C !important;
         }
     </style>
 
@@ -184,7 +206,9 @@
                 togglePassword.addEventListener('click', function() {
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                     passwordInput.setAttribute('type', type);
-                    this.innerHTML = type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+                    this.innerHTML = type === 'password' ? 
+                        '<i class="bi bi-eye" style="color: #056CA3;"></i>' : 
+                        '<i class="bi bi-eye-slash" style="color: #056CA3;"></i>';
                 });
             }
             
@@ -213,6 +237,28 @@
                     input.classList.add('has-value');
                 }
                 
+                // Add focus effect for icons
+                input.addEventListener('focus', function() {
+                    const icon = this.parentElement.querySelector('.input-group-text i');
+                    if (icon) {
+                        icon.style.color = '#065E8C';
+                    }
+                });
+                
+                input.addEventListener('blur', function() {
+                    const icon = this.parentElement.querySelector('.input-group-text i');
+                    if (icon) {
+                        icon.style.color = '#056CA3';
+                    }
+                    
+                    // Add/remove has-value class
+                    if (this.value) {
+                        this.classList.add('has-value');
+                    } else {
+                        this.classList.remove('has-value');
+                    }
+                });
+                
                 // Add/remove class on input events
                 input.addEventListener('input', function() {
                     if (this.value) {
@@ -221,15 +267,19 @@
                         this.classList.remove('has-value');
                     }
                 });
-                
-                input.addEventListener('blur', function() {
-                    if (this.value) {
-                        this.classList.add('has-value');
-                    } else {
-                        this.classList.remove('has-value');
-                    }
-                });
             });
+            
+            // Add hover effect to forgot password link
+            const forgotPasswordLink = document.querySelector('a[href*="password.request"]');
+            if (forgotPasswordLink) {
+                forgotPasswordLink.addEventListener('mouseenter', function() {
+                    this.style.textDecoration = 'underline';
+                });
+                
+                forgotPasswordLink.addEventListener('mouseleave', function() {
+                    this.style.textDecoration = 'none';
+                });
+            }
         });
     </script>
 </x-guest-layout>
