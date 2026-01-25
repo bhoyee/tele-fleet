@@ -20,7 +20,6 @@
                     <thead class="table-light">
                         <tr>
                             <th>Request #</th>
-                            <th>Branch</th>
                             <th>Purpose</th>
                             <th>Trip Date</th>
                             <th>Status</th>
@@ -32,7 +31,6 @@
                         @foreach ($trips as $trip)
                             <tr>
                                 <td>{{ $trip->request_number }}</td>
-                                <td>{{ $trip->branch?->name ?? 'N/A' }}</td>
                                 <td>{{ $trip->purpose }}</td>
                                 <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
                                 <td>

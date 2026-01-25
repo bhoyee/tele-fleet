@@ -166,6 +166,8 @@
                 min-height: 100vh;
                 transition: var(--transition);
                 padding: 0;
+                display: flex;
+                flex-direction: column;
             }
 
             /* Topbar */
@@ -379,6 +381,7 @@
                 max-width: 1600px;
                 margin: 0 auto;
                 width: 100%;
+                flex: 1;
             }
 
             /* Page Header */
@@ -640,9 +643,33 @@
                         
                         @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('trips.*')) active @endif" href="{{ route('trips.index') }}">
+                                <a class="nav-link @if (request()->routeIs('trips.*') && ! request()->routeIs('trips.my')) active @endif" href="{{ route('trips.index') }}">
                                     <i class="bi bi-map nav-icon"></i>
                                     <span>Trips</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('incidents.*')) active @endif" href="{{ route('incidents.index') }}">
+                                    <i class="bi bi-exclamation-triangle nav-icon"></i>
+                                    <span>Incidents</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('trips.my')) active @endif" href="{{ route('trips.my') }}">
+                                    <i class="bi bi-clipboard-check nav-icon"></i>
+                                    <span>My Requests</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('reports.*')) active @endif" href="{{ route('reports.my-requests') }}">
+                                    <i class="bi bi-bar-chart nav-icon"></i>
+                                    <span>Reports</span>
                                 </a>
                             </li>
                         @endif
@@ -680,6 +707,10 @@
                     </div>
                     
                     <div class="d-flex align-items-center gap-3">
+                        <div class="d-none d-md-flex flex-column text-end pe-3 border-end" style="border-color: rgba(5, 108, 163, 0.15);">
+                            <span class="text-muted small">Branch</span>
+                            <span class="fw-semibold text-primary">{{ auth()->user()?->branch?->name ?? 'Head Office' }}</span>
+                        </div>
                         @php
                             $unreadCount = auth()->user()?->unreadNotifications()->count() ?? 0;
                             $latestNotifications = auth()->user()?->notifications()->latest()->take(5)->get() ?? collect();
@@ -919,6 +950,14 @@
                 }
             };
 
+            const hidePageProgress = () => {
+                const progress = document.getElementById('pageProgress');
+                if (progress) {
+                    progress.classList.remove('active');
+                    progress.setAttribute('aria-hidden', 'true');
+                }
+            };
+
             document.addEventListener('click', (event) => {
                 const link = event.target.closest('a');
                 if (!link) {
@@ -928,11 +967,23 @@
                 if (!href || href.startsWith('#') || link.getAttribute('target') === '_blank') {
                     return;
                 }
+                if (link.hasAttribute('data-download')) {
+                    showPageProgress();
+                    setTimeout(() => {
+                        hidePageProgress();
+                    }, 1500);
+                    return;
+                }
+
                 showPageProgress();
             });
 
             window.addEventListener('beforeunload', () => {
                 showPageProgress();
+            });
+
+            window.addEventListener('pageshow', () => {
+                hidePageProgress();
             });
 
             // Auto-refresh notifications every 30 seconds
