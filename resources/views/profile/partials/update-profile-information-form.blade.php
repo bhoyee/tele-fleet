@@ -1,6 +1,6 @@
 <section>
     <h2 class="h5 fw-semibold mb-2">Profile information</h2>
-    <p class="text-muted mb-4">Update your name and email address.</p>
+    <p class="text-muted mb-4">Update your name. Email and branch are read-only.</p>
 
     <form id="send-verification" method="post" action="{{ route('verification.send') }}">
         @csrf
@@ -18,20 +18,24 @@
 
         <div class="mb-3">
             <label class="form-label" for="email">Email</label>
-            <input id="email" name="email" type="email" class="form-control" value="{{ old('email', $user->email) }}" required autocomplete="username">
-            @error('email') <div class="text-danger small">{{ $message }}</div> @enderror
-
-            @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                <div class="mt-2 text-muted small">
-                    Your email address is unverified.
-                    <button form="send-verification" class="btn btn-link p-0 align-baseline">Resend verification email</button>
-                </div>
-
-                @if (session('status') === 'verification-link-sent')
-                    <div class="mt-2 text-success small">A new verification link has been sent.</div>
-                @endif
-            @endif
+            <input id="email" name="email" type="email" class="form-control" value="{{ $user->email }}" readonly>
         </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="branch_name">Branch</label>
+            <input id="branch_name" type="text" class="form-control" value="{{ $user->branch?->name ?? 'N/A' }}" readonly>
+        </div>
+
+        @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
+            <div class="mt-2 text-muted small">
+                Your email address is unverified.
+                <button form="send-verification" class="btn btn-link p-0 align-baseline">Resend verification email</button>
+            </div>
+
+            @if (session('status') === 'verification-link-sent')
+                <div class="mt-2 text-success small">A new verification link has been sent.</div>
+            @endif
+        @endif
 
         <div class="d-flex align-items-center gap-3">
             <button class="btn btn-primary" type="submit">Save changes</button>
