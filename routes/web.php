@@ -3,10 +3,12 @@
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Branch\BranchController;
 use App\Http\Controllers\Fleet\DriverController;
+use App\Http\Controllers\Fleet\IncidentReportController;
 use App\Http\Controllers\Fleet\TripRequestController;
 use App\Http\Controllers\Fleet\VehicleController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -41,9 +43,31 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
     Route::resource('drivers', DriverController::class)->except(['show']);
 });
 
+Route::middleware(['auth', 'role:branch_admin'])->group(function () {
+    Route::get('incidents/create', [IncidentReportController::class, 'create'])->name('incidents.create');
+    Route::post('incidents', [IncidentReportController::class, 'store'])->name('incidents.store');
+});
+
+Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
+    Route::get('incidents', [IncidentReportController::class, 'index'])->name('incidents.index');
+    Route::get('incidents/{incident}', [IncidentReportController::class, 'show'])->name('incidents.show');
+    Route::get('incidents/{incident}/attachments/{filename}', [IncidentReportController::class, 'downloadAttachment'])->name('incidents.attachments.download');
+});
+
+Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
+    Route::patch('incidents/{incident}/status', [IncidentReportController::class, 'updateStatus'])->name('incidents.status');
+});
+
+Route::middleware(['auth', 'role:super_admin'])->group(function () {
+    Route::delete('incidents/{incident}', [IncidentReportController::class, 'destroy'])->name('incidents.destroy');
+    Route::get('incidents/export/csv', [IncidentReportController::class, 'exportCsv'])->name('incidents.export.csv');
+    Route::get('incidents/export/pdf', [IncidentReportController::class, 'exportPdf'])->name('incidents.export.pdf');
+});
+
 Route::middleware(['auth', 'role:super_admin,branch_admin,branch_head'])->group(function () {
     Route::get('trips/create', [TripRequestController::class, 'create'])->name('trips.create');
     Route::post('trips', [TripRequestController::class, 'store'])->name('trips.store');
+    Route::get('trips/my-requests', [TripRequestController::class, 'myRequests'])->name('trips.my');
 });
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
@@ -54,6 +78,12 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
 Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::get('trips', [TripRequestController::class, 'index'])->name('trips.index');
     Route::get('trips/{tripRequest}', [TripRequestController::class, 'show'])->name('trips.show');
+});
+
+Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
+    Route::get('reports/my-requests', [ReportController::class, 'myRequests'])->name('reports.my-requests');
+    Route::get('reports/my-requests/export/excel', [ReportController::class, 'exportMyRequestsExcel'])->name('reports.my-requests.excel');
+    Route::get('reports/my-requests/export/pdf', [ReportController::class, 'exportMyRequestsPdf'])->name('reports.my-requests.pdf');
 });
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
