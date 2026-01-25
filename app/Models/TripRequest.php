@@ -32,6 +32,7 @@ class TripRequest extends Model
         'is_completed',
         'logbook_entered_by',
         'logbook_entered_at',
+        'updated_by_user_id',
     ];
 
     protected $casts = [
@@ -72,6 +73,11 @@ class TripRequest extends Model
     public function logbookEnteredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'logbook_entered_by');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by_user_id');
     }
 
     public function log(): HasOne

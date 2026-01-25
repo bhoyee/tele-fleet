@@ -94,7 +94,16 @@ class TripRequestController extends Controller
 
     public function show(TripRequest $tripRequest): View
     {
-        $tripRequest->load(['branch', 'requestedBy', 'approvedBy', 'assignedVehicle', 'assignedDriver', 'log']);
+        $tripRequest->load([
+            'branch',
+            'requestedBy',
+            'approvedBy',
+            'assignedVehicle',
+            'assignedDriver',
+            'log.enteredBy',
+            'log.editedBy',
+            'updatedBy',
+        ]);
 
         $vehicles = collect();
         $drivers = collect();
@@ -202,9 +211,175 @@ class TripRequestController extends Controller
 
     public function logbook(TripRequest $tripRequest): View
     {
-        $tripRequest->load(['assignedDriver']);
+        $tripRequest->load(['assignedDriver', 'log']);
 
         return view('trips.logbook', compact('tripRequest'));
+    }
+
+    public function logbookIndex(): View
+    {
+        $trips = TripRequest::with(['branch', 'assignedVehicle', 'assignedDriver', 'log.enteredBy', 'log.editedBy'])
+            ->whereIn('status', ['assigned', 'completed'])
+            ->latest()
+            ->get();
+
+        return view('trips.logbook-index', compact('trips'));
+    }
+
+    public function edit(TripRequest $tripRequest): View
+    {
+        if ($tripRequest->status === 'completed') {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'Completed trips cannot be edited.');
+        }
+
+        $branches = Branch::orderBy('name')->get();
+
+        return view('trips.edit', compact('tripRequest', 'branches'));
+    }
+
+    public function update(StoreTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
+    {
+        if ($tripRequest->status === 'completed') {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'Completed trips cannot be edited.');
+        }
+
+        $data = $request->validated();
+
+        $tripRequest->update(array_merge($data, [
+            'updated_by_user_id' => $request->user()->id,
+        ]));
+
+        $auditLog->log('trip_request.updated', $tripRequest, [], $data);
+
+        return redirect()
+            ->route('trips.show', $tripRequest)
+            ->with('success', 'Trip updated successfully.');
+    }
+
+    public function editLogbook(TripRequest $tripRequest): View
+    {
+        $tripRequest->load(['assignedDriver', 'log']);
+
+        if (! $tripRequest->log) {
+            return redirect()
+                ->route('trips.logbook', $tripRequest)
+                ->with('error', 'No logbook found for this trip yet.');
+        }
+
+        return view('trips.logbook', compact('tripRequest'));
+    }
+
+    public function updateLogbook(LogTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
+    {
+        $tripRequest->load(['log']);
+
+        if (! $tripRequest->log) {
+            return redirect()
+                ->route('trips.logbook', $tripRequest)
+                ->with('error', 'No logbook found for this trip yet.');
+        }
+
+        $data = $request->validated();
+
+        $distance = $data['end_mileage'] - $data['start_mileage'];
+        $fuelConsumed = null;
+        if ($data['fuel_before_trip'] !== null && $data['fuel_after_trip'] !== null) {
+            $fuelConsumed = max(0, $data['fuel_before_trip'] - $data['fuel_after_trip']);
+        }
+
+        $durationHours = null;
+        if (! empty($data['actual_start_time']) && ! empty($data['actual_end_time'])) {
+            $start = Carbon::parse($data['actual_start_time']);
+            $end = Carbon::parse($data['actual_end_time']);
+            $durationHours = round($start->diffInMinutes($end) / 60, 2);
+        }
+
+        $tripRequest->log->update([
+            'start_mileage' => $data['start_mileage'],
+            'end_mileage' => $data['end_mileage'],
+            'distance_traveled' => $distance,
+            'fuel_before_trip' => $data['fuel_before_trip'] ?? null,
+            'fuel_after_trip' => $data['fuel_after_trip'] ?? null,
+            'fuel_consumed' => $fuelConsumed,
+            'actual_start_time' => $data['actual_start_time'] ?? null,
+            'actual_end_time' => $data['actual_end_time'] ?? null,
+            'trip_duration_hours' => $durationHours,
+            'driver_name' => $data['driver_name'],
+            'driver_license_number' => $data['driver_license_number'],
+            'paper_logbook_ref_number' => $data['paper_logbook_ref_number'] ?? null,
+            'driver_notes' => $data['driver_notes'] ?? null,
+            'entered_by_user_id' => $tripRequest->log->entered_by_user_id,
+            'edited_by_user_id' => $request->user()->id,
+            'log_date' => $data['log_date'],
+            'remarks' => $data['remarks'] ?? null,
+        ]);
+
+        $tripRequest->update([
+            'status' => 'completed',
+            'is_completed' => true,
+            'logbook_entered_by' => $request->user()->id,
+            'logbook_entered_at' => now(),
+        ]);
+
+        $auditLog->log('trip_request.logbook_updated', $tripRequest, [], [
+            'trip_log_id' => $tripRequest->log->id,
+        ]);
+
+        return redirect()
+            ->route('trips.show', $tripRequest)
+            ->with('success', 'Trip logbook updated.');
+    }
+
+    public function destroy(TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
+    {
+        $tripRequest->load('log');
+
+        if ($tripRequest->log) {
+            $tripRequest->log->delete();
+        }
+
+        $tripRequest->delete();
+
+        $auditLog->log('trip_request.deleted', $tripRequest, [], [
+            'trip_request_id' => $tripRequest->id,
+        ]);
+
+        return redirect()
+            ->route('trips.index')
+            ->with('success', 'Trip deleted.');
+    }
+
+    public function destroyLogbook(TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
+    {
+        $tripRequest->load('log');
+
+        if (! $tripRequest->log) {
+            return redirect()
+                ->route('logbooks.index')
+                ->with('error', 'No logbook found to delete.');
+        }
+
+        $logId = $tripRequest->log->id;
+        $tripRequest->log->delete();
+
+        $tripRequest->update([
+            'status' => 'assigned',
+            'is_completed' => false,
+            'logbook_entered_by' => null,
+            'logbook_entered_at' => null,
+        ]);
+
+        $auditLog->log('trip_request.logbook_deleted', $tripRequest, [], [
+            'trip_log_id' => $logId,
+        ]);
+
+        return redirect()
+            ->route('logbooks.index')
+            ->with('success', 'Logbook deleted.');
     }
 
     public function storeLogbook(LogTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse

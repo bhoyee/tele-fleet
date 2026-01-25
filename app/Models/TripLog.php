@@ -26,6 +26,7 @@ class TripLog extends Model
         'paper_logbook_ref_number',
         'driver_notes',
         'entered_by_user_id',
+        'edited_by_user_id',
         'log_date',
         'remarks',
         'verified_by_branch_head',
@@ -53,5 +54,10 @@ class TripLog extends Model
     public function enteredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'entered_by_user_id');
+    }
+
+    public function editedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'edited_by_user_id');
     }
 }

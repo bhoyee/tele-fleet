@@ -46,18 +46,31 @@ Route::middleware(['auth', 'role:super_admin,branch_admin,branch_head'])->group(
     Route::post('trips', [TripRequestController::class, 'store'])->name('trips.store');
 });
 
+Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
+    Route::get('trips/{tripRequest}/edit', [TripRequestController::class, 'edit'])->name('trips.edit');
+    Route::patch('trips/{tripRequest}', [TripRequestController::class, 'update'])->name('trips.update');
+});
+
 Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::get('trips', [TripRequestController::class, 'index'])->name('trips.index');
     Route::get('trips/{tripRequest}', [TripRequestController::class, 'show'])->name('trips.show');
 });
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
+    Route::get('logbooks', [TripRequestController::class, 'logbookIndex'])->name('logbooks.index');
     Route::patch('trips/{tripRequest}/approve', [TripRequestController::class, 'approve'])->name('trips.approve');
     Route::patch('trips/{tripRequest}/reject', [TripRequestController::class, 'reject'])->name('trips.reject');
     Route::get('trips/{tripRequest}/assign', [TripRequestController::class, 'assignmentForm'])->name('trips.assign');
     Route::patch('trips/{tripRequest}/assign', [TripRequestController::class, 'assign'])->name('trips.assign.store');
     Route::get('trips/{tripRequest}/logbook', [TripRequestController::class, 'logbook'])->name('trips.logbook');
     Route::post('trips/{tripRequest}/logbook', [TripRequestController::class, 'storeLogbook'])->name('trips.logbook.store');
+    Route::get('trips/{tripRequest}/logbook/edit', [TripRequestController::class, 'editLogbook'])->name('trips.logbook.edit');
+    Route::patch('trips/{tripRequest}/logbook', [TripRequestController::class, 'updateLogbook'])->name('trips.logbook.update');
+});
+
+Route::middleware(['auth', 'role:super_admin'])->group(function () {
+    Route::delete('trips/{tripRequest}', [TripRequestController::class, 'destroy'])->name('trips.destroy');
+    Route::delete('trips/{tripRequest}/logbook', [TripRequestController::class, 'destroyLogbook'])->name('trips.logbook.destroy');
 });
 
 require __DIR__.'/auth.php';

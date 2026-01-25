@@ -253,6 +253,23 @@
                 box-shadow: 0 8px 20px rgba(5, 108, 163, 0.2);
             }
 
+            .btn-loading {
+                position: relative;
+                pointer-events: none;
+                opacity: 0.85;
+            }
+
+            .btn-loading .btn-label {
+                visibility: hidden;
+            }
+
+            .btn-loading .btn-spinner {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+            }
+
             /* Alert */
             .alert {
                 border: none;
@@ -591,6 +608,14 @@
                                 </a>
                             </li>
                         @endif
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('logbooks.*')) active @endif" href="{{ route('logbooks.index') }}">
+                                    <i class="bi bi-journal-text nav-icon"></i>
+                                    <span>Logbooks</span>
+                                </a>
+                            </li>
+                        @endif
                     </ul>
                 </nav>
             </aside>
@@ -807,6 +832,37 @@
                         info: true,
                     });
                 }
+
+                const applyLoadingState = (button) => {
+                    if (!button || button.classList.contains('btn-loading')) {
+                        return;
+                    }
+                    const label = document.createElement('span');
+                    label.className = 'btn-label';
+                    label.textContent = button.textContent.trim();
+                    const spinner = document.createElement('span');
+                    spinner.className = 'spinner-border spinner-border-sm btn-spinner';
+                    spinner.setAttribute('role', 'status');
+                    spinner.setAttribute('aria-hidden', 'true');
+                    button.textContent = '';
+                    button.appendChild(label);
+                    button.appendChild(spinner);
+                    button.classList.add('btn-loading');
+                    button.setAttribute('disabled', 'disabled');
+                };
+
+                document.querySelectorAll('form').forEach((form) => {
+                    form.addEventListener('submit', () => {
+                        const submitButton = form.querySelector('button[type="submit"]');
+                        applyLoadingState(submitButton);
+                    });
+                });
+
+                document.querySelectorAll('[data-loading]').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        applyLoadingState(button);
+                    });
+                });
             });
 
             // Initialize tooltips

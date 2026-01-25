@@ -4,7 +4,7 @@
             <h1 class="h3 mb-1">Trip {{ $tripRequest->request_number }}</h1>
             <p class="text-muted mb-0">Status: {{ ucfirst($tripRequest->status) }}</p>
         </div>
-        <a href="{{ route('trips.index') }}" class="btn btn-outline-secondary">Back</a>
+        <a href="{{ route('trips.index') }}" class="btn btn-outline-secondary" data-loading>Back</a>
     </div>
 
     <div class="row g-4">
@@ -41,6 +41,16 @@
                             <div class="text-muted small">Notes</div>
                             <div class="fw-semibold">{{ $tripRequest->additional_notes ?: 'N/A' }}</div>
                         </div>
+                        @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                            <div class="col-md-6">
+                                <div class="text-muted small">Last Updated By</div>
+                                <div class="fw-semibold">{{ $tripRequest->updatedBy?->name ?? 'N/A' }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Last Updated At</div>
+                                <div class="fw-semibold">{{ $tripRequest->updated_at?->format('M d, Y H:i') ?? 'N/A' }}</div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -70,6 +80,16 @@
                                 <div class="text-muted small">Remarks</div>
                                 <div class="fw-semibold">{{ $tripRequest->log->remarks ?: 'N/A' }}</div>
                             </div>
+                            @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                                <div class="col-md-6">
+                                    <div class="text-muted small">Entered By</div>
+                                    <div class="fw-semibold">{{ $tripRequest->log->enteredBy?->name ?? 'N/A' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">Last Edited By</div>
+                                    <div class="fw-semibold">{{ $tripRequest->log->editedBy?->name ?? 'N/A' }}</div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -139,13 +159,28 @@
                     @endif
 
                     @if ($tripRequest->status === 'assigned' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
-                        <a href="{{ route('trips.logbook', $tripRequest) }}" class="btn btn-dark w-100">Enter Logbook</a>
+                        <a href="{{ route('trips.logbook', $tripRequest) }}" class="btn btn-dark w-100" data-loading>Enter Logbook</a>
+                    @endif
+
+                    @if ($tripRequest->status === 'completed' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                        <a href="{{ route('trips.logbook.edit', $tripRequest) }}" class="btn btn-outline-dark w-100" data-loading>Edit Logbook</a>
                     @endif
 
                     @if ($tripRequest->status === 'rejected')
                         <div class="alert alert-warning mt-3">
                             <strong>Rejected:</strong> {{ $tripRequest->rejection_reason }}
                         </div>
+                    @endif
+
+                    @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                        <button type="button"
+                                class="btn btn-outline-danger w-100 mt-3"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteTripModal"
+                                data-delete-action="{{ route('trips.destroy', $tripRequest) }}"
+                                data-delete-label="{{ $tripRequest->request_number }}">
+                            Delete Trip
+                        </button>
                     @endif
                 </div>
             </div>
@@ -161,4 +196,47 @@
             </div>
         </div>
     </div>
+
+    @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+        <div class="modal fade" id="deleteTripModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Trip</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">Delete trip <strong id="deleteTripLabel"></strong>? This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <form method="POST" id="deleteTripForm">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Delete Trip</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @push('scripts')
+            <script>
+                document.querySelectorAll('[data-delete-action]').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const action = button.getAttribute('data-delete-action');
+                        const label = button.getAttribute('data-delete-label');
+                        const form = document.getElementById('deleteTripForm');
+                        if (form) {
+                            form.setAttribute('action', action);
+                        }
+                        const labelEl = document.getElementById('deleteTripLabel');
+                        if (labelEl) {
+                            labelEl.textContent = label;
+                        }
+                    });
+                });
+            </script>
+        @endpush
+    @endif
 </x-admin-layout>
