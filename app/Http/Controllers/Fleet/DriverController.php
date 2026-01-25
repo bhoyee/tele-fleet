@@ -14,7 +14,7 @@ class DriverController extends Controller
 {
     public function index(): View
     {
-        $drivers = Driver::with('branch')->orderBy('full_name')->paginate(15);
+        $drivers = Driver::with('branch')->orderBy('full_name')->get();
 
         return view('drivers.index', compact('drivers'));
     }

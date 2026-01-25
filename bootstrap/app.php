@@ -4,6 +4,8 @@ use App\Http\Middleware\CheckRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,5 +19,18 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->renderable(function (TokenMismatchException $exception, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Session expired.'], 419);
+            }
+
+            if (auth()->check()) {
+                auth()->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+
+            return redirect('/')
+                ->with('error', 'Session expired. Please sign in again.');
+        });
     })->create();

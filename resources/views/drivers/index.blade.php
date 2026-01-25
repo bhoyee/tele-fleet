@@ -10,7 +10,7 @@
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table align-middle datatable">
                     <thead class="table-light">
                         <tr>
                             <th>Name</th>
@@ -22,11 +22,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($drivers as $driver)
+                        @foreach ($drivers as $driver)
                             <tr>
                                 <td>{{ $driver->full_name }}</td>
                                 <td>{{ $driver->license_number }}</td>
-                                <td>{{ $driver->branch?->name ?? '—' }}</td>
+                                <td>{{ $driver->branch?->name ?? 'N/A' }}</td>
                                 <td>{{ $driver->phone }}</td>
                                 <td>
                                     <span class="badge {{ $driver->status === 'active' ? 'bg-success' : ($driver->status === 'inactive' ? 'bg-secondary' : 'bg-warning') }}">
@@ -35,26 +35,57 @@
                                 </td>
                                 <td class="text-end">
                                     <a href="{{ route('drivers.edit', $driver) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <form method="POST" action="{{ route('drivers.destroy', $driver) }}" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this driver?')">Archive</button>
-                                    </form>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#archiveDriverModal"
+                                            data-action="{{ route('drivers.destroy', $driver) }}"
+                                            data-name="{{ $driver->full_name }}">
+                                        Archive
+                                    </button>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No drivers found.</td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
-        @if ($drivers->hasPages())
-            <div class="card-footer bg-white">
-                {{ $drivers->links() }}
-            </div>
-        @endif
     </div>
+
+    <div class="modal fade" id="archiveDriverModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Archive Driver</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Archive driver <strong id="archiveDriverName"></strong>? You can restore later if needed.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="POST" id="archiveDriverForm">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">Archive Driver</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            const archiveDriverModal = document.getElementById('archiveDriverModal');
+            if (archiveDriverModal) {
+                archiveDriverModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const action = button.getAttribute('data-action');
+                    const name = button.getAttribute('data-name');
+                    document.getElementById('archiveDriverForm').setAttribute('action', action);
+                    document.getElementById('archiveDriverName').textContent = name;
+                });
+            }
+        </script>
+    @endpush
 </x-admin-layout>

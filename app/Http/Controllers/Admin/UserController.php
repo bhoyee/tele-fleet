@@ -17,7 +17,7 @@ class UserController extends Controller
 {
     public function index(): View
     {
-        $users = User::with('branch')->orderBy('name')->paginate(15);
+        $users = User::with('branch')->orderBy('name')->get();
 
         return view('admin.users.index', compact('users'));
     }
@@ -75,11 +75,11 @@ class UserController extends Controller
 
     public function destroy(User $user): RedirectResponse
     {
-        $user->delete();
+        $user->forceDelete();
 
         return redirect()
             ->route('admin.users.index')
-            ->with('success', 'User archived successfully.');
+            ->with('success', 'User deleted successfully.');
     }
 
     private function roleOptions(): array

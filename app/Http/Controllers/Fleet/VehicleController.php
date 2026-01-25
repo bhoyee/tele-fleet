@@ -14,7 +14,7 @@ class VehicleController extends Controller
 {
     public function index(): View
     {
-        $vehicles = Vehicle::with('branch')->orderBy('registration_number')->paginate(15);
+        $vehicles = Vehicle::with('branch')->orderBy('registration_number')->get();
 
         return view('vehicles.index', compact('vehicles'));
     }

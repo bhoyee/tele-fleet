@@ -15,11 +15,11 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="text-muted small">Branch</div>
-                            <div class="fw-semibold">{{ $tripRequest->branch?->name ?? '—' }}</div>
+                            <div class="fw-semibold">{{ $tripRequest->branch?->name ?? 'N/A' }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="text-muted small">Requested By</div>
-                            <div class="fw-semibold">{{ $tripRequest->requestedBy?->name ?? '—' }}</div>
+                            <div class="fw-semibold">{{ $tripRequest->requestedBy?->name ?? 'N/A' }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="text-muted small">Purpose</div>
@@ -39,7 +39,7 @@
                         </div>
                         <div class="col-md-12">
                             <div class="text-muted small">Notes</div>
-                            <div class="fw-semibold">{{ $tripRequest->additional_notes ?: '—' }}</div>
+                            <div class="fw-semibold">{{ $tripRequest->additional_notes ?: 'N/A' }}</div>
                         </div>
                     </div>
                 </div>
@@ -52,7 +52,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="text-muted small">Mileage</div>
-                                <div class="fw-semibold">{{ $tripRequest->log->start_mileage }} → {{ $tripRequest->log->end_mileage }} km</div>
+                                <div class="fw-semibold">{{ $tripRequest->log->start_mileage }} to {{ $tripRequest->log->end_mileage }} km</div>
                             </div>
                             <div class="col-md-6">
                                 <div class="text-muted small">Distance</div>
@@ -68,7 +68,7 @@
                             </div>
                             <div class="col-md-12">
                                 <div class="text-muted small">Remarks</div>
-                                <div class="fw-semibold">{{ $tripRequest->log->remarks ?: '—' }}</div>
+                                <div class="fw-semibold">{{ $tripRequest->log->remarks ?: 'N/A' }}</div>
                             </div>
                         </div>
                     </div>
@@ -100,7 +100,42 @@
                     @endif
 
                     @if ($tripRequest->status === 'approved' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
-                        <a href="{{ route('trips.assign', $tripRequest) }}" class="btn btn-primary w-100 mb-2">Assign Vehicle & Driver</a>
+                        <form method="POST" action="{{ route('trips.assign.store', $tripRequest) }}" class="mb-3">
+                            @csrf
+                            @method('PATCH')
+
+                            <div class="mb-3">
+                                <label class="form-label" for="assigned_vehicle_id">Vehicle</label>
+                                <select class="form-select" id="assigned_vehicle_id" name="assigned_vehicle_id" required>
+                                    <option value="">Select vehicle</option>
+                                    @foreach ($vehicles as $vehicle)
+                                        <option value="{{ $vehicle->id }}">
+                                            {{ $vehicle->registration_number }} - {{ $vehicle->make }} {{ $vehicle->model }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('assigned_vehicle_id') <div class="text-danger small">{{ $message }}</div> @enderror
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="assigned_driver_id">Driver</label>
+                                <select class="form-select" id="assigned_driver_id" name="assigned_driver_id" required>
+                                    <option value="">Select driver</option>
+                                    @foreach ($drivers as $driver)
+                                        <option value="{{ $driver->id }}">{{ $driver->full_name }} ({{ $driver->license_number }})</option>
+                                    @endforeach
+                                </select>
+                                @error('assigned_driver_id') <div class="text-danger small">{{ $message }}</div> @enderror
+                            </div>
+
+                            @if ($vehicles->isEmpty() || $drivers->isEmpty())
+                                <div class="alert alert-warning">
+                                    Assignment requires available vehicles and active drivers.
+                                </div>
+                            @endif
+
+                            <button class="btn btn-primary w-100" type="submit">Assign Vehicle & Driver</button>
+                        </form>
                     @endif
 
                     @if ($tripRequest->status === 'assigned' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
@@ -119,9 +154,9 @@
                 <div class="card-body">
                     <h5 class="fw-semibold mb-3">Assignment</h5>
                     <div class="text-muted small mb-1">Vehicle</div>
-                    <div class="fw-semibold">{{ $tripRequest->assignedVehicle?->registration_number ?? '—' }}</div>
+                    <div class="fw-semibold">{{ $tripRequest->assignedVehicle?->registration_number ?? 'N/A' }}</div>
                     <div class="text-muted small mb-1 mt-3">Driver</div>
-                    <div class="fw-semibold">{{ $tripRequest->assignedDriver?->full_name ?? '—' }}</div>
+                    <div class="fw-semibold">{{ $tripRequest->assignedDriver?->full_name ?? 'N/A' }}</div>
                 </div>
             </div>
         </div>

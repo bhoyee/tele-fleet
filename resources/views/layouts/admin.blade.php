@@ -11,12 +11,15 @@
         <link href="https://fonts.bunny.net/css?family=manrope:400,500,600,700&display=swap" rel="stylesheet" />
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+        <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 
         <style>
             :root {
-                --primary: #4361ee;
-                --primary-dark: #3a56d4;
-                --secondary: #6c757d;
+                --primary: #056CA3;
+                --primary-dark: #065E8C;
+                --primary-light: rgba(5, 108, 163, 0.1);
+                --primary-lighter: rgba(5, 108, 163, 0.05);
+                --secondary: #64748b;
                 --success: #06d6a0;
                 --danger: #ef476f;
                 --warning: #ffd166;
@@ -25,13 +28,14 @@
                 --light: #f8f9fa;
                 --sidebar-bg: #ffffff;
                 --sidebar-width: 260px;
-                --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+                --card-shadow: 0 4px 12px rgba(5, 108, 163, 0.08);
+                --shadow-lg: 0 10px 25px rgba(5, 108, 163, 0.1);
                 --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             body {
                 font-family: "Manrope", system-ui, -apple-system, sans-serif;
-                background: #f5f7fb;
+                background: #f5f9ff;
                 color: #333;
                 overflow-x: hidden;
             }
@@ -40,7 +44,7 @@
             .sidebar {
                 width: var(--sidebar-width);
                 background: var(--sidebar-bg);
-                border-right: 1px solid rgba(0, 0, 0, 0.08);
+                border-right: 1px solid rgba(5, 108, 163, 0.1);
                 position: fixed;
                 height: 100vh;
                 left: 0;
@@ -48,20 +52,26 @@
                 z-index: 1000;
                 transition: var(--transition);
                 padding: 0;
-                box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03);
+                box-shadow: 2px 0 12px rgba(5, 108, 163, 0.03);
+                background: linear-gradient(to bottom, #ffffff, #f8fbfe);
             }
 
             .sidebar-brand {
                 padding: 1.5rem 1.5rem 1rem;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+                border-bottom: 1px solid rgba(5, 108, 163, 0.1);
+                background: #056CA3;
             }
 
             .sidebar-brand h2 {
                 font-weight: 700;
-                color: var(--primary);
+                color: white;
                 margin: 0;
                 font-size: 1.5rem;
                 letter-spacing: -0.5px;
+            }
+
+            .sidebar-brand h2 i {
+                color: white;
             }
 
             .sidebar-nav {
@@ -84,14 +94,14 @@
             }
 
             .nav-link:hover {
-                color: var(--primary);
-                background: rgba(67, 97, 238, 0.08);
+                color: #056CA3;
+                background: rgba(5, 108, 163, 0.08);
                 transform: translateX(4px);
             }
 
             .nav-link.active {
-                color: var(--primary);
-                background: rgba(67, 97, 238, 0.12);
+                color: #056CA3;
+                background: rgba(5, 108, 163, 0.12);
                 font-weight: 600;
             }
 
@@ -102,7 +112,7 @@
                 top: 0;
                 height: 100%;
                 width: 4px;
-                background: var(--primary);
+                background: #056CA3;
                 border-radius: 0 4px 4px 0;
             }
 
@@ -124,13 +134,14 @@
             /* Topbar */
             .topbar {
                 background: #ffffff;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+                border-bottom: 1px solid rgba(5, 108, 163, 0.1);
                 padding: 1rem 2rem;
                 position: sticky;
                 top: 0;
                 z-index: 100;
                 backdrop-filter: blur(10px);
-                background: rgba(255, 255, 255, 0.95);
+                background: rgba(255, 255, 255, 0.98);
+                box-shadow: 0 2px 10px rgba(5, 108, 163, 0.05);
             }
 
             .user-dropdown {
@@ -140,16 +151,18 @@
                 padding: 0.5rem 1rem;
                 border-radius: 10px;
                 transition: var(--transition);
+                border: 1px solid rgba(5, 108, 163, 0.1);
             }
 
             .user-dropdown:hover {
-                background: rgba(0, 0, 0, 0.04);
+                background: rgba(5, 108, 163, 0.05);
+                border-color: #056CA3;
             }
 
             .user-avatar {
                 width: 36px;
                 height: 36px;
-                background: var(--primary);
+                background: linear-gradient(135deg, #056CA3 0%, #065E8C 100%);
                 color: white;
                 border-radius: 10px;
                 display: flex;
@@ -167,18 +180,20 @@
                 transition: var(--transition);
                 background: white;
                 overflow: hidden;
+                border: 1px solid rgba(5, 108, 163, 0.1);
             }
 
             .card:hover {
                 transform: translateY(-4px);
-                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-lg);
             }
 
             .card-header {
                 background: transparent;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+                border-bottom: 1px solid rgba(5, 108, 163, 0.1);
                 padding: 1.25rem 1.5rem;
                 font-weight: 600;
+                background: rgba(5, 108, 163, 0.02);
             }
 
             .card-body {
@@ -187,8 +202,9 @@
 
             /* Stats Cards */
             .stat-card {
-                border-left: 4px solid var(--primary);
+                border-left: 4px solid #056CA3;
                 padding: 1.25rem;
+                background: linear-gradient(to right, rgba(5, 108, 163, 0.02), transparent);
             }
 
             .stat-card .stat-value {
@@ -222,17 +238,19 @@
 
             /* Buttons */
             .btn-primary {
-                background: var(--primary);
+                background: #056CA3;
                 border: none;
                 border-radius: 10px;
                 padding: 0.625rem 1.5rem;
                 font-weight: 600;
                 transition: var(--transition);
+                background: linear-gradient(135deg, #056CA3 0%, #065E8C 100%);
             }
 
             .btn-primary:hover {
-                background: var(--primary-dark);
+                background: linear-gradient(135deg, #065E8C 0%, #056CA3 100%);
                 transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(5, 108, 163, 0.2);
             }
 
             /* Alert */
@@ -242,12 +260,19 @@
                 padding: 1rem 1.5rem;
                 margin-bottom: 1.5rem;
                 box-shadow: var(--card-shadow);
+                border-left: 4px solid;
+            }
+
+            .alert-success {
+                background: rgba(6, 214, 160, 0.1);
+                border-left-color: #06d6a0;
+                color: #059669;
             }
 
             /* Footer */
             .app-footer {
                 background: white;
-                border-top: 1px solid rgba(0, 0, 0, 0.08);
+                border-top: 1px solid rgba(5, 108, 163, 0.1);
                 padding: 1.5rem 2rem;
                 margin-top: auto;
             }
@@ -273,20 +298,20 @@
 
             /* Custom Scrollbar */
             ::-webkit-scrollbar {
-                width: 6px;
+                width: 8px;
             }
 
             ::-webkit-scrollbar-track {
-                background: #f1f1f1;
+                background: #f1f5ff;
             }
 
             ::-webkit-scrollbar-thumb {
-                background: #c1c1c1;
-                border-radius: 3px;
+                background: rgba(5, 108, 163, 0.3);
+                border-radius: 4px;
             }
 
             ::-webkit-scrollbar-thumb:hover {
-                background: #a8a8a8;
+                background: rgba(5, 108, 163, 0.5);
             }
 
             /* Active State Enhancement */
@@ -297,7 +322,7 @@
             /* Content Padding */
             .content-wrapper {
                 padding: 2rem;
-                max-width: 1400px;
+                max-width: 1600px;
                 margin: 0 auto;
                 width: 100%;
             }
@@ -305,12 +330,18 @@
             /* Page Header */
             .page-header {
                 margin-bottom: 2rem;
+                background: white;
+                padding: 1.5rem;
+                border-radius: 16px;
+                box-shadow: var(--card-shadow);
+                border: 1px solid rgba(5, 108, 163, 0.1);
             }
 
             .page-header h1 {
                 font-weight: 700;
-                color: var(--dark);
+                color: #056CA3;
                 margin-bottom: 0.5rem;
+                font-size: 1.75rem;
             }
 
             .page-header .breadcrumb {
@@ -325,24 +356,185 @@
                 border-radius: 12px;
                 overflow: hidden;
                 box-shadow: var(--card-shadow);
+                border: 1px solid rgba(5, 108, 163, 0.1);
             }
 
             .table thead th {
-                border-bottom: 2px solid rgba(0, 0, 0, 0.08);
+                border-bottom: 2px solid rgba(5, 108, 163, 0.1);
                 background: #f8fafc;
                 padding: 1rem 1.5rem;
                 font-weight: 600;
                 color: var(--dark);
+                background: rgba(5, 108, 163, 0.02);
             }
 
             .table tbody td {
                 padding: 1rem 1.5rem;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                border-bottom: 1px solid rgba(5, 108, 163, 0.05);
+            }
+
+            .table tbody tr:hover {
+                background: rgba(5, 108, 163, 0.02);
+            }
+
+            /* Notification Badge */
+            .notification-badge {
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                width: 18px;
+                height: 18px;
+                background: linear-gradient(135deg, #ef476f 0%, #dc2626 100%);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.7rem;
+                font-weight: 600;
+            }
+
+            /* Quick Stats */
+            .quick-stats {
+                background: linear-gradient(135deg, #056CA3 0%, #065E8C 100%);
+                color: white;
+                border-radius: 16px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+                box-shadow: var(--shadow-lg);
+            }
+
+            .quick-stats .stat-item {
+                text-align: center;
+                padding: 1rem;
+            }
+
+            .quick-stats .stat-value {
+                font-size: 2rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+            }
+
+            .quick-stats .stat-label {
+                font-size: 0.875rem;
+                opacity: 0.9;
+            }
+
+            /* Status Badges */
+            .status-badge {
+                padding: 0.25rem 0.75rem;
+                border-radius: 20px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .status-badge.active {
+                background: rgba(6, 214, 160, 0.1);
+                color: #059669;
+                border: 1px solid rgba(6, 214, 160, 0.2);
+            }
+
+            .status-badge.inactive {
+                background: rgba(239, 71, 111, 0.1);
+                color: #dc2626;
+                border: 1px solid rgba(239, 71, 111, 0.2);
+            }
+
+            .status-badge.pending {
+                background: rgba(255, 209, 102, 0.1);
+                color: #d97706;
+                border: 1px solid rgba(255, 209, 102, 0.2);
+            }
+
+            /* Action Buttons */
+            .action-btn {
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(5, 108, 163, 0.1);
+                color: #056CA3;
+                border: 1px solid rgba(5, 108, 163, 0.2);
+                transition: var(--transition);
+            }
+
+            .action-btn:hover {
+                background: #056CA3;
+                color: white;
+                transform: translateY(-2px);
+            }
+
+            /* Search Bar */
+            .search-bar {
+                position: relative;
+                max-width: 400px;
+            }
+
+            .search-bar input {
+                padding-left: 2.5rem;
+                border-radius: 10px;
+                border: 1px solid rgba(5, 108, 163, 0.2);
+                background: rgba(5, 108, 163, 0.02);
+            }
+
+            .search-bar input:focus {
+                border-color: #056CA3;
+                box-shadow: 0 0 0 3px rgba(5, 108, 163, 0.1);
+            }
+
+            .search-bar i {
+                position: absolute;
+                left: 1rem;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #64748b;
+            }
+
+            /* Role Badges */
+            .role-badge {
+                padding: 0.25rem 0.75rem;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                background: rgba(5, 108, 163, 0.1);
+                color: #056CA3;
+            }
+
+            /* Mobile Sidebar Overlay */
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+            @media (max-width: 992px) {
+                .sidebar {
+                    z-index: 1000;
+                }
+                .sidebar-overlay.active {
+                    display: block;
+                }
             }
         </style>
     </head>
     <body>
         <div class="app-shell d-flex">
+            <!-- Sidebar Overlay for Mobile -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
             <!-- Sidebar -->
             <aside class="sidebar">
                 <div class="sidebar-brand">
@@ -407,13 +599,13 @@
             <div class="main-content flex-grow-1">
                 <!-- Topbar -->
                 <header class="topbar d-flex justify-content-between align-items-center">
-                    <div>
+                    <div class="d-flex align-items-center">
                         <button class="btn btn-outline-secondary d-lg-none me-3" id="sidebarToggle">
                             <i class="bi bi-list"></i>
                         </button>
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb mb-0">
-                                <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Home</a></li>
+                                <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-primary">Home</a></li>
                                 <li class="breadcrumb-item active" aria-current="page">
                                     @php
                                         $routeName = request()->route()->getName();
@@ -429,23 +621,23 @@
                             $unreadCount = auth()->user()?->unreadNotifications()->count() ?? 0;
                             $latestNotifications = auth()->user()?->notifications()->latest()->take(5)->get() ?? collect();
                         @endphp
-                        <div class="dropdown">
-                            <button class="btn btn-light position-relative" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-bell"></i>
+                        <div class="dropdown position-relative">
+                            <button class="btn btn-light position-relative" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 10px; border: 1px solid rgba(5, 108, 163, 0.2);">
+                                <i class="bi bi-bell" style="color: #056CA3;"></i>
                                 @if ($unreadCount > 0)
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                        {{ $unreadCount }}
-                                    </span>
+                                    <span class="notification-badge">{{ $unreadCount }}</span>
                                 @endif
                             </button>
-                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-0" style="min-width: 320px;">
-                                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
-                                    <span class="fw-semibold">Notifications</span>
-                                    <form method="POST" action="{{ route('notifications.read_all') }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button class="btn btn-link btn-sm text-decoration-none" type="submit">Mark all read</button>
-                                    </form>
+                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-0" style="min-width: 320px; border: 1px solid rgba(5, 108, 163, 0.1);">
+                                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-light">
+                                    <span class="fw-semibold text-primary">Notifications</span>
+                                    @if ($unreadCount > 0)
+                                        <form method="POST" action="{{ route('notifications.read_all') }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button class="btn btn-link btn-sm text-decoration-none text-primary" type="submit">Mark all read</button>
+                                        </form>
+                                    @endif
                                 </div>
                                 @forelse ($latestNotifications as $notification)
                                     <div class="px-3 py-2 border-bottom">
@@ -477,41 +669,41 @@
                                 @empty
                                     <div class="px-3 py-4 text-center text-muted">No notifications yet.</div>
                                 @endforelse
-                                <div class="px-3 py-2 text-center">
-                                    <a class="text-decoration-none fw-semibold" href="{{ route('notifications.index') }}">View all notifications</a>
+                                <div class="px-3 py-2 text-center border-top">
+                                    <a class="text-decoration-none fw-semibold text-primary" href="{{ route('notifications.index') }}">View all notifications</a>
                                 </div>
                             </div>
                         </div>
 
                         <div class="dropdown">
-                        <button class="btn user-dropdown d-flex align-items-center" type="button" data-bs-toggle="dropdown">
-                            <div class="user-avatar me-2">
-                                {{ strtoupper(substr(auth()->user()?->name, 0, 1)) }}
-                            </div>
-                            <div class="d-flex flex-column text-start">
-                                <span class="fw-semibold">{{ auth()->user()?->name }}</span>
-                                <small class="text-muted">{{ auth()->user()?->role }}</small>
-                            </div>
-                            <i class="bi bi-chevron-down ms-2"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3" style="min-width: 200px;">
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center" href="{{ route('profile.edit') }}">
-                                    <i class="bi bi-person me-2"></i>
-                                    Profile
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="POST" action="{{ route('logout') }}" id="logoutForm">
-                                    @csrf
-                                    <button class="dropdown-item d-flex align-items-center text-danger" type="submit">
-                                        <i class="bi bi-box-arrow-right me-2"></i>
-                                        Log out
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
+                            <button class="btn user-dropdown d-flex align-items-center" type="button" data-bs-toggle="dropdown">
+                                <div class="user-avatar me-2">
+                                    {{ strtoupper(substr(auth()->user()?->name, 0, 1)) }}
+                                </div>
+                                <div class="d-flex flex-column text-start">
+                                    <span class="fw-semibold">{{ auth()->user()?->name }}</span>
+                                    <small class="text-muted">{{ auth()->user()?->role }}</small>
+                                </div>
+                                <i class="bi bi-chevron-down ms-2"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3" style="min-width: 200px; border: 1px solid rgba(5, 108, 163, 0.1);">
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center" href="{{ route('profile.edit') }}">
+                                        <i class="bi bi-person me-2 text-primary"></i>
+                                        Profile
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="POST" action="{{ route('logout') }}" id="logoutForm">
+                                        @csrf
+                                        <button class="dropdown-item d-flex align-items-center text-danger" type="submit">
+                                            <i class="bi bi-box-arrow-right me-2"></i>
+                                            Log out
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </header>
@@ -519,10 +711,18 @@
                 <!-- Page Content -->
                 <main class="content-wrapper">
                     @if (session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
                             <i class="bi bi-check-circle-fill me-2"></i>
-                            {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            <div>{{ session('success') }}</div>
+                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <div>{{ session('error') }}</div>
+                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
 
@@ -534,7 +734,7 @@
                     <div class="container-fluid">
                         <div class="row align-items-center">
                             <div class="col-md-6">
-                                &copy; {{ now()->year }} <strong>Tele-Fleet</strong>. All rights reserved.
+                                &copy; {{ now()->year }} <strong class="text-primary">Tele-Fleet</strong>. All rights reserved.
                             </div>
                             <div class="col-md-6 text-md-end">
                                 <span class="text-muted">v1.0.0</span>
@@ -545,23 +745,39 @@
             </div>
         </div>
 
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
             // Mobile sidebar toggle
-            document.getElementById('sidebarToggle').addEventListener('click', function() {
-                document.querySelector('.sidebar').classList.toggle('active');
-            });
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebar = document.querySelector('.sidebar');
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    sidebarOverlay.classList.toggle('active');
+                });
+            }
+
+            // Close sidebar when clicking overlay
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', function() {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                });
+            }
 
             // Close sidebar when clicking outside on mobile
             document.addEventListener('click', function(event) {
-                const sidebar = document.querySelector('.sidebar');
-                const toggleBtn = document.getElementById('sidebarToggle');
-                
                 if (window.innerWidth < 992 && 
                     !sidebar.contains(event.target) && 
-                    !toggleBtn.contains(event.target) &&
+                    !sidebarToggle.contains(event.target) &&
                     sidebar.classList.contains('active')) {
                     sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
                 }
             });
 
@@ -571,7 +787,53 @@
                 cards.forEach(card => {
                     card.style.transition = 'all 0.3s ease';
                 });
+                
+                // Auto-hide success alerts after 5 seconds
+                const successAlerts = document.querySelectorAll('.alert-success');
+                successAlerts.forEach(alert => {
+                    setTimeout(() => {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }, 5000);
+                });
+
+                if (window.jQuery && $('.datatable').length) {
+                    $('.datatable').DataTable({
+                        pageLength: 10,
+                        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+                        order: [],
+                        searching: true,
+                        paging: true,
+                        info: true,
+                    });
+                }
             });
+
+            // Initialize tooltips
+            document.addEventListener('DOMContentLoaded', function() {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            });
+
+            // Auto-refresh notifications every 30 seconds
+            setInterval(() => {
+                fetch('{{ route("notifications.count") }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        const badge = document.querySelector('.notification-badge');
+                        if (badge) {
+                            if (data.count > 0) {
+                                badge.textContent = data.count;
+                                badge.style.display = 'flex';
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        }
+                    });
+            }, 30000);
         </script>
+        @stack('scripts')
     </body>
 </html>

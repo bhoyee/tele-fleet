@@ -15,7 +15,7 @@
                 </div>
             @endif
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table align-middle datatable">
                     <thead class="table-light">
                         <tr>
                             <th>Name</th>
@@ -27,12 +27,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($users as $user)
+                        @foreach ($users as $user)
                             <tr>
                                 <td>{{ $user->name }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td class="text-capitalize">{{ str_replace('_', ' ', $user->role) }}</td>
-                                <td>{{ $user->branch?->name ?? '—' }}</td>
+                                <td>{{ $user->branch?->name ?? 'N/A' }}</td>
                                 <td>
                                     <span class="badge {{ $user->status === 'active' ? 'bg-success' : 'bg-secondary' }}">
                                         {{ ucfirst($user->status) }}
@@ -40,26 +40,58 @@
                                 </td>
                                 <td class="text-end">
                                     <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this user?')">Archive</button>
-                                    </form>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteUserModal"
+                                            data-delete-action="{{ route('admin.users.destroy', $user) }}"
+                                            data-delete-name="{{ $user->name }}">
+                                        Delete
+                                    </button>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No users found.</td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
-        @if ($users->hasPages())
-            <div class="card-footer bg-white">
-                {{ $users->links() }}
-            </div>
-        @endif
     </div>
+
+    <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Are you sure you want to delete <strong id="deleteUserName"></strong>? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="POST" id="deleteUserForm">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">Delete User</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            const deleteUserModal = document.getElementById('deleteUserModal');
+            if (deleteUserModal) {
+                document.querySelectorAll('[data-delete-action]').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const action = button.getAttribute('data-delete-action');
+                        const name = button.getAttribute('data-delete-name');
+                        document.getElementById('deleteUserForm').setAttribute('action', action);
+                        document.getElementById('deleteUserName').textContent = name;
+                    });
+                });
+            }
+        </script>
+    @endpush
 </x-admin-layout>

@@ -12,7 +12,7 @@
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table align-middle datatable">
                     <thead class="table-light">
                         <tr>
                             <th>Request #</th>
@@ -25,10 +25,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($trips as $trip)
+                        @foreach ($trips as $trip)
                             <tr>
                                 <td>{{ $trip->request_number }}</td>
-                                <td>{{ $trip->branch?->name ?? '—' }}</td>
+                                <td>{{ $trip->branch?->name ?? 'N/A' }}</td>
                                 <td>{{ $trip->purpose }}</td>
                                 <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
                                 <td>
@@ -47,19 +47,10 @@
                                     <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary">View</a>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No trip requests found.</td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
-        @if ($trips->hasPages())
-            <div class="card-footer bg-white">
-                {{ $trips->links() }}
-            </div>
-        @endif
     </div>
 </x-admin-layout>

@@ -36,4 +36,11 @@ class NotificationController extends Controller
             ->back()
             ->with('success', 'All notifications marked as read.');
     }
+
+    public function count(Request $request)
+    {
+        return response()->json([
+            'count' => $request->user()->unreadNotifications()->count(),
+        ]);
+    }
 }

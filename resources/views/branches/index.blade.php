@@ -10,7 +10,7 @@
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table align-middle datatable">
                     <thead class="table-light">
                         <tr>
                             <th>Name</th>
@@ -22,12 +22,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($branches as $branch)
+                        @foreach ($branches as $branch)
                             <tr>
                                 <td>{{ $branch->name }}</td>
                                 <td>{{ $branch->code }}</td>
-                                <td>{{ trim($branch->city . ', ' . $branch->state, ', ') ?: '—' }}</td>
-                                <td>{{ $branch->manager?->name ?? '—' }}</td>
+                                <td>{{ trim($branch->city . ', ' . $branch->state, ', ') ?: 'N/A' }}</td>
+                                <td>{{ $branch->manager?->name ?? 'N/A' }}</td>
                                 <td>
                                     @if ($branch->is_head_office)
                                         <span class="badge bg-primary">Yes</span>
@@ -37,26 +37,57 @@
                                 </td>
                                 <td class="text-end">
                                     <a href="{{ route('branches.edit', $branch) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <form method="POST" action="{{ route('branches.destroy', $branch) }}" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this branch?')">Delete</button>
-                                    </form>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteBranchModal"
+                                            data-action="{{ route('branches.destroy', $branch) }}"
+                                            data-name="{{ $branch->name }}">
+                                        Delete
+                                    </button>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No branches found.</td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
-        @if ($branches->hasPages())
-            <div class="card-footer bg-white">
-                {{ $branches->links() }}
-            </div>
-        @endif
     </div>
+
+    <div class="modal fade" id="deleteBranchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Branch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Are you sure you want to delete <strong id="deleteBranchName"></strong>? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="POST" id="deleteBranchForm">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">Delete Branch</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            const deleteBranchModal = document.getElementById('deleteBranchModal');
+            if (deleteBranchModal) {
+                deleteBranchModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const action = button.getAttribute('data-action');
+                    const name = button.getAttribute('data-name');
+                    document.getElementById('deleteBranchForm').setAttribute('action', action);
+                    document.getElementById('deleteBranchName').textContent = name;
+                });
+            }
+        </script>
+    @endpush
 </x-admin-layout>

@@ -25,6 +25,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read_all');
+    Route::get('/notifications/count', [NotificationController::class, 'count'])->name('notifications.count');
 });
 
 Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -40,14 +41,14 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
     Route::resource('drivers', DriverController::class)->except(['show']);
 });
 
-Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
-    Route::get('trips', [TripRequestController::class, 'index'])->name('trips.index');
-    Route::get('trips/{tripRequest}', [TripRequestController::class, 'show'])->name('trips.show');
-});
-
 Route::middleware(['auth', 'role:super_admin,branch_admin,branch_head'])->group(function () {
     Route::get('trips/create', [TripRequestController::class, 'create'])->name('trips.create');
     Route::post('trips', [TripRequestController::class, 'store'])->name('trips.store');
+});
+
+Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
+    Route::get('trips', [TripRequestController::class, 'index'])->name('trips.index');
+    Route::get('trips/{tripRequest}', [TripRequestController::class, 'show'])->name('trips.show');
 });
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {

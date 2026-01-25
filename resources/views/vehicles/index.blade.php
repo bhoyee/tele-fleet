@@ -10,7 +10,7 @@
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table align-middle datatable">
                     <thead class="table-light">
                         <tr>
                             <th>Registration</th>
@@ -22,11 +22,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($vehicles as $vehicle)
+                        @foreach ($vehicles as $vehicle)
                             <tr>
                                 <td>{{ $vehicle->registration_number }}</td>
                                 <td>{{ $vehicle->make }} {{ $vehicle->model }}</td>
-                                <td>{{ $vehicle->branch?->name ?? '—' }}</td>
+                                <td>{{ $vehicle->branch?->name ?? 'N/A' }}</td>
                                 <td>{{ number_format($vehicle->current_mileage) }} km</td>
                                 <td>
                                     <span class="badge bg-{{ $vehicle->status === 'available' ? 'success' : ($vehicle->status === 'in_use' ? 'primary' : ($vehicle->status === 'maintenance' ? 'warning' : 'secondary')) }}">
@@ -35,26 +35,57 @@
                                 </td>
                                 <td class="text-end">
                                     <a href="{{ route('vehicles.edit', $vehicle) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <form method="POST" action="{{ route('vehicles.destroy', $vehicle) }}" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Archive this vehicle?')">Archive</button>
-                                    </form>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#archiveVehicleModal"
+                                            data-action="{{ route('vehicles.destroy', $vehicle) }}"
+                                            data-name="{{ $vehicle->registration_number }}">
+                                        Archive
+                                    </button>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No vehicles found.</td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
-        @if ($vehicles->hasPages())
-            <div class="card-footer bg-white">
-                {{ $vehicles->links() }}
-            </div>
-        @endif
     </div>
+
+    <div class="modal fade" id="archiveVehicleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Archive Vehicle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Archive vehicle <strong id="archiveVehicleName"></strong>? You can restore it later if needed.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="POST" id="archiveVehicleForm">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">Archive Vehicle</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            const archiveVehicleModal = document.getElementById('archiveVehicleModal');
+            if (archiveVehicleModal) {
+                archiveVehicleModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const action = button.getAttribute('data-action');
+                    const name = button.getAttribute('data-name');
+                    document.getElementById('archiveVehicleForm').setAttribute('action', action);
+                    document.getElementById('archiveVehicleName').textContent = name;
+                });
+            }
+        </script>
+    @endpush
 </x-admin-layout>

@@ -41,7 +41,7 @@ class TripRequestController extends Controller
             $query->where('branch_id', $user->branch_id);
         }
 
-        $trips = $query->paginate(15);
+        $trips = $query->get();
 
         return view('trips.index', compact('trips'));
     }
@@ -96,7 +96,19 @@ class TripRequestController extends Controller
     {
         $tripRequest->load(['branch', 'requestedBy', 'approvedBy', 'assignedVehicle', 'assignedDriver', 'log']);
 
-        return view('trips.show', compact('tripRequest'));
+        $vehicles = collect();
+        $drivers = collect();
+
+        if (in_array(auth()->user()?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
+            $vehicles = Vehicle::where('status', 'available')
+                ->orderBy('registration_number')
+                ->get();
+            $drivers = Driver::where('status', 'active')
+                ->orderBy('full_name')
+                ->get();
+        }
+
+        return view('trips.show', compact('tripRequest', 'vehicles', 'drivers'));
     }
 
     public function approve(TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
