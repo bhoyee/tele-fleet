@@ -46,6 +46,16 @@ class TripRequestController extends Controller
         return view('trips.index', compact('trips'));
     }
 
+    public function myRequests(Request $request): View
+    {
+        $trips = TripRequest::with(['branch'])
+            ->where('requested_by_user_id', $request->user()->id)
+            ->latest()
+            ->get();
+
+        return view('trips.my-requests', compact('trips'));
+    }
+
     public function create(Request $request): View
     {
         $user = $request->user();
