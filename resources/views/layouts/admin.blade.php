@@ -40,6 +40,43 @@
                 overflow-x: hidden;
             }
 
+            .page-progress {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 3px;
+                width: 100%;
+                z-index: 9999;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s ease;
+            }
+
+            .page-progress.active {
+                opacity: 1;
+            }
+
+            .page-progress::before {
+                content: '';
+                position: absolute;
+                left: -30%;
+                top: 0;
+                height: 100%;
+                width: 30%;
+                background: linear-gradient(90deg, rgba(5, 108, 163, 0) 0%, #056ca3 50%, rgba(5, 108, 163, 0) 100%);
+                animation: progress-slide 1s ease-in-out infinite;
+            }
+
+            @keyframes progress-slide {
+                0% { left: -30%; }
+                100% { left: 100%; }
+            }
+
+
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+
             /* Sidebar Styling */
             .sidebar {
                 width: var(--sidebar-width);
@@ -548,6 +585,7 @@
         </style>
     </head>
     <body>
+        <div class="page-progress" id="pageProgress" aria-hidden="true"></div>
         <div class="app-shell d-flex">
             <!-- Sidebar Overlay for Mobile -->
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -871,6 +909,30 @@
                 const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                     return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
+            });
+
+            const showPageProgress = () => {
+                const progress = document.getElementById('pageProgress');
+                if (progress) {
+                    progress.classList.add('active');
+                    progress.setAttribute('aria-hidden', 'false');
+                }
+            };
+
+            document.addEventListener('click', (event) => {
+                const link = event.target.closest('a');
+                if (!link) {
+                    return;
+                }
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#') || link.getAttribute('target') === '_blank') {
+                    return;
+                }
+                showPageProgress();
+            });
+
+            window.addEventListener('beforeunload', () => {
+                showPageProgress();
             });
 
             // Auto-refresh notifications every 30 seconds
