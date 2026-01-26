@@ -115,6 +115,18 @@
                 padding: 1.5rem 0.75rem;
             }
 
+            .sidebar-footer {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 1rem 1.5rem;
+                border-top: 1px solid rgba(5, 108, 163, 0.1);
+                background: #f8fbfe;
+                font-size: 0.85rem;
+                color: #64748b;
+            }
+
             .nav-item {
                 margin-bottom: 0.5rem;
             }
@@ -585,6 +597,146 @@
                     display: block;
                 }
             }
+
+            /* Chat Widget */
+            .chat-widget-button {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                z-index: 1045;
+                border-radius: 999px;
+                padding: 0.75rem 1.25rem;
+                box-shadow: 0 12px 30px rgba(5, 108, 163, 0.25);
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .chat-widget-badge {
+                min-width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background: #ef476f;
+                color: #fff;
+                font-size: 0.65rem;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+            }
+
+            .chat-offcanvas {
+                width: min(520px, 100%);
+            }
+
+            .chat-widget-body {
+                display: flex;
+                flex-direction: column;
+                height: calc(100vh - 90px);
+                gap: 1rem;
+            }
+
+            .chat-widget-section {
+                border: 1px solid rgba(5, 108, 163, 0.1);
+                border-radius: 14px;
+                padding: 0.75rem;
+                background: #fff;
+                box-shadow: var(--card-shadow);
+            }
+
+            .chat-widget-list {
+                max-height: 180px;
+                overflow-y: auto;
+            }
+
+            .chat-widget-item {
+                padding: 0.6rem 0.75rem;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: var(--transition);
+            }
+
+            .chat-widget-item:hover,
+            .chat-widget-item.active {
+                background: var(--primary-lighter);
+                border: 1px solid rgba(5, 108, 163, 0.15);
+            }
+
+            .chat-widget-thread {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                border-radius: 14px;
+                border: 1px solid rgba(5, 108, 163, 0.1);
+                overflow: hidden;
+                background: #fff;
+            }
+
+            .chat-widget-thread-header {
+                padding: 0.75rem 1rem;
+                border-bottom: 1px solid rgba(5, 108, 163, 0.1);
+                background: rgba(5, 108, 163, 0.03);
+            }
+
+            .chat-widget-messages {
+                flex: 1;
+                overflow-y: auto;
+                padding: 1rem;
+                background: #f6f9fd;
+            }
+
+            .chat-widget-message {
+                max-width: 75%;
+                padding: 0.6rem 0.8rem;
+                border-radius: 14px;
+                margin-bottom: 0.75rem;
+                box-shadow: 0 4px 12px rgba(5, 108, 163, 0.08);
+            }
+
+            .chat-widget-message.self {
+                background: linear-gradient(135deg, #056CA3 0%, #065E8C 100%);
+                color: #fff;
+                margin-left: auto;
+            }
+
+            .chat-widget-message.other {
+                background: #fff;
+                border: 1px solid rgba(5, 108, 163, 0.1);
+            }
+
+            .chat-widget-input {
+                display: flex;
+                gap: 0.5rem;
+                padding: 0.75rem;
+                border-top: 1px solid rgba(5, 108, 163, 0.1);
+                background: #fff;
+            }
+
+            .chat-widget-placeholder {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                color: #64748b;
+                text-align: center;
+                padding: 1rem;
+            }
+
+            @media (max-width: 575px) {
+                .chat-widget-button {
+                    bottom: 16px;
+                    right: 16px;
+                    padding: 0.6rem 1rem;
+                }
+
+                .chat-offcanvas {
+                    width: 100%;
+                }
+
+                .chat-widget-list {
+                    max-height: 160px;
+                }
+            }
         </style>
     </head>
     <body>
@@ -651,6 +803,14 @@
                         @endif
                         @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
+                                <button class="nav-link w-100 text-start" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget" aria-controls="chatWidget">
+                                    <i class="bi bi-chat-dots nav-icon"></i>
+                                    <span>Chat</span>
+                                </button>
+                            </li>
+                        @endif
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                            <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('incidents.*')) active @endif" href="{{ route('incidents.index') }}">
                                     <i class="bi bi-exclamation-triangle nav-icon"></i>
                                     <span>Incidents</span>
@@ -683,6 +843,12 @@
                         @endif
                     </ul>
                 </nav>
+                <div class="sidebar-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Tele-Fleet</span>
+                        <span class="fw-semibold text-primary">v1.0.0</span>
+                    </div>
+                </div>
             </aside>
 
             <!-- Main Content -->
@@ -735,9 +901,24 @@
                                 </div>
                                 @forelse ($latestNotifications as $notification)
                                     <div class="px-3 py-2 border-bottom">
+                                        @php
+                                            $notificationType = class_basename($notification->type ?? '');
+                                            $isChat = in_array($notificationType, ['ChatMessageNotification', 'ChatRequestNotification'], true);
+                                            $title = $isChat
+                                                ? 'Chat Update'
+                                                : ($notification->data['request_number'] ?? 'Trip Update');
+                                            $message = $isChat
+                                                ? 'New chat activity'
+                                                : ($notification->data['purpose'] ?? 'Trip status updated');
+                                            $viewUrl = ! empty($notification->data['trip_request_id'])
+                                                ? route('trips.show', $notification->data['trip_request_id'])
+                                                : ($isChat && ! empty($notification->data['conversation_id'])
+                                                    ? null
+                                                    : null);
+                                        @endphp
                                         <div class="d-flex justify-content-between">
                                             <div class="fw-semibold small">
-                                                {{ $notification->data['request_number'] ?? 'Trip Update' }}
+                                                {{ $title }}
                                                 @if (! $notification->read_at)
                                                     <span class="badge bg-primary ms-1">New</span>
                                                 @endif
@@ -745,7 +926,7 @@
                                             <small class="text-muted">{{ $notification->created_at->diffForHumans() }}</small>
                                         </div>
                                         <div class="text-muted small">
-                                            {{ $notification->data['purpose'] ?? 'Trip status updated' }}
+                                            {{ $message }}
                                         </div>
                                         <div class="d-flex gap-2 mt-2">
                                             @if (! $notification->read_at)
@@ -755,8 +936,10 @@
                                                     <button class="btn btn-outline-primary btn-sm" type="submit">Mark read</button>
                                                 </form>
                                             @endif
-                                            @if (! empty($notification->data['trip_request_id']))
-                                                <a class="btn btn-light btn-sm" href="{{ route('trips.show', $notification->data['trip_request_id']) }}">View</a>
+                                            @if ($viewUrl)
+                                                <a class="btn btn-light btn-sm" href="{{ $viewUrl }}">View</a>
+                                            @elseif ($isChat && ! empty($notification->data['conversation_id']))
+                                                <button class="btn btn-light btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget">Open chat</button>
                                             @endif
                                         </div>
                                     </div>
@@ -839,10 +1022,96 @@
             </div>
         </div>
 
+        <button class="btn btn-primary chat-widget-button" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget" aria-controls="chatWidget">
+            <i class="bi bi-chat-dots"></i>
+            <span class="d-none d-sm-inline">Chat</span>
+            <span class="chat-widget-badge" id="chatWidgetBadge"></span>
+        </button>
+
+        <div class="offcanvas offcanvas-end chat-offcanvas" tabindex="-1" id="chatWidget" aria-labelledby="chatWidgetLabel">
+            <div class="offcanvas-header border-bottom">
+                <div>
+                    <h5 class="mb-0" id="chatWidgetLabel">Chat Support</h5>
+                    <small class="text-muted">Realtime assistance</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small d-none d-md-inline">Widget mode only</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="offcanvas-body">
+                <div class="chat-widget-body">
+                    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                        <div class="chat-widget-section">
+                            <div class="fw-semibold mb-2">Start support chat</div>
+                            <form id="chatSupportForm">
+                                @csrf
+                                <div class="mb-2">
+                                    <select class="form-select" name="issue_type" required>
+                                        <option value="">Select issue type</option>
+                                        <option value="{{ \App\Models\ChatConversation::ISSUE_ADMIN }}">Administrative (Trips/Reports)</option>
+                                        <option value="{{ \App\Models\ChatConversation::ISSUE_TECH }}">Technical Support</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary w-100" type="submit">Request Support</button>
+                                <div class="small text-muted mt-2">We connect you to the right team after review.</div>
+                            </form>
+                            <div id="chatSupportFeedback" class="mt-2"></div>
+                        </div>
+                    @endif
+
+                    <div class="chat-widget-section">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-semibold">Conversations</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Chat view">
+                                    <button class="btn btn-outline-secondary active" type="button" id="chatWidgetActiveTab">Active</button>
+                                    <button class="btn btn-outline-secondary" type="button" id="chatWidgetHistoryTab">History</button>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" id="chatWidgetRefresh">Refresh</button>
+                            </div>
+                        </div>
+                        <div id="chatWidgetPending" class="mb-3"></div>
+                        <div class="chat-widget-list" id="chatWidgetList">
+                            <div class="text-muted small">No conversations loaded yet.</div>
+                        </div>
+                    </div>
+
+                    <div class="chat-widget-thread" id="chatWidgetThread">
+                        <div class="chat-widget-thread-header d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <div class="fw-semibold" id="chatWidgetThreadTitle">Select a conversation</div>
+                                <div class="text-muted small" id="chatWidgetThreadStatus">Waiting to load</div>
+                            </div>
+                            @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                                <button class="btn btn-outline-danger btn-sm" type="button" id="chatWidgetClose" disabled>Close</button>
+                            @endif
+                        </div>
+                        <div class="chat-widget-messages" id="chatWidgetMessages">
+                            <div class="chat-widget-placeholder">Choose a conversation to start messaging.</div>
+                        </div>
+                        <div class="chat-widget-input" id="chatWidgetInput">
+                            <input class="form-control" type="text" id="chatWidgetMessageInput" placeholder="Type your message..." disabled>
+                            <button class="btn btn-primary" type="button" id="chatWidgetSend" disabled>Send</button>
+                        </div>
+                        <div class="p-3 border-top bg-light d-none" id="chatWidgetAcceptActions">
+                            <div class="small text-muted mb-2">This chat is pending. Accept to start messaging.</div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success w-100" type="button" id="chatWidgetAccept">Accept</button>
+                                <button class="btn btn-outline-danger w-100" type="button" id="chatWidgetDecline">Decline</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.4.0/dist/web/pusher.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
         <script>
             // Mobile sidebar toggle
             const sidebarToggle = document.getElementById('sidebarToggle');
@@ -1002,6 +1271,549 @@
                         }
                     });
             }, 30000);
+
+            const chatWidget = document.getElementById('chatWidget');
+            if (chatWidget) {
+                const chatWidgetList = document.getElementById('chatWidgetList');
+                const chatWidgetPending = document.getElementById('chatWidgetPending');
+                const chatWidgetMessages = document.getElementById('chatWidgetMessages');
+                const chatWidgetThreadTitle = document.getElementById('chatWidgetThreadTitle');
+                const chatWidgetThreadStatus = document.getElementById('chatWidgetThreadStatus');
+                const chatWidgetInput = document.getElementById('chatWidgetMessageInput');
+                const chatWidgetSend = document.getElementById('chatWidgetSend');
+                const chatWidgetAcceptActions = document.getElementById('chatWidgetAcceptActions');
+                const chatWidgetAccept = document.getElementById('chatWidgetAccept');
+                const chatWidgetDecline = document.getElementById('chatWidgetDecline');
+                const chatWidgetClose = document.getElementById('chatWidgetClose');
+                const chatWidgetBadge = document.getElementById('chatWidgetBadge');
+                const chatSupportForm = document.getElementById('chatSupportForm');
+                const chatSupportFeedback = document.getElementById('chatSupportFeedback');
+                const chatWidgetActiveTab = document.getElementById('chatWidgetActiveTab');
+                const chatWidgetHistoryTab = document.getElementById('chatWidgetHistoryTab');
+
+                const messageUrlTemplate = "{{ route('chat.messages.store', ['conversation' => '__ID__']) }}";
+                const acceptUrlTemplate = "{{ route('chat.accept', ['conversation' => '__ID__']) }}";
+                const declineUrlTemplate = "{{ route('chat.decline', ['conversation' => '__ID__']) }}";
+                const closeUrlTemplate = "{{ route('chat.close', ['conversation' => '__ID__']) }}";
+                const widgetConversationsUrl = "{{ route('chat.widget.conversations') }}";
+                const widgetConversationUrlTemplate = "{{ route('chat.widget.conversation', ['conversation' => '__ID__']) }}";
+                const supportUrl = "{{ route('chat.support') }}";
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                let activeConversationId = null;
+                let chatPoller = null;
+                let currentView = 'active';
+                let activeMessages = [];
+                const currentUserId = {{ auth()->id() }};
+                const currentUserName = "{{ auth()->user()?->name }}";
+
+                const initEcho = () => {
+                    if (window.ChatEcho && typeof window.ChatEcho.private === 'function') {
+                        return window.ChatEcho;
+                    }
+                    if (window.Echo && typeof window.Echo.private === 'function') {
+                        window.ChatEcho = window.Echo;
+                        return window.ChatEcho;
+                    }
+                    const EchoConstructor = window.Echo;
+                    if (typeof EchoConstructor !== 'function') {
+                        return null;
+                    }
+                    window.Pusher = Pusher;
+                    window.ChatEcho = new EchoConstructor({
+                        broadcaster: 'pusher',
+                        cluster: 'mt1',
+                        key: "{{ config('broadcasting.connections.reverb.key') }}",
+                        wsHost: "{{ config('broadcasting.connections.reverb.options.host') }}",
+                        wsPort: {{ config('broadcasting.connections.reverb.options.port') }},
+                        wssPort: {{ config('broadcasting.connections.reverb.options.port') }},
+                        forceTLS: "{{ config('broadcasting.connections.reverb.options.scheme') }}" === 'https',
+                        enabledTransports: ['ws', 'wss'],
+                        disableStats: true,
+                        authEndpoint: '/broadcasting/auth',
+                        auth: {
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken ?? '',
+                            }
+                        },
+                    });
+                    return window.ChatEcho;
+                };
+
+                const listenUserChannel = () => {
+                    const echo = initEcho();
+                    if (!echo || typeof echo.private !== 'function') {
+                        return;
+                    }
+                    echo.private("chat.user.{{ auth()->id() }}")
+                        .listen(".chat.request", () => loadChatWidgetData())
+                        .listen(".chat.accepted", () => loadChatWidgetData())
+                        .listen(".chat.message", (event) => {
+                            if (!event?.conversation_id || !event?.message) {
+                                return;
+                            }
+                            if (activeConversationId && Number(event.conversation_id) === Number(activeConversationId)) {
+                                const messageData = {
+                                    user_id: event.message.user_id,
+                                    user_name: event.message.user_id === currentUserId ? currentUserName : (chatWidgetThreadTitle?.textContent ?? 'User'),
+                                    message: event.message.message,
+                                    created_at: event.message.created_at,
+                                };
+                                activeMessages.push(messageData);
+                                renderMessages(activeMessages, currentUserId);
+                            }
+                            loadChatWidgetData();
+                        });
+                };
+
+                const setInputEnabled = (enabled) => {
+                    if (chatWidgetInput && chatWidgetSend) {
+                        chatWidgetInput.disabled = !enabled;
+                        chatWidgetSend.disabled = !enabled;
+                    }
+                };
+
+                const toggleAcceptActions = (show) => {
+                    if (!chatWidgetAcceptActions) {
+                        return;
+                    }
+                    chatWidgetAcceptActions.classList.toggle('d-none', !show);
+                };
+
+                const setCloseEnabled = (enabled) => {
+                    if (!chatWidgetClose) {
+                        return;
+                    }
+                    chatWidgetClose.disabled = !enabled;
+                };
+
+                const escapeHtml = (value) => {
+                    return String(value ?? '')
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#039;');
+                };
+
+                const renderMessages = (messages, userId) => {
+                    if (!chatWidgetMessages) {
+                        return;
+                    }
+                    chatWidgetMessages.innerHTML = '';
+                    if (!messages.length) {
+                        chatWidgetMessages.innerHTML = '<div class="chat-widget-placeholder">No messages yet.</div>';
+                        return;
+                    }
+                    messages.forEach((message) => {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'chat-widget-message ' + (message.user_id === userId ? 'self' : 'other');
+                        const safeName = escapeHtml(message.user_name ?? 'User');
+                        const safeMessage = escapeHtml(message.message ?? '');
+                        const safeTime = escapeHtml(message.created_at ?? '');
+                        wrapper.innerHTML = `
+                            <div class="small fw-semibold mb-1">${safeName}</div>
+                            <div>${safeMessage}</div>
+                            <div class="small opacity-75 mt-1">${safeTime}</div>
+                        `;
+                        chatWidgetMessages.appendChild(wrapper);
+                    });
+                    chatWidgetMessages.scrollTop = chatWidgetMessages.scrollHeight;
+                };
+
+                const renderConversationList = (data) => {
+                    if (!chatWidgetList || !chatWidgetPending) {
+                        return;
+                    }
+
+                    const pending = data.pending || [];
+                    const activeConversations = data.conversations || [];
+                    const historyConversations = data.history || [];
+                    const conversations = currentView === 'history' ? historyConversations : activeConversations;
+
+                    if (chatWidgetBadge) {
+                        const totalUnread = Number(data.unread_total ?? 0);
+                        const totalBadge = totalUnread + pending.length;
+                        if (totalBadge > 0) {
+                            chatWidgetBadge.textContent = totalBadge;
+                            chatWidgetBadge.style.display = 'flex';
+                        } else {
+                            chatWidgetBadge.style.display = 'none';
+                        }
+                    }
+
+                    chatWidgetPending.innerHTML = '';
+                    if (currentView === 'active' && pending.length > 0) {
+                        const pendingBlock = document.createElement('div');
+                        pendingBlock.className = 'mb-2';
+                        pendingBlock.innerHTML = '<div class="fw-semibold mb-2 text-warning">Pending requests</div>';
+                        pending.forEach((item) => {
+                            const row = document.createElement('div');
+                            row.className = 'chat-widget-item border mb-2';
+                            row.dataset.conversationId = item.id;
+                            const safePendingName = escapeHtml(item.other_user ?? 'Support');
+                            const safePendingIssue = escapeHtml(item.issue_type ?? 'Support request');
+                            row.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">${safePendingName}</div>
+                                        <div class="small text-muted">${safePendingIssue}</div>
+                                    </div>
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                </div>
+                            `;
+                            pendingBlock.appendChild(row);
+                        });
+                        chatWidgetPending.appendChild(pendingBlock);
+                    }
+
+                    chatWidgetList.innerHTML = '';
+                    if (conversations.length === 0) {
+                        const label = currentView === 'history' ? 'No closed chats in the last 30 days.' : 'No active conversations yet.';
+                        chatWidgetList.innerHTML = `<div class="text-muted small">${label}</div>`;
+                        return;
+                    }
+                    conversations.forEach((item) => {
+                        const row = document.createElement('div');
+                        row.className = 'chat-widget-item border';
+                        if (activeConversationId === item.id) {
+                            row.classList.add('active');
+                        }
+                        row.dataset.conversationId = item.id;
+                        const safeName = escapeHtml(item.other_user ?? 'Support');
+                        const safeMessage = escapeHtml(item.last_message ?? 'No messages yet');
+                        const safeStatus = escapeHtml(item.status ?? '');
+                        const unreadCount = Number(item.unread_count ?? 0);
+                        const statusLabel = currentView === 'history' ? 'closed' : safeStatus;
+                        row.innerHTML = `
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="fw-semibold">${safeName}</div>
+                                    <div class="small text-muted text-truncate">${safeMessage}</div>
+                                </div>
+                                <div class="d-flex flex-column align-items-end gap-1">
+                                    <span class="badge bg-light text-muted">${statusLabel}</span>
+                                    ${currentView === 'active' && unreadCount > 0 ? `<span class="badge bg-primary">${unreadCount}</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                        chatWidgetList.appendChild(row);
+                    });
+                };
+
+                const loadConversation = async (conversationId, options = { subscribe: true, reset: true }) => {
+                    const previousConversationId = activeConversationId;
+                    activeConversationId = conversationId;
+                    if (options.reset) {
+                        setInputEnabled(false);
+                        toggleAcceptActions(false);
+                        if (chatWidgetThreadTitle) {
+                            chatWidgetThreadTitle.textContent = 'Loading...';
+                        }
+                        if (chatWidgetThreadStatus) {
+                            chatWidgetThreadStatus.textContent = '';
+                        }
+                    }
+                    try {
+                        const response = await fetch(widgetConversationUrlTemplate.replace('__ID__', conversationId), {
+                            headers: { 'Accept': 'application/json' },
+                        });
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(`Failed to load conversation (${response.status}). ${errorText}`);
+                        }
+                        const data = await response.json();
+                        if (chatWidgetThreadTitle) {
+                            chatWidgetThreadTitle.textContent = data.conversation.other_user ?? 'Support';
+                        }
+                        if (chatWidgetThreadStatus) {
+                            chatWidgetThreadStatus.textContent = `Status: ${data.conversation.status}`;
+                        }
+                        activeMessages = data.messages ?? [];
+                        renderMessages(activeMessages, currentUserId);
+                        toggleAcceptActions(Boolean(data.conversation.can_accept));
+                        setInputEnabled(Boolean(data.conversation.can_reply));
+                        setCloseEnabled(data.conversation.status !== 'closed');
+
+                        if (options.subscribe) {
+                            const echo = initEcho();
+                            if (echo && previousConversationId) {
+                                echo.leave(`chat.conversation.${previousConversationId}`);
+                            }
+                            if (echo) {
+                                echo.private(`chat.conversation.${conversationId}`)
+                                    .listen(".chat.message", (event) => {
+                                        if (!event.message) {
+                                            return;
+                                        }
+                                        const messageData = {
+                                            user_id: event.message.user_id,
+                                            user_name: event.message.user_id === currentUserId ? currentUserName : (data.conversation.other_user ?? 'User'),
+                                            message: event.message.message,
+                                            created_at: event.message.created_at,
+                                        };
+                                        activeMessages.push(messageData);
+                                        renderMessages(activeMessages, currentUserId);
+                                        loadChatWidgetData();
+                                    })
+                                    .error((error) => {
+                                        console.warn('Chat subscription error', error);
+                                    });
+                            }
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        if (chatWidgetMessages) {
+                            const message = error?.message ? escapeHtml(error.message) : 'Unable to load messages.';
+                            chatWidgetMessages.innerHTML = `<div class="chat-widget-placeholder">${message}</div>`;
+                        }
+                    } finally {
+                        loadChatWidgetData();
+                    }
+                };
+
+                const loadChatWidgetData = async () => {
+                    try {
+                        const response = await fetch(widgetConversationsUrl, {
+                            headers: { 'Accept': 'application/json' },
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed');
+                        }
+                        const data = await response.json();
+                        renderConversationList(data);
+                    } catch (error) {
+                        if (chatWidgetList) {
+                            chatWidgetList.innerHTML = '<div class="text-muted small">Unable to load conversations.</div>';
+                        }
+                    }
+                };
+
+                const sendChatMessage = async () => {
+                    if (!activeConversationId || !chatWidgetInput) {
+                        return;
+                    }
+                    const message = chatWidgetInput.value.trim();
+                    if (!message) {
+                        return;
+                    }
+                    if (chatWidgetSend?.dataset?.sending === 'true') {
+                        return;
+                    }
+                    if (chatWidgetSend) {
+                        chatWidgetSend.dataset.sending = 'true';
+                        chatWidgetSend.disabled = true;
+                    }
+                    chatWidgetInput.disabled = true;
+                    const optimisticMessage = {
+                        user_id: currentUserId,
+                        user_name: currentUserName,
+                        message,
+                        created_at: new Date().toLocaleString(),
+                    };
+                    activeMessages.push(optimisticMessage);
+                    renderMessages(activeMessages, currentUserId);
+                    try {
+                        const response = await fetch(messageUrlTemplate.replace('__ID__', activeConversationId), {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRF-TOKEN': csrfToken ?? '',
+                            },
+                            body: new URLSearchParams({ message }),
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed to send.');
+                        }
+                        chatWidgetInput.value = '';
+                        const data = await response.json();
+                        if (data.message) {
+                            activeMessages = activeMessages.filter((item) => item !== optimisticMessage);
+                            activeMessages.push(data.message);
+                            renderMessages(activeMessages, currentUserId);
+                            loadChatWidgetData();
+                        }
+                    } catch (error) {
+                        activeMessages = activeMessages.filter((item) => item !== optimisticMessage);
+                        renderMessages(activeMessages, currentUserId);
+                        if (chatWidgetMessages) {
+                            const errorBlock = document.createElement('div');
+                            errorBlock.className = 'alert alert-danger';
+                            errorBlock.textContent = 'Unable to send message.';
+                            chatWidgetMessages.appendChild(errorBlock);
+                        }
+                    } finally {
+                        if (chatWidgetSend) {
+                            chatWidgetSend.dataset.sending = 'false';
+                            chatWidgetSend.disabled = false;
+                        }
+                        chatWidgetInput.disabled = false;
+                        chatWidgetInput.focus();
+                    }
+                };
+
+                const runSupportRequest = async () => {
+                    if (!chatSupportForm) {
+                        return;
+                    }
+                    const formData = new FormData(chatSupportForm);
+                    try {
+                        const response = await fetch(supportUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken ?? '',
+                            },
+                            body: formData,
+                        });
+                        if (!response.ok) {
+                            throw new Error('Support request failed.');
+                        }
+                        const data = await response.json();
+                        if (chatSupportFeedback) {
+                            chatSupportFeedback.innerHTML = '<div class="alert alert-success">Support request sent. We will connect you shortly.</div>';
+                        }
+                        if (data.conversation_id) {
+                            await loadChatWidgetData();
+                            loadConversation(data.conversation_id);
+                        }
+                    } catch (error) {
+                        if (chatSupportFeedback) {
+                            chatSupportFeedback.innerHTML = '<div class="alert alert-danger">Unable to send support request.</div>';
+                        }
+                    }
+                };
+
+                const handleAcceptDecline = async (action) => {
+                    if (!activeConversationId) {
+                        return;
+                    }
+                    const urlTemplate = action === 'accept' ? acceptUrlTemplate : declineUrlTemplate;
+                    try {
+                        const response = await fetch(urlTemplate.replace('__ID__', activeConversationId), {
+                            method: 'PATCH',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken ?? '',
+                            },
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed');
+                        }
+                        await loadChatWidgetData();
+                        await loadConversation(activeConversationId);
+                    } catch (error) {
+                        if (chatWidgetMessages) {
+                            chatWidgetMessages.innerHTML = '<div class="chat-widget-placeholder">Unable to update chat status.</div>';
+                        }
+                    }
+                };
+
+                const handleCloseChat = async () => {
+                    if (!activeConversationId || !chatWidgetClose) {
+                        return;
+                    }
+                    chatWidgetClose.disabled = true;
+                    try {
+                        const response = await fetch(closeUrlTemplate.replace('__ID__', activeConversationId), {
+                            method: 'PATCH',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken ?? '',
+                            },
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed');
+                        }
+                        await loadChatWidgetData();
+                        await loadConversation(activeConversationId, { subscribe: false, reset: true });
+                    } catch (error) {
+                        if (chatWidgetMessages) {
+                            chatWidgetMessages.innerHTML = '<div class="chat-widget-placeholder">Unable to close chat.</div>';
+                        }
+                    }
+                };
+
+                chatWidget.addEventListener('show.bs.offcanvas', () => {
+                    listenUserChannel();
+                    loadChatWidgetData();
+                    if (!chatPoller) {
+                        chatPoller = setInterval(() => {
+                            loadChatWidgetData();
+                            if (activeConversationId) {
+                                loadConversation(activeConversationId, { subscribe: false, reset: false });
+                            }
+                        }, 3000);
+                    }
+                });
+
+                chatWidget.addEventListener('hidden.bs.offcanvas', () => {
+                    if (chatPoller) {
+                        clearInterval(chatPoller);
+                        chatPoller = null;
+                    }
+                });
+
+                document.addEventListener('click', (event) => {
+                    const item = event.target.closest('.chat-widget-item');
+                    if (item && item.dataset.conversationId) {
+                        loadConversation(item.dataset.conversationId, { subscribe: true, reset: true });
+                    }
+                });
+
+                const refreshButton = document.getElementById('chatWidgetRefresh');
+                if (refreshButton) {
+                    refreshButton.addEventListener('click', loadChatWidgetData);
+                }
+
+                if (chatWidgetSend) {
+                    chatWidgetSend.addEventListener('click', sendChatMessage);
+                }
+
+                if (chatWidgetInput) {
+                    chatWidgetInput.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' && !event.shiftKey) {
+                            event.preventDefault();
+                            sendChatMessage();
+                        }
+                    });
+                }
+
+                if (chatWidgetAccept) {
+                    chatWidgetAccept.addEventListener('click', () => handleAcceptDecline('accept'));
+                }
+
+                if (chatWidgetDecline) {
+                    chatWidgetDecline.addEventListener('click', () => handleAcceptDecline('decline'));
+                }
+
+                if (chatWidgetClose) {
+                    chatWidgetClose.addEventListener('click', handleCloseChat);
+                }
+
+                if (chatWidgetActiveTab && chatWidgetHistoryTab) {
+                    chatWidgetActiveTab.addEventListener('click', () => {
+                        currentView = 'active';
+                        chatWidgetActiveTab.classList.add('active');
+                        chatWidgetHistoryTab.classList.remove('active');
+                        loadChatWidgetData();
+                    });
+                    chatWidgetHistoryTab.addEventListener('click', () => {
+                        currentView = 'history';
+                        chatWidgetHistoryTab.classList.add('active');
+                        chatWidgetActiveTab.classList.remove('active');
+                        loadChatWidgetData();
+                    });
+                }
+
+                if (chatSupportForm) {
+                    chatSupportForm.addEventListener('submit', (event) => {
+                        event.preventDefault();
+                        runSupportRequest();
+                    });
+                }
+            }
         </script>
         @stack('scripts')
     </body>
