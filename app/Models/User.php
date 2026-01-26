@@ -5,6 +5,8 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -66,5 +68,15 @@ class User extends Authenticatable
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function chatParticipants(): HasMany
+    {
+        return $this->hasMany(ChatParticipant::class);
+    }
+
+    public function chatConversations(): HasManyThrough
+    {
+        return $this->hasManyThrough(ChatConversation::class, ChatParticipant::class, 'user_id', 'id', 'id', 'chat_conversation_id');
     }
 }

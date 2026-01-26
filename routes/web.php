@@ -9,15 +9,20 @@ use App\Http\Controllers\Fleet\VehicleController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', DashboardController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
+Route::get('/dashboard/metrics', [DashboardController::class, 'metrics'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard.metrics');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -101,6 +106,28 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::delete('trips/{tripRequest}', [TripRequestController::class, 'destroy'])->name('trips.destroy');
     Route::delete('trips/{tripRequest}/logbook', [TripRequestController::class, 'destroyLogbook'])->name('trips.logbook.destroy');
+});
+
+Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
+    Route::get('chat/widget/conversations', [ChatController::class, 'widgetConversations'])->name('chat.widget.conversations');
+    Route::get('chat/widget/conversations/{conversation}', [ChatController::class, 'widgetConversation'])->name('chat.widget.conversation');
+    Route::get('chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('chat/{conversation}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('chat/{conversation}/messages', [ChatController::class, 'sendMessage'])->name('chat.messages.store');
+    Route::patch('chat/{conversation}/accept', [ChatController::class, 'accept'])->name('chat.accept');
+    Route::patch('chat/{conversation}/decline', [ChatController::class, 'decline'])->name('chat.decline');
+});
+
+Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
+    Route::patch('chat/{conversation}/close', [ChatController::class, 'close'])->name('chat.close');
+});
+
+Route::middleware(['auth', 'role:branch_admin,branch_head'])->group(function () {
+    Route::post('chat/support', [ChatController::class, 'storeSupport'])->name('chat.support');
+});
+
+Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
+    Route::post('chat/direct', [ChatController::class, 'storeDirect'])->name('chat.direct');
 });
 
 require __DIR__.'/auth.php';
