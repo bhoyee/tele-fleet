@@ -881,6 +881,10 @@
                         <div class="metric-subvalue" data-metric="driversUnassignedToday">{{ $driversUnassignedToday ?? 0 }}</div>
                         <div class="metric-subtitle">Unassigned today</div>
                     </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="totalDriversRegistered">{{ $totalDriversRegistered ?? 0 }}</div>
+                        <div class="metric-subtitle">Drivers registered</div>
+                    </div>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-person-check"></i> Active driver coverage

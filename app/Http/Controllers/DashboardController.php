@@ -98,6 +98,7 @@ class DashboardController extends Controller
         $driversOnDuty = null;
         $driversAssignedToday = null;
         $driversUnassignedToday = null;
+        $totalDriversRegistered = null;
         $tripsThisWeek = null;
         $pendingApproval = null;
         $incidentReports = null;
@@ -150,6 +151,8 @@ class DashboardController extends Controller
 
             $activeDriversToday = Driver::where('status', 'active')->count();
             $driversUnassignedToday = max(0, $activeDriversToday - $driversAssignedToday);
+
+            $totalDriversRegistered = Driver::where('status', '!=', 'suspended')->count();
         }
 
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_HEAD], true)) {
@@ -223,6 +226,7 @@ class DashboardController extends Controller
             'driversOnDuty' => $driversOnDuty,
             'driversAssignedToday' => $driversAssignedToday,
             'driversUnassignedToday' => $driversUnassignedToday,
+            'totalDriversRegistered' => $totalDriversRegistered,
             'tripsThisWeek' => $tripsThisWeek,
             'pendingApproval' => $pendingApproval,
             'incidentReports' => $incidentReports,
