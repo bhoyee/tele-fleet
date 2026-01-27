@@ -6,6 +6,7 @@ use App\Models\TripRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class ReportController extends Controller
 {
@@ -64,6 +65,65 @@ class ReportController extends Controller
         ]);
 
         $slug = str_replace(' ', '-', strtolower($request->user()->name));
+        return $pdf->download($slug . '-report-' . now()->format('Ymd-His') . '.pdf');
+    }
+
+    public function branchReport(Request $request): View
+    {
+        [$trips, $stats, $branchName] = $this->buildBranchReport($request);
+
+        return view('reports.branch', [
+            'trips' => $trips,
+            'stats' => $stats,
+            'branchName' => $branchName,
+        ]);
+    }
+
+    public function exportBranchExcel(Request $request)
+    {
+        [$trips, $stats, $branchName] = $this->buildBranchReport($request);
+
+        $slug = str_replace(' ', '-', strtolower($branchName));
+        $filename = $slug . '-report-' . now()->format('Ymd-His') . '.csv';
+        $title = $branchName . ' Report';
+        $generatedAt = now()->format('M d, Y H:i');
+
+        return response()->streamDownload(function () use ($trips, $title, $generatedAt): void {
+            $handle = fopen('php://output', 'wb');
+            fputcsv($handle, [$title]);
+            fputcsv($handle, ['Generated ' . $generatedAt]);
+            fputcsv($handle, ['Tele-Fleet']);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Request Number', 'Branch', 'Destination', 'Trip Date', 'Status', 'Created At']);
+            foreach ($trips as $trip) {
+                fputcsv($handle, [
+                    $trip->request_number,
+                    $trip->branch?->name ?? 'N/A',
+                    $trip->destination,
+                    optional($trip->trip_date)->format('Y-m-d'),
+                    $this->formatStatus($trip->status),
+                    $trip->created_at?->format('Y-m-d H:i'),
+                ]);
+            }
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function exportBranchPdf(Request $request)
+    {
+        [$trips, $stats, $branchName] = $this->buildBranchReport($request);
+        $reportTitle = $branchName . ' Report';
+
+        $pdf = Pdf::loadView('reports.branch-pdf', [
+            'trips' => $trips,
+            'stats' => $stats,
+            'generatedAt' => now(),
+            'reportTitle' => $reportTitle,
+        ]);
+
+        $slug = str_replace(' ', '-', strtolower($branchName));
         return $pdf->download($slug . '-report-' . now()->format('Ymd-His') . '.pdf');
     }
 
@@ -142,5 +202,49 @@ class ReportController extends Controller
         }
 
         return [null, null];
+    }
+
+    private function buildBranchReport(Request $request): array
+    {
+        $user = $request->user();
+        $branchName = $user->branch?->name ?? 'Branch Report';
+
+        $query = TripRequest::with(['branch', 'requestedBy'])
+            ->where('branch_id', $user->branch_id)
+            ->whereIn('requested_by_user_id', function ($sub) use ($user): void {
+                $sub->select('id')
+                    ->from('users')
+                    ->where('branch_id', $user->branch_id)
+                    ->whereIn('role', ['branch_admin', 'branch_head']);
+            });
+
+        if ($request->filled('status')) {
+            if ($request->status === 'approved') {
+                $query->whereIn('status', ['approved', 'assigned', 'completed']);
+            } elseif (in_array($request->status, ['pending', 'rejected'], true)) {
+                $query->where('status', $request->status);
+            }
+        }
+
+        [$from, $to] = $this->resolveDateRange($request);
+
+        if ($from) {
+            $query->whereDate('trip_date', '>=', $from);
+        }
+
+        if ($to) {
+            $query->whereDate('trip_date', '<=', $to);
+        }
+
+        $trips = $query->orderByDesc('trip_date')->get();
+
+        $stats = [
+            'total' => $trips->count(),
+            'pending' => $trips->where('status', 'pending')->count(),
+            'rejected' => $trips->where('status', 'rejected')->count(),
+            'approved' => $trips->whereIn('status', ['approved', 'assigned', 'completed'])->count(),
+        ];
+
+        return [$trips, $stats, $branchName];
     }
 }
