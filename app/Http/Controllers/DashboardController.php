@@ -104,6 +104,9 @@ class DashboardController extends Controller
         $monthTripsCompleted = null;
         $monthTripsRejected = null;
         $monthTripsAssigned = null;
+        $uncompletedTrips = null;
+        $dueTrips = null;
+        $overdueTrips = null;
         $tripsThisWeek = null;
         $pendingApproval = null;
         $incidentReports = null;
@@ -242,6 +245,21 @@ class DashboardController extends Controller
                         ->orWhereNull('assigned_driver_id');
                 })
                 ->count();
+
+            $activeTrips = TripRequest::whereNotNull('trip_date')
+                ->whereNotIn('status', ['completed', 'cancelled', 'rejected'])
+                ->get();
+            $uncompletedTrips = $activeTrips->count();
+            $dueTrips = 0;
+            $overdueTrips = 0;
+            foreach ($activeTrips as $trip) {
+                $dueStatus = $trip->dueStatus($now);
+                if ($dueStatus === 'overdue') {
+                    $overdueTrips++;
+                } elseif ($dueStatus === 'due') {
+                    $dueTrips++;
+                }
+            }
         }
 
         return [
@@ -260,6 +278,9 @@ class DashboardController extends Controller
             'monthTripsCompleted' => $monthTripsCompleted,
             'monthTripsRejected' => $monthTripsRejected,
             'monthTripsAssigned' => $monthTripsAssigned,
+            'uncompletedTrips' => $uncompletedTrips,
+            'dueTrips' => $dueTrips,
+            'overdueTrips' => $overdueTrips,
             'pendingApproval' => $pendingApproval,
             'incidentReports' => $incidentReports,
             'maintenanceDue' => $maintenanceDue,

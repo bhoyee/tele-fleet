@@ -77,6 +77,7 @@ class TripRequestController extends Controller
                 'trip_time_raw' => $trip->trip_time ?? null,
                 'status' => $trip->status,
                 'assigned' => (bool) ($trip->assigned_vehicle_id && $trip->assigned_driver_id),
+                'due_status' => $trip->dueStatus(),
             ];
         });
 

@@ -92,4 +92,47 @@ class TripRequest extends Model
     {
         return $this->hasOne(TripLog::class);
     }
+
+    public function dueStatus(?\Illuminate\Support\Carbon $now = null): ?string
+    {
+        $status = strtolower((string) $this->status);
+        if (in_array($status, ['completed', 'cancelled', 'rejected'], true)) {
+            return null;
+        }
+
+        if (! $this->trip_date) {
+            return null;
+        }
+
+        $estimateDays = (float) ($this->estimated_distance_km ?? 0);
+        if ($estimateDays <= 0) {
+            return null;
+        }
+
+        $now = $now ?? \Illuminate\Support\Carbon::now();
+        $tripTime = $this->trip_time ? $this->trip_time : '00:00';
+
+        try {
+            $start = \Illuminate\Support\Carbon::createFromFormat('Y-m-d H:i', $this->trip_date->format('Y-m-d').' '.$tripTime);
+        } catch (\Exception $exception) {
+            $start = \Illuminate\Support\Carbon::parse($this->trip_date->format('Y-m-d').' '.$tripTime);
+        }
+
+        $hours = (int) round($estimateDays * 24);
+        if ($hours <= 0) {
+            return null;
+        }
+
+        $expectedEnd = $start->copy()->addHours($hours);
+
+        if ($now->greaterThanOrEqualTo($expectedEnd->copy()->addHours(24))) {
+            return 'overdue';
+        }
+
+        if ($now->greaterThanOrEqualTo($expectedEnd)) {
+            return 'due';
+        }
+
+        return null;
+    }
 }

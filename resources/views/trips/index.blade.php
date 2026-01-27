@@ -85,6 +85,17 @@
                                     <span class="badge bg-{{ $trip->status === 'approved' ? 'success' : ($trip->status === 'rejected' ? 'danger' : ($trip->status === 'assigned' ? 'primary' : ($trip->status === 'completed' ? 'dark' : 'secondary'))) }}">
                                         {{ ucfirst($trip->status) }}
                                     </span>
+                                    @php
+                                        $dueStatus = null;
+                                        if (in_array($user?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true)) {
+                                            $dueStatus = $trip->dueStatus();
+                                        }
+                                    @endphp
+                                    @if ($dueStatus)
+                                        <span class="badge bg-{{ $dueStatus === 'overdue' ? 'danger' : 'warning' }} ms-1">
+                                            {{ ucfirst($dueStatus) }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td>
                                     @if ($trip->assigned_vehicle_id && $trip->assigned_driver_id)
@@ -329,6 +340,9 @@
                         const statusLabel = trip.status
                             ? trip.status.charAt(0).toUpperCase() + trip.status.slice(1)
                             : 'Pending';
+                        const dueBadge = (['super_admin', 'fleet_manager'].includes(currentUser.role) && trip.due_status)
+                            ? `<span class="badge bg-${trip.due_status === 'overdue' ? 'danger' : 'warning'} ms-1">${escapeHtml(trip.due_status.charAt(0).toUpperCase() + trip.due_status.slice(1))}</span>`
+                            : '';
                         return `
                             <tr>
                                 <td>${escapeHtml(trip.request_number)}</td>
@@ -339,6 +353,7 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-${statusClass(trip.status)}">${escapeHtml(statusLabel)}</span>
+                                    ${dueBadge}
                                 </td>
                                 <td>${assignedHtml}</td>
                                 <td class="text-end">${editHtml} ${viewHtml} ${deleteHtml} ${cancelHtml}</td>

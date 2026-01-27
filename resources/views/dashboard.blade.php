@@ -991,6 +991,33 @@
                 </div>
             </div>
             @endif
+
+            @if (!is_null($uncompletedTrips))
+            <div class="metric-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="metric-icon"><i class="bi bi-clipboard-x"></i></span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Active</span>
+                </div>
+                <div class="metric-label">Uncompleted Trips</div>
+                <div class="metric-subcards">
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="dueTrips">{{ $dueTrips ?? 0 }}</div>
+                        <div class="metric-subtitle">Due</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="overdueTrips">{{ $overdueTrips ?? 0 }}</div>
+                        <div class="metric-subtitle">Overdue</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="uncompletedTrips">{{ $uncompletedTrips ?? 0 }}</div>
+                        <div class="metric-subtitle">Total active</div>
+                    </div>
+                </div>
+                <div class="metric-footnote">
+                    <i class="bi bi-flag"></i> Based on estimated trip days
+                </div>
+            </div>
+            @endif
         </div>
 
         @php
