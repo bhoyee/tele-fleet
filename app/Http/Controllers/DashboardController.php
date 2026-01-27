@@ -146,6 +146,10 @@ class DashboardController extends Controller
                 ->where(function ($query): void {
                     $query->whereNull('is_completed')->orWhere('is_completed', false);
                 })
+                ->where(function ($query) use ($now): void {
+                    $query->whereNull('trip_time')
+                        ->orWhere('trip_time', '<=', $now->format('H:i'));
+                })
                 ->distinct('assigned_driver_id')
                 ->count('assigned_driver_id');
 
