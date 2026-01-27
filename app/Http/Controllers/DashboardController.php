@@ -99,6 +99,8 @@ class DashboardController extends Controller
         $pendingApproval = null;
         $incidentReports = null;
         $maintenanceDue = null;
+        $todayActiveTrips = null;
+        $futureTrips = null;
 
         if ($role === User::ROLE_BRANCH_ADMIN) {
             $personalTripRequests = TripRequest::where('requested_by_user_id', $user->id)
@@ -166,6 +168,22 @@ class DashboardController extends Controller
                 $query->whereDate('insurance_expiry', '<=', $dueDate)
                     ->orWhereDate('registration_expiry', '<=', $dueDate);
             })->count();
+
+            $todayActiveTrips = TripRequest::whereDate('trip_date', Carbon::today())
+                ->whereIn('status', ['approved', 'assigned'])
+                ->whereNotNull('assigned_vehicle_id')
+                ->whereNotNull('assigned_driver_id')
+                ->where(function ($query): void {
+                    $query->whereNull('is_completed')->orWhere('is_completed', false);
+                })
+                ->count();
+
+            $futureTrips = TripRequest::whereDate('trip_date', '>', Carbon::today())
+                ->whereIn('status', ['approved', 'assigned'])
+                ->where(function ($query): void {
+                    $query->whereNull('is_completed')->orWhere('is_completed', false);
+                })
+                ->count();
         }
 
         return [
@@ -180,6 +198,8 @@ class DashboardController extends Controller
             'pendingApproval' => $pendingApproval,
             'incidentReports' => $incidentReports,
             'maintenanceDue' => $maintenanceDue,
+            'todayActiveTrips' => $todayActiveTrips,
+            'futureTrips' => $futureTrips,
         ];
     }
 

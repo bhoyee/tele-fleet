@@ -173,6 +173,39 @@
             margin-top: 0.375rem;
         }
 
+        .metric-subcards {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .metric-subcard {
+            padding: 0.6rem 0.75rem;
+            border-radius: 12px;
+            background: rgba(5, 108, 163, 0.06);
+            border: 1px solid rgba(5, 108, 163, 0.12);
+        }
+
+        .metric-subvalue {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: #1e293b;
+            line-height: 1.2;
+        }
+
+        .metric-subtitle {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin-top: 0.15rem;
+        }
+
+        @media (max-width: 576px) {
+            .metric-subcards {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* COMPACT Calendar */
         .modern-calendar {
             background: white;
@@ -836,6 +869,29 @@
                 <div class="metric-value" data-metric="driversOnDuty">{{ $driversOnDuty }}</div>
                 <div class="metric-footnote">
                     <i class="bi bi-person-check"></i> Currently assigned
+                </div>
+            </div>
+            @endif
+
+            @if (!is_null($todayActiveTrips) || !is_null($futureTrips))
+            <div class="metric-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="metric-icon"><i class="bi bi-activity"></i></span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Trips</span>
+                </div>
+                <div class="metric-label">Trip Activity</div>
+                <div class="metric-subcards">
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="todayActiveTrips">{{ $todayActiveTrips ?? 0 }}</div>
+                        <div class="metric-subtitle">Today active</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="futureTrips">{{ $futureTrips ?? 0 }}</div>
+                        <div class="metric-subtitle">Future trips</div>
+                    </div>
+                </div>
+                <div class="metric-footnote">
+                    <i class="bi bi-graph-up"></i> Approved &amp; assigned pipeline
                 </div>
             </div>
             @endif
