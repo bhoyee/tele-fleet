@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\TripRequest;
 use App\Models\User;
 use App\Notifications\TripAssignmentPending;
+use App\Notifications\TripRequestRejected;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -36,7 +37,29 @@ class NotifyUnassignedTrips extends Command
                 ? Carbon::createFromFormat('Y-m-d H:i', $trip->trip_date->format('Y-m-d').' '.$trip->trip_time)
                 : $trip->trip_date->copy()->startOfDay();
 
-            if ($tripMoment->lessThanOrEqualTo($now) || $tripMoment->greaterThan($cutoff)) {
+            if ($tripMoment->lessThanOrEqualTo($now)) {
+                $trip->update([
+                    'status' => 'rejected',
+                    'rejection_reason' => 'System auto rejected since no drive assigned',
+                    'updated_by_user_id' => null,
+                ]);
+
+                if ($trip->requestedBy) {
+                    try {
+                        $trip->requestedBy->notify(new TripRequestRejected($trip));
+                    } catch (Throwable $exception) {
+                        Log::warning('Trip auto-rejection notification failed.', [
+                            'trip_request_id' => $trip->id,
+                            'error' => $exception->getMessage(),
+                        ]);
+                    }
+                }
+
+                $notifiedIds[] = $trip->id;
+                continue;
+            }
+
+            if ($tripMoment->greaterThan($cutoff)) {
                 continue;
             }
 
