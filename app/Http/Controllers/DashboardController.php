@@ -475,21 +475,14 @@ class DashboardController extends Controller
 
     private function buildUpcomingTrips(User $user)
     {
-        if (! in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
-            return collect();
-        }
-
         $query = TripRequest::query()
-            ->whereDate('trip_date', '>=', Carbon::today())
-            ->whereNotIn('status', ['cancelled', 'rejected'])
+            ->where('status', 'pending')
             ->orderBy('trip_date')
             ->with(['assignedVehicle', 'assignedDriver']);
 
         if ($user->role === User::ROLE_BRANCH_ADMIN) {
             $query->where('requested_by_user_id', $user->id);
-        }
-
-        if ($user->role === User::ROLE_BRANCH_HEAD && $user->branch_id) {
+        } elseif ($user->role === User::ROLE_BRANCH_HEAD && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 

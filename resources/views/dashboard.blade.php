@@ -1158,13 +1158,13 @@
             </div>
         </div>
 
-        <!-- COMPACT Upcoming Trips Table -->
+        <!-- COMPACT Pending Trips Table -->
         <div class="modern-table-container">
             <div class="modern-table-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="fw-bold mb-1" style="font-size: 0.9375rem;">Upcoming Trips</h5>
-                        <p class="text-muted mb-0" style="font-size: 0.75rem;">Scheduled from today onward</p>
+                        <h5 class="fw-bold mb-1" style="font-size: 0.9375rem;">Pending Trips</h5>
+                        <p class="text-muted mb-0" style="font-size: 0.75rem;">Pending approval and assignment</p>
                     </div>
                 </div>
             </div>
@@ -1233,12 +1233,18 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-4">
+                                <td class="text-center py-4">
                                     <div class="text-muted">
                                         <i class="bi bi-calendar-x fs-4"></i>
-                                        <p class="mt-2 mb-0" style="font-size: 0.875rem;">No upcoming trips found</p>
+                                        <p class="mt-2 mb-0" style="font-size: 0.875rem;">No pending trips found</p>
                                     </div>
                                 </td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td class="d-none d-md-table-cell"></td>
+                                <td class="d-none d-lg-table-cell"></td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -1501,12 +1507,18 @@
                     if (!rows.length) {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="7" class="text-center py-4">
+                                <td class="text-center py-4">
                                     <div class="text-muted">
                                         <i class="bi bi-calendar-x fs-4"></i>
-                                        <p class="mt-2 mb-0" style="font-size: 0.875rem;">No upcoming trips found</p>
+                                        <p class="mt-2 mb-0" style="font-size: 0.875rem;">No pending trips found</p>
                                     </div>
                                 </td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td class="d-none d-md-table-cell"></td>
+                                <td class="d-none d-lg-table-cell"></td>
                             </tr>
                         `;
                     } else {
