@@ -32,6 +32,11 @@
                         @error('trip_date') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label" for="trip_time">Trip Time</label>
+                        <input class="form-control" id="trip_time" name="trip_time" type="time" value="{{ old('trip_time', $tripRequest->trip_time) }}">
+                        @error('trip_time') <div class="text-danger small">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label" for="purpose">Purpose</label>
                         <input class="form-control" id="purpose" name="purpose" value="{{ old('purpose', $tripRequest->purpose) }}" required>
                         @error('purpose') <div class="text-danger small">{{ $message }}</div> @enderror
@@ -42,8 +47,8 @@
                         @error('destination') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="estimated_distance_km">Estimated Distance (km)</label>
-                        <input class="form-control" id="estimated_distance_km" name="estimated_distance_km" type="number" step="0.01" value="{{ old('estimated_distance_km', $tripRequest->estimated_distance_km) }}">
+                        <label class="form-label" for="estimated_distance_km">Estimated Trip Days</label>
+                        <input class="form-control" id="estimated_distance_km" name="estimated_distance_km" type="number" step="1" min="1" value="{{ old('estimated_distance_km', $tripRequest->estimated_distance_km) }}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="number_of_passengers">Passengers</label>

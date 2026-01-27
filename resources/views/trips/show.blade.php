@@ -34,14 +34,38 @@
                             <div class="fw-semibold">{{ $tripRequest->trip_date?->format('M d, Y') }}</div>
                         </div>
                         <div class="col-md-6">
+                            <div class="text-muted small">Trip Time</div>
+                            @php
+                                $tripTime = $tripRequest->trip_time;
+                                if ($tripTime) {
+                                    try {
+                                        $tripTime = \Illuminate\Support\Carbon::parse($tripTime)->format('g:i A');
+                                    } catch (\Exception $e) {
+                                        $tripTime = \Illuminate\Support\Carbon::parse($tripRequest->trip_time)->format('g:i A');
+                                    }
+                                }
+                            @endphp
+                            <div class="fw-semibold">{{ $tripTime ?: 'N/A' }}</div>
+                        </div>
+                        <div class="col-md-6">
                             <div class="text-muted small">Passengers</div>
                             <div class="fw-semibold">{{ $tripRequest->number_of_passengers }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Estimated Trip Days</div>
+                            <div class="fw-semibold">
+                                @if ($tripRequest->estimated_distance_km)
+                                    {{ (int) $tripRequest->estimated_distance_km }} day{{ (int) $tripRequest->estimated_distance_km === 1 ? '' : 's' }}
+                                @else
+                                    N/A
+                                @endif
+                            </div>
                         </div>
                         <div class="col-md-12">
                             <div class="text-muted small">Notes</div>
                             <div class="fw-semibold">{{ $tripRequest->additional_notes ?: 'N/A' }}</div>
                         </div>
-                        @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <div class="col-md-6">
                                 <div class="text-muted small">Last Updated By</div>
                                 <div class="fw-semibold">{{ $tripRequest->updatedBy?->name ?? 'N/A' }}</div>
@@ -164,6 +188,37 @@
 
                     @if ($tripRequest->status === 'completed' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
                         <a href="{{ route('trips.logbook.edit', $tripRequest) }}" class="btn btn-outline-dark w-100" data-loading>Edit Logbook</a>
+                    @endif
+
+                    @php
+                        $statusStyles = [
+                            'approved' => 'bg-info text-dark',
+                            'assigned' => 'bg-primary',
+                            'completed' => 'bg-success',
+                            'cancelled' => 'bg-secondary',
+                            'rejected' => 'bg-danger',
+                        ];
+                    @endphp
+                    @if ($tripRequest->status === 'pending')
+                        <div class="alert alert-info border mt-3">
+                            <div class="text-muted small mb-1">Current Status</div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                <span class="small text-muted">Awaiting approval</span>
+                            </div>
+                        </div>
+                    @else
+                        <div class="alert alert-light border mt-3">
+                            <div class="text-muted small mb-1">Current Status</div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge {{ $statusStyles[$tripRequest->status] ?? 'bg-light text-dark' }}">
+                                    {{ ucfirst($tripRequest->status) }}
+                                </span>
+                                <span class="small text-muted">
+                                    Updated {{ $tripRequest->updated_at?->diffForHumans() ?? 'recently' }}
+                                </span>
+                            </div>
+                        </div>
                     @endif
 
                     @if ($tripRequest->status === 'rejected')
