@@ -879,7 +879,7 @@
                     </div>
                     <div class="metric-subcard">
                         <div class="metric-subvalue" data-metric="driversUnassignedToday">{{ $driversUnassignedToday ?? 0 }}</div>
-                        <div class="metric-subtitle">Unassigned today</div>
+                        <div class="metric-subtitle">Unassigned</div>
                     </div>
                     <div class="metric-subcard">
                         <div class="metric-subvalue" data-metric="totalDriversRegistered">{{ $totalDriversRegistered ?? 0 }}</div>
