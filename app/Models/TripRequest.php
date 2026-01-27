@@ -36,6 +36,7 @@ class TripRequest extends Model
         'updated_by_user_id',
         'overdue_notified_at',
         'reminder_notified_at',
+        'assignment_reminder_notified_at',
     ];
 
     protected $casts = [
@@ -49,6 +50,7 @@ class TripRequest extends Model
         'logbook_entered_at' => 'datetime',
         'overdue_notified_at' => 'datetime',
         'reminder_notified_at' => 'datetime',
+        'assignment_reminder_notified_at' => 'datetime',
     ];
 
     public function branch(): BelongsTo

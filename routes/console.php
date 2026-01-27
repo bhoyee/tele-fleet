@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('telefleet:snapshot-availability')->dailyAt('00:10');
 Schedule::command('telefleet:notify-overdue-trips')->hourly();
+Schedule::command('telefleet:notify-unassigned-trips')->everyFifteenMinutes();
