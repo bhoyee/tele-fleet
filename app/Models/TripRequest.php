@@ -19,6 +19,7 @@ class TripRequest extends Model
         'purpose',
         'destination',
         'trip_date',
+        'trip_time',
         'estimated_distance_km',
         'number_of_passengers',
         'additional_notes',
@@ -33,16 +34,21 @@ class TripRequest extends Model
         'logbook_entered_by',
         'logbook_entered_at',
         'updated_by_user_id',
+        'overdue_notified_at',
+        'reminder_notified_at',
     ];
 
     protected $casts = [
         'trip_date' => 'date',
+        'trip_time' => 'string',
         'estimated_distance_km' => 'decimal:2',
         'number_of_passengers' => 'integer',
         'approved_at' => 'datetime',
         'assigned_at' => 'datetime',
         'is_completed' => 'boolean',
         'logbook_entered_at' => 'datetime',
+        'overdue_notified_at' => 'datetime',
+        'reminder_notified_at' => 'datetime',
     ];
 
     public function branch(): BelongsTo

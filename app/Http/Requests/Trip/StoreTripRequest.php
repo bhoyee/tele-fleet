@@ -18,6 +18,7 @@ class StoreTripRequest extends FormRequest
             'purpose' => ['required', 'string', 'max:255'],
             'destination' => ['required', 'string', 'max:255'],
             'trip_date' => ['required', 'date'],
+            'trip_time' => ['nullable', 'date_format:H:i'],
             'estimated_distance_km' => ['nullable', 'numeric', 'min:0'],
             'number_of_passengers' => ['nullable', 'integer', 'min:1'],
             'additional_notes' => ['nullable', 'string', 'max:1000'],

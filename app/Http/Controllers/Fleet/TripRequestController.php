@@ -12,16 +12,22 @@ use App\Models\TripLog;
 use App\Models\TripRequest;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Events\TripRequestChanged;
 use App\Notifications\TripRequestApproved;
 use App\Notifications\TripRequestAssigned;
 use App\Notifications\TripRequestCreated;
+use App\Notifications\TripRequestCancelled;
+use App\Notifications\TripRequestRejected;
 use App\Services\AuditLogService;
 use App\Services\SmsService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Http\JsonResponse;
+use Throwable;
 
 class TripRequestController extends Controller
 {
@@ -44,6 +50,39 @@ class TripRequestController extends Controller
         $trips = $query->get();
 
         return view('trips.index', compact('trips'));
+    }
+
+    public function indexData(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $query = TripRequest::query()->orderByDesc('created_at');
+
+        if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $trips = $query->get();
+
+        $payload = $trips->map(function (TripRequest $trip): array {
+            return [
+                'id' => $trip->id,
+                'branch_id' => $trip->branch_id,
+                'requested_by_user_id' => $trip->requested_by_user_id,
+                'request_number' => $trip->request_number,
+                'purpose' => $trip->purpose,
+                'trip_date' => $trip->trip_date?->format('M d, Y') ?? '',
+                'trip_time' => $trip->trip_time ? Carbon::createFromFormat('H:i', $trip->trip_time)->format('g:i A') : 'N/A',
+                'trip_date_raw' => $trip->trip_date?->format('Y-m-d') ?? '',
+                'trip_time_raw' => $trip->trip_time ?? null,
+                'status' => $trip->status,
+                'assigned' => (bool) ($trip->assigned_vehicle_id && $trip->assigned_driver_id),
+            ];
+        });
+
+        return response()->json([
+            'data' => $payload,
+        ]);
     }
 
     public function myRequests(Request $request): View
@@ -86,6 +125,7 @@ class TripRequestController extends Controller
             'purpose' => $data['purpose'],
             'destination' => $data['destination'],
             'trip_date' => $data['trip_date'],
+            'trip_time' => $data['trip_time'] ?? null,
             'estimated_distance_km' => $data['estimated_distance_km'] ?? null,
             'number_of_passengers' => $data['number_of_passengers'] ?? 1,
             'additional_notes' => $data['additional_notes'] ?? null,
@@ -95,7 +135,15 @@ class TripRequestController extends Controller
         $auditLog->log('trip_request.created', $tripRequest, [], $tripRequest->toArray());
 
         $recipients = $this->buildNotificationRecipients($tripRequest);
-        Notification::send($recipients, new TripRequestCreated($tripRequest));
+        try {
+            Notification::send($recipients, new TripRequestCreated($tripRequest));
+        } catch (Throwable $exception) {
+            Log::warning('Trip request create notification failed.', [
+                'trip_request_id' => $tripRequest->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+        $this->broadcastTripChange($tripRequest, 'created');
 
         return redirect()
             ->route('trips.show', $tripRequest)
@@ -104,6 +152,7 @@ class TripRequestController extends Controller
 
     public function show(TripRequest $tripRequest): View
     {
+        $this->authorizeTripView(request()->user(), $tripRequest);
         $tripRequest->load([
             'branch',
             'requestedBy',
@@ -130,6 +179,51 @@ class TripRequestController extends Controller
         return view('trips.show', compact('tripRequest', 'vehicles', 'drivers'));
     }
 
+    public function cancel(Request $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
+    {
+        $this->authorizeTripMutation($request->user(), $tripRequest);
+
+        if (! $this->canCancelTrip($tripRequest)) {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'This trip can no longer be cancelled.');
+        }
+
+        if ($tripRequest->assignedVehicle) {
+            $tripRequest->assignedVehicle->update(['status' => 'available']);
+        }
+
+        if ($tripRequest->assignedDriver) {
+            $tripRequest->assignedDriver->update(['status' => 'active']);
+        }
+
+        $tripRequest->update([
+            'status' => 'cancelled',
+            'assigned_vehicle_id' => null,
+            'assigned_driver_id' => null,
+            'assigned_at' => null,
+            'updated_by_user_id' => $request->user()->id,
+        ]);
+
+        $auditLog->log('trip_request.cancelled', $tripRequest, [], $tripRequest->toArray());
+        $this->broadcastTripChange($tripRequest, 'cancelled');
+
+        $tripRequest->load(['requestedBy']);
+        $recipients = $this->buildCancellationRecipients($tripRequest);
+        try {
+            Notification::send($recipients, new TripRequestCancelled($tripRequest, $request->user()));
+        } catch (Throwable $exception) {
+            Log::warning('Trip request cancellation notification failed.', [
+                'trip_request_id' => $tripRequest->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+
+        return redirect()
+            ->route('trips.index')
+            ->with('success', 'Trip cancelled.');
+    }
+
     public function approve(TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
         $tripRequest->update([
@@ -137,12 +231,21 @@ class TripRequestController extends Controller
             'approved_by_user_id' => request()->user()->id,
             'approved_at' => now(),
             'rejection_reason' => null,
+            'updated_by_user_id' => request()->user()->id,
         ]);
 
         $auditLog->log('trip_request.approved', $tripRequest, [], $tripRequest->toArray());
 
         $recipients = $this->buildNotificationRecipients($tripRequest, $tripRequest->requestedBy);
-        Notification::send($recipients, new TripRequestApproved($tripRequest));
+        try {
+            Notification::send($recipients, new TripRequestApproved($tripRequest));
+        } catch (Throwable $exception) {
+            Log::warning('Trip request approval notification failed.', [
+                'trip_request_id' => $tripRequest->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+        $this->broadcastTripChange($tripRequest, 'approved');
 
         return redirect()
             ->route('trips.show', $tripRequest)
@@ -160,9 +263,22 @@ class TripRequestController extends Controller
             'approved_by_user_id' => request()->user()->id,
             'approved_at' => now(),
             'rejection_reason' => $request->rejection_reason,
+            'updated_by_user_id' => request()->user()->id,
         ]);
 
         $auditLog->log('trip_request.rejected', $tripRequest, [], $tripRequest->toArray());
+
+        if ($tripRequest->requestedBy) {
+            try {
+                $tripRequest->requestedBy->notify(new TripRequestRejected($tripRequest));
+            } catch (Throwable $exception) {
+                Log::warning('Trip request rejection notification failed.', [
+                    'trip_request_id' => $tripRequest->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+        $this->broadcastTripChange($tripRequest, 'rejected');
 
         return redirect()
             ->route('trips.show', $tripRequest)
@@ -193,6 +309,7 @@ class TripRequestController extends Controller
             'assigned_vehicle_id' => $request->assigned_vehicle_id,
             'assigned_driver_id' => $request->assigned_driver_id,
             'assigned_at' => now(),
+            'updated_by_user_id' => request()->user()->id,
         ]);
 
         $vehicle->update(['status' => 'in_use']);
@@ -202,7 +319,14 @@ class TripRequestController extends Controller
 
         $tripRequest->load(['assignedVehicle', 'assignedDriver', 'requestedBy']);
         $recipients = $this->buildNotificationRecipients($tripRequest, $tripRequest->requestedBy);
-        Notification::send($recipients, new TripRequestAssigned($tripRequest));
+        try {
+            Notification::send($recipients, new TripRequestAssigned($tripRequest));
+        } catch (Throwable $exception) {
+            Log::warning('Trip request assignment notification failed.', [
+                'trip_request_id' => $tripRequest->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
 
         if ($tripRequest->assignedDriver?->phone) {
             $sms->send($tripRequest->assignedDriver->phone, sprintf(
@@ -213,6 +337,7 @@ class TripRequestController extends Controller
                 $tripRequest->trip_date?->format('Y-m-d') ?? ''
             ));
         }
+        $this->broadcastTripChange($tripRequest, 'assigned');
 
         return redirect()
             ->route('trips.show', $tripRequest)
@@ -238,6 +363,14 @@ class TripRequestController extends Controller
 
     public function edit(TripRequest $tripRequest): View
     {
+        $this->authorizeTripMutation(request()->user(), $tripRequest);
+
+        if ($this->isBranchUserRestricted(request()->user(), $tripRequest)) {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'This trip can only be edited before approval or after rejection.');
+        }
+
         if ($tripRequest->status === 'completed') {
             return redirect()
                 ->route('trips.show', $tripRequest)
@@ -251,6 +384,14 @@ class TripRequestController extends Controller
 
     public function update(StoreTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
+        $this->authorizeTripMutation($request->user(), $tripRequest);
+
+        if ($this->isBranchUserRestricted($request->user(), $tripRequest)) {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'This trip can only be edited before approval or after rejection.');
+        }
+
         if ($tripRequest->status === 'completed') {
             return redirect()
                 ->route('trips.show', $tripRequest)
@@ -260,10 +401,12 @@ class TripRequestController extends Controller
         $data = $request->validated();
 
         $tripRequest->update(array_merge($data, [
+            'trip_time' => $data['trip_time'] ?? null,
             'updated_by_user_id' => $request->user()->id,
         ]));
 
         $auditLog->log('trip_request.updated', $tripRequest, [], $data);
+        $this->broadcastTripChange($tripRequest, 'updated');
 
         return redirect()
             ->route('trips.show', $tripRequest)
@@ -333,11 +476,13 @@ class TripRequestController extends Controller
             'is_completed' => true,
             'logbook_entered_by' => $request->user()->id,
             'logbook_entered_at' => now(),
+            'updated_by_user_id' => $request->user()->id,
         ]);
 
         $auditLog->log('trip_request.logbook_updated', $tripRequest, [], [
             'trip_log_id' => $tripRequest->log->id,
         ]);
+        $this->broadcastTripChange($tripRequest, 'completed');
 
         return redirect()
             ->route('trips.show', $tripRequest)
@@ -346,7 +491,13 @@ class TripRequestController extends Controller
 
     public function destroy(TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
+        $this->authorizeTripMutation(request()->user(), $tripRequest);
+
         $tripRequest->load('log');
+        $tripRequest->update([
+            'updated_by_user_id' => request()->user()->id,
+        ]);
+        $oldValues = $tripRequest->toArray();
 
         if ($tripRequest->log) {
             $tripRequest->log->delete();
@@ -354,13 +505,69 @@ class TripRequestController extends Controller
 
         $tripRequest->delete();
 
-        $auditLog->log('trip_request.deleted', $tripRequest, [], [
+        $auditLog->log('trip_request.deleted', $tripRequest, $oldValues, [
             'trip_request_id' => $tripRequest->id,
         ]);
+        $this->broadcastTripChangeData($tripRequest->id, $tripRequest->branch_id, $tripRequest->requested_by_user_id, 'deleted');
 
         return redirect()
             ->route('trips.index')
             ->with('success', 'Trip deleted.');
+    }
+
+    private function authorizeTripMutation(?User $user, TripRequest $tripRequest): void
+    {
+        if (! $user) {
+            abort(403);
+        }
+
+        if (in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
+            return;
+        }
+
+        if ($user->role === User::ROLE_BRANCH_ADMIN && $tripRequest->requested_by_user_id === $user->id) {
+            return;
+        }
+
+        if ($user->role === User::ROLE_BRANCH_HEAD && $user->branch_id && $tripRequest->branch_id === $user->branch_id) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function authorizeTripView(?User $user, TripRequest $tripRequest): void
+    {
+        if (! $user) {
+            abort(403);
+        }
+
+        if (in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
+            return;
+        }
+
+        if ($user->role === User::ROLE_BRANCH_HEAD && $user->branch_id && $tripRequest->branch_id === $user->branch_id) {
+            return;
+        }
+
+        if ($user->role === User::ROLE_BRANCH_ADMIN && $tripRequest->requested_by_user_id === $user->id) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function isBranchUserRestricted(?User $user, TripRequest $tripRequest): bool
+    {
+        if (! $user) {
+            return true;
+        }
+
+        if (in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
+            return false;
+        }
+
+        return $tripRequest->status !== 'pending';
     }
 
     public function destroyLogbook(TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
@@ -381,11 +588,13 @@ class TripRequestController extends Controller
             'is_completed' => false,
             'logbook_entered_by' => null,
             'logbook_entered_at' => null,
+            'updated_by_user_id' => $request->user()->id,
         ]);
 
         $auditLog->log('trip_request.logbook_deleted', $tripRequest, [], [
             'trip_log_id' => $logId,
         ]);
+        $this->broadcastTripChange($tripRequest, 'logbook_deleted');
 
         return redirect()
             ->route('logbooks.index')
@@ -434,6 +643,7 @@ class TripRequestController extends Controller
             'is_completed' => true,
             'logbook_entered_by' => $request->user()->id,
             'logbook_entered_at' => now(),
+            'updated_by_user_id' => $request->user()->id,
         ]);
 
         $tripRequest->load(['assignedVehicle', 'assignedDriver']);
@@ -449,6 +659,7 @@ class TripRequestController extends Controller
         $auditLog->log('trip_request.logbook_entered', $tripRequest, [], [
             'trip_log_id' => $tripLog->id,
         ]);
+        $this->broadcastTripChange($tripRequest, 'completed');
 
         return redirect()
             ->route('trips.show', $tripRequest)
@@ -487,5 +698,52 @@ class TripRequestController extends Controller
         }
 
         return $recipients->unique('id')->values();
+    }
+
+    private function buildCancellationRecipients(TripRequest $tripRequest)
+    {
+        $recipients = collect();
+
+        $fleetManagers = User::where('role', User::ROLE_FLEET_MANAGER)->get();
+        $superAdmins = User::where('role', User::ROLE_SUPER_ADMIN)->get();
+        $branchHeads = User::where('role', User::ROLE_BRANCH_HEAD)
+            ->where('branch_id', $tripRequest->branch_id)
+            ->get();
+
+        $recipients = $recipients->merge($fleetManagers)->merge($superAdmins)->merge($branchHeads);
+
+        if ($tripRequest->requestedBy) {
+            $recipients->push($tripRequest->requestedBy);
+        }
+
+        return $recipients->unique('id')->values();
+    }
+
+    private function canCancelTrip(TripRequest $tripRequest): bool
+    {
+        if (! $tripRequest->trip_date) {
+            return false;
+        }
+
+        $tripMoment = $tripRequest->trip_time
+            ? Carbon::createFromFormat('Y-m-d H:i', $tripRequest->trip_date->format('Y-m-d') . ' ' . $tripRequest->trip_time)
+            : $tripRequest->trip_date->copy()->startOfDay();
+
+        $status = strtolower((string) $tripRequest->status);
+        if ($status === 'pending') {
+            return true;
+        }
+
+        return $status !== 'completed' && now()->lt($tripMoment);
+    }
+
+    private function broadcastTripChange(TripRequest $tripRequest, string $action): void
+    {
+        event(new TripRequestChanged($tripRequest->id, $tripRequest->branch_id, $tripRequest->requested_by_user_id, $action));
+    }
+
+    private function broadcastTripChangeData(int $tripId, ?int $branchId, ?int $requesterId, string $action): void
+    {
+        event(new TripRequestChanged($tripId, $branchId, $requesterId, $action));
     }
 }
