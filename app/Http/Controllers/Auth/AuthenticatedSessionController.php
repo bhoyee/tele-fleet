@@ -28,7 +28,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $intended = $request->session()->pull('url.intended');
+        if ($intended && str_contains($intended, '/notifications/count')) {
+            $intended = null;
+        }
+
+        return redirect()->to($intended ?: route('dashboard', absolute: false));
     }
 
     /**
