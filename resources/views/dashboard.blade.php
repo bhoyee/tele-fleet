@@ -1061,7 +1061,12 @@
         </div>
 
         @php
-            $showBranchCharts = in_array(auth()->user()->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true);
+            $showBranchCharts = in_array(auth()->user()->role, [
+                \App\Models\User::ROLE_BRANCH_ADMIN,
+                \App\Models\User::ROLE_BRANCH_HEAD,
+                \App\Models\User::ROLE_FLEET_MANAGER,
+                \App\Models\User::ROLE_SUPER_ADMIN,
+            ], true);
         @endphp
 
         @if ($showBranchCharts)
