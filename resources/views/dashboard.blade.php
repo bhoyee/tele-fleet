@@ -992,6 +992,33 @@
             </div>
             @endif
 
+            @if (!is_null($tripsToday))
+            <div class="metric-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="metric-icon"><i class="bi bi-calendar3"></i></span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Trips</span>
+                </div>
+                <div class="metric-label">Trip Requests</div>
+                <div class="metric-subcards">
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="tripsToday">{{ $tripsToday ?? 0 }}</div>
+                        <div class="metric-subtitle">Today</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="tripsThisWeek">{{ $tripsThisWeek ?? 0 }}</div>
+                        <div class="metric-subtitle">This week</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="tripsThisMonth">{{ $tripsThisMonth ?? 0 }}</div>
+                        <div class="metric-subtitle">This month</div>
+                    </div>
+                </div>
+                <div class="metric-footnote">
+                    <i class="bi bi-graph-up"></i> Total requests
+                </div>
+            </div>
+            @endif
+
             @if (!is_null($uncompletedTrips))
             <div class="metric-card">
                 <div class="d-flex align-items-center justify-content-between mb-2">

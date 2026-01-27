@@ -107,6 +107,9 @@ class DashboardController extends Controller
         $uncompletedTrips = null;
         $dueTrips = null;
         $overdueTrips = null;
+        $tripsToday = null;
+        $tripsThisWeek = null;
+        $tripsThisMonth = null;
         $tripsThisWeek = null;
         $pendingApproval = null;
         $incidentReports = null;
@@ -196,6 +199,21 @@ class DashboardController extends Controller
             $monthTripsAssigned = (clone $tripsQuery)->whereIn('status', ['assigned', 'approved'])->count();
         }
 
+        $tripScope = TripRequest::query();
+        if ($role === User::ROLE_BRANCH_ADMIN) {
+            $tripScope->where('requested_by_user_id', $user->id);
+        } elseif ($role === User::ROLE_BRANCH_HEAD && $branchId) {
+            $tripScope->where('branch_id', $branchId);
+        }
+
+        $tripsToday = (clone $tripScope)->whereDate('trip_date', $now->toDateString())->count();
+        $tripsThisWeek = (clone $tripScope)
+            ->whereBetween('trip_date', [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()])
+            ->count();
+        $tripsThisMonth = (clone $tripScope)
+            ->whereBetween('trip_date', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
+            ->count();
+
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
             $pendingQuery = TripRequest::where('status', 'pending');
             if ($role === User::ROLE_BRANCH_ADMIN) {
@@ -281,6 +299,9 @@ class DashboardController extends Controller
             'uncompletedTrips' => $uncompletedTrips,
             'dueTrips' => $dueTrips,
             'overdueTrips' => $overdueTrips,
+            'tripsToday' => $tripsToday,
+            'tripsThisWeek' => $tripsThisWeek,
+            'tripsThisMonth' => $tripsThisMonth,
             'pendingApproval' => $pendingApproval,
             'incidentReports' => $incidentReports,
             'maintenanceDue' => $maintenanceDue,
