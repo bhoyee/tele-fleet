@@ -970,7 +970,20 @@
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Risk</span>
                 </div>
                 <div class="metric-label">Incident Reports</div>
-                <div class="metric-value" data-metric="incidentReports">{{ $incidentReports }}</div>
+                <div class="metric-subcards">
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="incidentOpen">{{ $incidentOpen ?? 0 }}</div>
+                        <div class="metric-subtitle">Open</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="incidentReview">{{ $incidentReview ?? 0 }}</div>
+                        <div class="metric-subtitle">Under review</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="incidentResolved">{{ $incidentResolved ?? 0 }}</div>
+                        <div class="metric-subtitle">Resolved</div>
+                    </div>
+                </div>
                 <div class="metric-footnote">
                     <i class="bi bi-shield-exclamation"></i> Under review
                 </div>

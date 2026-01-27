@@ -113,6 +113,9 @@ class DashboardController extends Controller
         $tripsThisWeek = null;
         $pendingApproval = null;
         $incidentReports = null;
+        $incidentOpen = null;
+        $incidentReview = null;
+        $incidentResolved = null;
         $maintenanceDue = null;
         $todayActiveTrips = null;
         $futureTrips = null;
@@ -230,6 +233,9 @@ class DashboardController extends Controller
                 IncidentReport::STATUS_OPEN,
                 IncidentReport::STATUS_REVIEW,
             ])->count();
+            $incidentOpen = IncidentReport::where('status', IncidentReport::STATUS_OPEN)->count();
+            $incidentReview = IncidentReport::where('status', IncidentReport::STATUS_REVIEW)->count();
+            $incidentResolved = IncidentReport::where('status', IncidentReport::STATUS_RESOLVED)->count();
 
             $dueDate = Carbon::now()->addDays(30);
             $maintenanceDue = Vehicle::where(function ($query) use ($dueDate): void {
@@ -304,6 +310,9 @@ class DashboardController extends Controller
             'tripsThisMonth' => $tripsThisMonth,
             'pendingApproval' => $pendingApproval,
             'incidentReports' => $incidentReports,
+            'incidentOpen' => $incidentOpen,
+            'incidentReview' => $incidentReview,
+            'incidentResolved' => $incidentResolved,
             'maintenanceDue' => $maintenanceDue,
             'todayActiveTrips' => $todayActiveTrips,
             'futureTrips' => $futureTrips,
