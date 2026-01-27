@@ -469,6 +469,44 @@
             }
         }
 
+        .fleet-gauge-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .fleet-gauge-card {
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 0.75rem;
+            background: #f8fafc;
+            text-align: center;
+        }
+
+        .fleet-gauge-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 0.35rem;
+        }
+
+        .fleet-gauge-label {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        @media (max-width: 992px) {
+            .fleet-gauge-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 576px) {
+            .fleet-gauge-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .chart-wrapper {
             position: relative;
             flex: 1;
@@ -1067,6 +1105,14 @@
                 \App\Models\User::ROLE_FLEET_MANAGER,
                 \App\Models\User::ROLE_SUPER_ADMIN,
             ], true);
+            $showFleetOverview = in_array(auth()->user()->role, [
+                \App\Models\User::ROLE_FLEET_MANAGER,
+                \App\Models\User::ROLE_SUPER_ADMIN,
+            ], true);
+            $showTripStatusChart = in_array(auth()->user()->role, [
+                \App\Models\User::ROLE_BRANCH_ADMIN,
+                \App\Models\User::ROLE_BRANCH_HEAD,
+            ], true);
         @endphp
 
         @if ($showBranchCharts)
@@ -1123,38 +1169,65 @@
 
             <!-- COMPACT Chart -->
             <div class="chart-container">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <h5 class="fw-bold mb-1" style="font-size: 0.9375rem;">Trip Status</h5>
-                        <p class="text-muted mb-0" style="font-size: 0.75rem;">Current distribution</p>
+                @if ($showFleetOverview)
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1" style="font-size: 0.9375rem;">Fleet Status Overview</h5>
+                            <p class="text-muted mb-0" style="font-size: 0.75rem;">Current fleet availability</p>
+                        </div>
+                        <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Live</span>
                     </div>
-                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Current Month</span>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="tripStatusChart"></canvas>
-                </div>
-                <div class="chart-legend">
-                    <div class="chart-legend-item">
-                        <div class="status-dot requested"></div>
-                        <small class="text-muted">Requested</small>
+                    <div class="fleet-gauge-grid">
+                        <div class="fleet-gauge-card">
+                            <canvas id="fleetGaugeAvailable"></canvas>
+                            <div class="fleet-gauge-value" data-metric="vehiclesAvailable">{{ $vehiclesAvailable ?? 0 }}</div>
+                            <div class="fleet-gauge-label">Available</div>
+                        </div>
+                        <div class="fleet-gauge-card">
+                            <canvas id="fleetGaugeInUse"></canvas>
+                            <div class="fleet-gauge-value" data-metric="vehiclesInUse">{{ $vehiclesInUse ?? 0 }}</div>
+                            <div class="fleet-gauge-label">In use</div>
+                        </div>
+                        <div class="fleet-gauge-card">
+                            <canvas id="fleetGaugeMaintenance"></canvas>
+                            <div class="fleet-gauge-value" data-metric="vehiclesMaintenance">{{ $vehiclesMaintenance ?? 0 }}</div>
+                            <div class="fleet-gauge-label">Maintenance</div>
+                        </div>
                     </div>
-                    <div class="chart-legend-item">
-                        <div class="status-dot approved"></div>
-                        <small class="text-muted">Approved</small>
+                @elseif ($showTripStatusChart)
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1" style="font-size: 0.9375rem;">Trip Status</h5>
+                            <p class="text-muted mb-0" style="font-size: 0.75rem;">Current distribution</p>
+                        </div>
+                        <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Current Month</span>
                     </div>
-                    <div class="chart-legend-item">
-                        <div class="status-dot assigned"></div>
-                        <small class="text-muted">Assigned</small>
+                    <div class="chart-wrapper">
+                        <canvas id="tripStatusChart"></canvas>
                     </div>
-                    <div class="chart-legend-item">
-                        <div class="status-dot completed"></div>
-                        <small class="text-muted">Completed</small>
+                    <div class="chart-legend">
+                        <div class="chart-legend-item">
+                            <div class="status-dot requested"></div>
+                            <small class="text-muted">Requested</small>
+                        </div>
+                        <div class="chart-legend-item">
+                            <div class="status-dot approved"></div>
+                            <small class="text-muted">Approved</small>
+                        </div>
+                        <div class="chart-legend-item">
+                            <div class="status-dot assigned"></div>
+                            <small class="text-muted">Assigned</small>
+                        </div>
+                        <div class="chart-legend-item">
+                            <div class="status-dot completed"></div>
+                            <small class="text-muted">Completed</small>
+                        </div>
+                        <div class="chart-legend-item">
+                            <div class="status-dot rejected"></div>
+                            <small class="text-muted">Rejected</small>
+                        </div>
                     </div>
-                    <div class="chart-legend-item">
-                        <div class="status-dot rejected"></div>
-                        <small class="text-muted">Rejected</small>
-                    </div>
-                </div>
+                @endif
             </div>
         </div>
 
@@ -1274,10 +1347,13 @@
             const upcomingTripsUrl = "{{ route('dashboard.upcoming-trips') }}";
             const tripShowUrlTemplate = "{{ route('trips.show', '__ID__') }}";
             const showBranchCharts = {{ $showBranchCharts ? 'true' : 'false' }};
+            const showFleetOverview = {{ $showFleetOverview ? 'true' : 'false' }};
+            const showTripStatusChart = {{ $showTripStatusChart ? 'true' : 'false' }};
             
             let selectedMonth = new Date().getMonth() + 1;
             let selectedYear = new Date().getFullYear();
             let tripChart = null;
+            let fleetGaugeCharts = {};
 
             // Update metrics function
             const updateMetrics = async () => {
@@ -1294,9 +1370,67 @@
                             el.textContent = `${data[key]}${suffix}`;
                         }
                     });
+                    if (showFleetOverview) {
+                        updateFleetGauges(data);
+                    }
                 } catch (error) {
                     console.warn('Dashboard metrics refresh failed.');
                 }
+            };
+
+            const createGaugeChart = (canvasId, color) => {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas || typeof Chart === 'undefined') {
+                    return null;
+                }
+                return new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [0, 1],
+                            backgroundColor: [color, '#e5e7eb'],
+                            borderWidth: 0,
+                        }],
+                    },
+                    options: {
+                        cutout: '78%',
+                        rotation: -90,
+                        circumference: 180,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false },
+                        },
+                    },
+                });
+            };
+
+            const initFleetGauges = () => {
+                if (!showFleetOverview) {
+                    return;
+                }
+                fleetGaugeCharts.available = createGaugeChart('fleetGaugeAvailable', '#16a34a');
+                fleetGaugeCharts.inUse = createGaugeChart('fleetGaugeInUse', '#2563eb');
+                fleetGaugeCharts.maintenance = createGaugeChart('fleetGaugeMaintenance', '#f59e0b');
+            };
+
+            const updateFleetGauges = (data) => {
+                const total = Number(data.totalVehicles ?? 0);
+                if (!total) {
+                    return;
+                }
+                const available = Number(data.vehiclesAvailable ?? 0);
+                const inUse = Number(data.vehiclesInUse ?? 0);
+                const maintenance = Number(data.vehiclesMaintenance ?? 0);
+
+                const updateGauge = (chart, value) => {
+                    if (!chart) return;
+                    chart.data.datasets[0].data = [value, Math.max(0, total - value)];
+                    chart.update();
+                };
+
+                updateGauge(fleetGaugeCharts.available, available);
+                updateGauge(fleetGaugeCharts.inUse, inUse);
+                updateGauge(fleetGaugeCharts.maintenance, maintenance);
             };
 
             // Build COMPACT calendar with hover tooltips
@@ -1476,7 +1610,7 @@
 
             // Update trip status data
             const updateTripStatus = async () => {
-                if (!showBranchCharts) return;
+                if (!showTripStatusChart) return;
                 
                 try {
                     const response = await fetch(tripStatusUrl, { 
@@ -1599,6 +1733,7 @@
             // Initialize dashboard if branch charts should be shown
             if (showBranchCharts) {
                 document.addEventListener('DOMContentLoaded', function() {
+                    initFleetGauges();
                     // Calendar controls
                     const monthSelect = document.getElementById('calendarMonthSelect');
                     const yearSelect = document.getElementById('calendarYearSelect');

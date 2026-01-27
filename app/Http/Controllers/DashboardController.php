@@ -110,7 +110,6 @@ class DashboardController extends Controller
         $tripsToday = null;
         $tripsThisWeek = null;
         $tripsThisMonth = null;
-        $tripsThisWeek = null;
         $pendingApproval = null;
         $incidentReports = null;
         $incidentOpen = null;
@@ -120,6 +119,9 @@ class DashboardController extends Controller
         $todayActiveTrips = null;
         $futureTrips = null;
         $unassignedTrips = null;
+        $vehiclesAvailable = null;
+        $vehiclesInUse = null;
+        $vehiclesMaintenance = null;
 
         if ($role === User::ROLE_BRANCH_ADMIN) {
             $personalTripRequests = TripRequest::where('requested_by_user_id', $user->id)
@@ -187,6 +189,10 @@ class DashboardController extends Controller
                 ->count('assigned_driver_id');
 
             $driversUnassignedToday = max(0, $totalDriversRegistered - $driversUnavailableToday);
+
+            $vehiclesAvailable = Vehicle::where('status', 'available')->count();
+            $vehiclesInUse = Vehicle::where('status', 'in_use')->count();
+            $vehiclesMaintenance = Vehicle::where('status', 'maintenance')->count();
         }
 
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_HEAD], true)) {
@@ -317,6 +323,9 @@ class DashboardController extends Controller
             'todayActiveTrips' => $todayActiveTrips,
             'futureTrips' => $futureTrips,
             'unassignedTrips' => $unassignedTrips,
+            'vehiclesAvailable' => $vehiclesAvailable,
+            'vehiclesInUse' => $vehiclesInUse,
+            'vehiclesMaintenance' => $vehiclesMaintenance,
         ];
     }
 
