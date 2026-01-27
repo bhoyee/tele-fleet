@@ -100,6 +100,10 @@ class DashboardController extends Controller
         $driversAssignedToday = null;
         $driversUnassignedToday = null;
         $totalDriversRegistered = null;
+        $monthTripsTotal = null;
+        $monthTripsCompleted = null;
+        $monthTripsRejected = null;
+        $monthTripsAssigned = null;
         $tripsThisWeek = null;
         $pendingApproval = null;
         $incidentReports = null;
@@ -177,13 +181,16 @@ class DashboardController extends Controller
         }
 
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_HEAD], true)) {
-            $weekStart = Carbon::now()->startOfWeek();
-            $weekEnd = Carbon::now()->endOfWeek();
-            $tripsQuery = TripRequest::whereBetween('trip_date', [$weekStart, $weekEnd]);
+            $monthStart = $now->copy()->startOfMonth();
+            $monthEnd = $now->copy()->endOfMonth();
+            $tripsQuery = TripRequest::whereBetween('trip_date', [$monthStart, $monthEnd]);
             if ($role === User::ROLE_BRANCH_HEAD && $branchId) {
                 $tripsQuery->where('branch_id', $branchId);
             }
-            $tripsThisWeek = $tripsQuery->count();
+            $monthTripsTotal = (clone $tripsQuery)->count();
+            $monthTripsCompleted = (clone $tripsQuery)->where('status', 'completed')->count();
+            $monthTripsRejected = (clone $tripsQuery)->where('status', 'rejected')->count();
+            $monthTripsAssigned = (clone $tripsQuery)->whereIn('status', ['assigned', 'approved'])->count();
         }
 
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
@@ -249,6 +256,10 @@ class DashboardController extends Controller
             'driversUnassignedToday' => $driversUnassignedToday,
             'totalDriversRegistered' => $totalDriversRegistered,
             'tripsThisWeek' => $tripsThisWeek,
+            'monthTripsTotal' => $monthTripsTotal,
+            'monthTripsCompleted' => $monthTripsCompleted,
+            'monthTripsRejected' => $monthTripsRejected,
+            'monthTripsAssigned' => $monthTripsAssigned,
             'pendingApproval' => $pendingApproval,
             'incidentReports' => $incidentReports,
             'maintenanceDue' => $maintenanceDue,

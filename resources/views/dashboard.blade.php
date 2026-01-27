@@ -919,17 +919,31 @@
             </div>
             @endif
 
-            <!-- Trips This Week -->
-            @if (!is_null($tripsThisWeek))
+            <!-- Trips This Month -->
+            @if (!is_null($monthTripsTotal))
             <div class="metric-card">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-calendar-week"></i></span>
-                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Week</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Month</span>
                 </div>
-                <div class="metric-label">Trips This Week</div>
-                <div class="metric-value" data-metric="tripsThisWeek">{{ $tripsThisWeek }}</div>
+                <div class="metric-label">Trips This Month</div>
+                <div class="metric-value" data-metric="monthTripsTotal">{{ $monthTripsTotal }}</div>
+                <div class="metric-subcards">
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="monthTripsCompleted">{{ $monthTripsCompleted ?? 0 }}</div>
+                        <div class="metric-subtitle">Completed</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="monthTripsRejected">{{ $monthTripsRejected ?? 0 }}</div>
+                        <div class="metric-subtitle">Rejected</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="monthTripsAssigned">{{ $monthTripsAssigned ?? 0 }}</div>
+                        <div class="metric-subtitle">Assigned</div>
+                    </div>
+                </div>
                 <div class="metric-footnote">
-                    <i class="bi bi-graph-up"></i> Week-to-date
+                    <i class="bi bi-graph-up"></i> Monthly summary
                 </div>
             </div>
             @endif
