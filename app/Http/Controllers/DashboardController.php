@@ -155,7 +155,25 @@ class DashboardController extends Controller
                 ->count('assigned_driver_id');
 
             $totalDriversRegistered = Driver::where('status', '!=', 'suspended')->count();
-            $driversUnassignedToday = max(0, $totalDriversRegistered - $driversAssignedToday);
+            $driversUnavailableToday = TripRequest::whereIn('status', ['approved', 'assigned'])
+                ->whereNotNull('assigned_driver_id')
+                ->where(function ($query): void {
+                    $query->whereNull('is_completed')->orWhere('is_completed', false);
+                })
+                ->where(function ($query) use ($now): void {
+                    $query->whereDate('trip_date', '<', $now->toDateString())
+                        ->orWhere(function ($sub) use ($now): void {
+                            $sub->whereDate('trip_date', $now->toDateString())
+                                ->where(function ($timeQuery) use ($now): void {
+                                    $timeQuery->whereNull('trip_time')
+                                        ->orWhere('trip_time', '<=', $now->format('H:i'));
+                                });
+                        });
+                })
+                ->distinct('assigned_driver_id')
+                ->count('assigned_driver_id');
+
+            $driversUnassignedToday = max(0, $totalDriversRegistered - $driversUnavailableToday);
         }
 
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_HEAD], true)) {
