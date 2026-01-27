@@ -1179,6 +1179,7 @@
                             <th>Status</th>
                             <th class="d-none d-md-table-cell">Vehicle</th>
                             <th class="d-none d-lg-table-cell">Driver</th>
+                            <th class="text-end">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1230,6 +1231,13 @@
                                 <td data-label="Driver" class="d-none d-lg-table-cell">
                                     {{ $trip->assignedDriver?->full_name ?? '—' }}
                                 </td>
+                                <td class="text-end" data-label="Action">
+                                    @if (in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('trips.show', $trip) }}" data-loading>View</a>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
@@ -1245,6 +1253,7 @@
                                 <td></td>
                                 <td class="d-none d-md-table-cell"></td>
                                 <td class="d-none d-lg-table-cell"></td>
+                                <td class="text-end"></td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -1263,6 +1272,7 @@
             const calendarUrl = "{{ route('dashboard.calendar') }}";
             const tripStatusUrl = "{{ route('dashboard.trip-status') }}";
             const upcomingTripsUrl = "{{ route('dashboard.upcoming-trips') }}";
+            const tripShowUrlTemplate = "{{ route('trips.show', '__ID__') }}";
             const showBranchCharts = {{ $showBranchCharts ? 'true' : 'false' }};
             
             let selectedMonth = new Date().getMonth() + 1;
@@ -1519,9 +1529,11 @@
                                 <td></td>
                                 <td class="d-none d-md-table-cell"></td>
                                 <td class="d-none d-lg-table-cell"></td>
+                                <td class="text-end"></td>
                             </tr>
                         `;
                     } else {
+                        const canView = ['super_admin', 'fleet_manager'].includes('{{ auth()->user()->role }}');
                         tbody.innerHTML = rows.map((trip) => {
                             const status = String(trip.status ?? '');
                             const statusClass = status.toLowerCase() === 'requested'
@@ -1560,6 +1572,9 @@
                                     </td>
                                     <td data-label="Driver" class="d-none d-lg-table-cell">
                                         ${escaped(trip.driver)}
+                                    </td>
+                                    <td class="text-end" data-label="Action">
+                                        ${canView ? `<a class="btn btn-sm btn-outline-primary" href="${tripShowUrlTemplate.replace('__ID__', trip.id)}" data-loading>View</a>` : '<span class="text-muted">—</span>'}
                                     </td>
                                 </tr>
                             `;
@@ -1659,3 +1674,5 @@
         </script>
     @endpush
 </x-admin-layout>
+
+
