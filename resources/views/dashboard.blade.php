@@ -869,12 +869,21 @@
             <div class="metric-card">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-person-badge"></i></span>
-                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Active</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Today</span>
                 </div>
                 <div class="metric-label">Drivers On Duty</div>
-                <div class="metric-value" data-metric="driversOnDuty">{{ $driversOnDuty }}</div>
+                <div class="metric-subcards">
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="driversAssignedToday">{{ $driversAssignedToday ?? 0 }}</div>
+                        <div class="metric-subtitle">Assigned today</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="driversUnassignedToday">{{ $driversUnassignedToday ?? 0 }}</div>
+                        <div class="metric-subtitle">Unassigned today</div>
+                    </div>
+                </div>
                 <div class="metric-footnote">
-                    <i class="bi bi-person-check"></i> Currently assigned
+                    <i class="bi bi-person-check"></i> Active driver coverage
                 </div>
             </div>
             @endif

@@ -95,6 +95,8 @@ class DashboardController extends Controller
         $branchCompletedTrips = null;
         $branchRejectedTrips = null;
         $driversOnDuty = null;
+        $driversAssignedToday = null;
+        $driversUnassignedToday = null;
         $tripsThisWeek = null;
         $pendingApproval = null;
         $incidentReports = null;
@@ -135,6 +137,18 @@ class DashboardController extends Controller
                 })
                 ->distinct('assigned_driver_id')
                 ->count('assigned_driver_id');
+
+            $driversAssignedToday = TripRequest::whereDate('trip_date', Carbon::today())
+                ->whereIn('status', ['approved', 'assigned'])
+                ->whereNotNull('assigned_driver_id')
+                ->where(function ($query): void {
+                    $query->whereNull('is_completed')->orWhere('is_completed', false);
+                })
+                ->distinct('assigned_driver_id')
+                ->count('assigned_driver_id');
+
+            $activeDriversToday = Driver::where('status', 'active')->count();
+            $driversUnassignedToday = max(0, $activeDriversToday - $driversAssignedToday);
         }
 
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_HEAD], true)) {
@@ -206,6 +220,8 @@ class DashboardController extends Controller
             'branchCompletedTrips' => $branchCompletedTrips,
             'branchRejectedTrips' => $branchRejectedTrips,
             'driversOnDuty' => $driversOnDuty,
+            'driversAssignedToday' => $driversAssignedToday,
+            'driversUnassignedToday' => $driversUnassignedToday,
             'tripsThisWeek' => $tripsThisWeek,
             'pendingApproval' => $pendingApproval,
             'incidentReports' => $incidentReports,
