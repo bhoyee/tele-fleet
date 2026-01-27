@@ -13,6 +13,7 @@ class IncidentReport extends Model
     public const STATUS_OPEN = 'open';
     public const STATUS_REVIEW = 'under_review';
     public const STATUS_RESOLVED = 'resolved';
+    public const STATUS_CANCELLED = 'cancelled';
 
     public const SEVERITY_MINOR = 'minor';
     public const SEVERITY_MAJOR = 'major';
