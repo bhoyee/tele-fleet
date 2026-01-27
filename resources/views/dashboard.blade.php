@@ -1036,9 +1036,18 @@
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Service</span>
                 </div>
                 <div class="metric-label">Maintenance Due</div>
-                <div class="metric-value" data-metric="maintenanceDue">{{ $maintenanceDue }}</div>
+                <div class="metric-subcards">
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="maintenanceDue">{{ $maintenanceDue ?? 0 }}</div>
+                        <div class="metric-subtitle">Due</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="maintenanceInProgress">{{ $maintenanceInProgress ?? 0 }}</div>
+                        <div class="metric-subtitle">In maintenance</div>
+                    </div>
+                </div>
                 <div class="metric-footnote">
-                    <i class="bi bi-calendar-x"></i> Within 30 days
+                    <i class="bi bi-calendar-check"></i> Current workload
                 </div>
             </div>
             @endif

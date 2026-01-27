@@ -116,6 +116,7 @@ class DashboardController extends Controller
         $incidentReview = null;
         $incidentResolved = null;
         $maintenanceDue = null;
+        $maintenanceInProgress = null;
         $todayActiveTrips = null;
         $futureTrips = null;
         $unassignedTrips = null;
@@ -243,11 +244,12 @@ class DashboardController extends Controller
             $incidentReview = IncidentReport::where('status', IncidentReport::STATUS_REVIEW)->count();
             $incidentResolved = IncidentReport::where('status', IncidentReport::STATUS_RESOLVED)->count();
 
-            $dueDate = Carbon::now()->addDays(30);
-            $maintenanceDue = Vehicle::where(function ($query) use ($dueDate): void {
-                $query->whereDate('insurance_expiry', '<=', $dueDate)
-                    ->orWhereDate('registration_expiry', '<=', $dueDate);
+            $today = $now->toDateString();
+            $maintenanceDue = Vehicle::where(function ($query) use ($today): void {
+                $query->whereDate('insurance_expiry', '<=', $today)
+                    ->orWhereDate('registration_expiry', '<=', $today);
             })->count();
+            $maintenanceInProgress = Vehicle::where('status', 'maintenance')->count();
 
             $todayActiveTrips = TripRequest::whereDate('trip_date', Carbon::today())
                 ->whereIn('status', ['approved', 'assigned'])
@@ -320,6 +322,7 @@ class DashboardController extends Controller
             'incidentReview' => $incidentReview,
             'incidentResolved' => $incidentResolved,
             'maintenanceDue' => $maintenanceDue,
+            'maintenanceInProgress' => $maintenanceInProgress,
             'todayActiveTrips' => $todayActiveTrips,
             'futureTrips' => $futureTrips,
             'unassignedTrips' => $unassignedTrips,
