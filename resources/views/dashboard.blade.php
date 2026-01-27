@@ -175,7 +175,7 @@
 
         .metric-subcards {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.75rem;
             margin-top: 0.5rem;
         }
@@ -203,6 +203,12 @@
         @media (max-width: 576px) {
             .metric-subcards {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 577px) and (max-width: 991px) {
+            .metric-subcards {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
@@ -888,6 +894,10 @@
                     <div class="metric-subcard">
                         <div class="metric-subvalue" data-metric="futureTrips">{{ $futureTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Future trips</div>
+                    </div>
+                    <div class="metric-subcard">
+                        <div class="metric-subvalue" data-metric="unassignedTrips">{{ $unassignedTrips ?? 0 }}</div>
+                        <div class="metric-subtitle">Unassigned</div>
                     </div>
                 </div>
                 <div class="metric-footnote">
