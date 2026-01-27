@@ -927,7 +927,6 @@
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Month</span>
                 </div>
                 <div class="metric-label">Trips This Month</div>
-                <div class="metric-value" data-metric="monthTripsTotal">{{ $monthTripsTotal }}</div>
                 <div class="metric-subcards">
                     <div class="metric-subcard">
                         <div class="metric-subvalue" data-metric="monthTripsCompleted">{{ $monthTripsCompleted ?? 0 }}</div>
