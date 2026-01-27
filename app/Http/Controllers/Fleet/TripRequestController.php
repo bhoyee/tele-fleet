@@ -171,7 +171,7 @@ class TripRequestController extends Controller
             $vehicles = Vehicle::where('status', 'available')
                 ->orderBy('registration_number')
                 ->get();
-            $drivers = Driver::where('status', 'active')
+            $drivers = Driver::where('status', '!=', 'suspended')
                 ->orderBy('full_name')
                 ->get();
         }
@@ -193,9 +193,6 @@ class TripRequestController extends Controller
             $tripRequest->assignedVehicle->update(['status' => 'available']);
         }
 
-        if ($tripRequest->assignedDriver) {
-            $tripRequest->assignedDriver->update(['status' => 'active']);
-        }
 
         $tripRequest->update([
             'status' => 'cancelled',
@@ -297,7 +294,7 @@ class TripRequestController extends Controller
                 ->withInput();
         }
 
-        if ($driver->status !== 'active') {
+        if ($driver->status === 'suspended') {
             return redirect()
                 ->back()
                 ->withErrors(['assigned_driver_id' => 'Selected driver is not available.'])
@@ -313,7 +310,6 @@ class TripRequestController extends Controller
         ]);
 
         $vehicle->update(['status' => 'in_use']);
-        $driver->update(['status' => 'inactive']);
 
         $auditLog->log('trip_request.assigned', $tripRequest, [], $tripRequest->toArray());
 
@@ -652,9 +648,6 @@ class TripRequestController extends Controller
             $tripRequest->assignedVehicle->update(['status' => 'available']);
         }
 
-        if ($tripRequest->assignedDriver) {
-            $tripRequest->assignedDriver->update(['status' => 'active']);
-        }
 
         $auditLog->log('trip_request.logbook_entered', $tripRequest, [], [
             'trip_log_id' => $tripLog->id,
@@ -669,7 +662,7 @@ class TripRequestController extends Controller
     public function assignmentForm(TripRequest $tripRequest): View
     {
         $vehicles = Vehicle::where('status', 'available')->orderBy('registration_number')->get();
-        $drivers = Driver::where('status', 'active')->orderBy('full_name')->get();
+        $drivers = Driver::where('status', '!=', 'suspended')->orderBy('full_name')->get();
 
         return view('trips.assign', compact('tripRequest', 'vehicles', 'drivers'));
     }
