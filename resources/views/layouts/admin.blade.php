@@ -364,6 +364,34 @@
                 }
             }
 
+            @media (max-width: 768px) {
+                .topbar {
+                    flex-wrap: wrap;
+                    gap: 0.75rem;
+                    padding: 0.75rem 1rem;
+                }
+
+                .topbar .breadcrumb {
+                    font-size: 0.85rem;
+                }
+
+                .topbar .d-flex.align-items-center.gap-3 {
+                    flex-wrap: wrap;
+                    justify-content: flex-end;
+                    width: 100%;
+                    gap: 0.5rem !important;
+                }
+
+                .content-wrapper {
+                    padding: 1rem;
+                }
+
+                .table {
+                    display: block;
+                    overflow-x: auto;
+                }
+            }
+
             /* Custom Scrollbar */
             ::-webkit-scrollbar {
                 width: 8px;
@@ -390,7 +418,7 @@
             /* Content Padding */
             .content-wrapper {
                 padding: 2rem;
-                max-width: 1600px;
+                max-width: 1400px;
                 margin: 0 auto;
                 width: 100%;
                 flex: 1;
@@ -829,7 +857,15 @@
                             <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('reports.*')) active @endif" href="{{ route('reports.my-requests') }}">
                                     <i class="bi bi-bar-chart nav-icon"></i>
-                                    <span>Reports</span>
+                                    <span>My Reports</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (auth()->user()?->role === \App\Models\User::ROLE_BRANCH_HEAD)
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('reports.branch.*')) active @endif" href="{{ route('reports.branch') }}">
+                                    <i class="bi bi-clipboard-data nav-icon"></i>
+                                    <span>Branch Report</span>
                                 </a>
                             </li>
                         @endif
@@ -884,9 +920,7 @@
                         <div class="dropdown position-relative">
                             <button class="btn btn-light position-relative" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 10px; border: 1px solid rgba(5, 108, 163, 0.2);">
                                 <i class="bi bi-bell" style="color: #056CA3;"></i>
-                                @if ($unreadCount > 0)
-                                    <span class="notification-badge">{{ $unreadCount }}</span>
-                                @endif
+                                <span class="notification-badge" style="{{ $unreadCount > 0 ? '' : 'display:none;' }}">{{ $unreadCount }}</span>
                             </button>
                             <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-0" style="min-width: 320px; border: 1px solid rgba(5, 108, 163, 0.1);">
                                 <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-light">
@@ -959,7 +993,7 @@
                                 </div>
                                 <div class="d-flex flex-column text-start">
                                     <span class="fw-semibold">{{ auth()->user()?->name }}</span>
-                                    <small class="text-muted">{{ auth()->user()?->role }}</small>
+                                <small class="text-muted">{{ ucwords(str_replace('_', ' ', auth()->user()?->role ?? '')) }}</small>
                                 </div>
                                 <i class="bi bi-chevron-down ms-2"></i>
                             </button>
@@ -1255,22 +1289,27 @@
                 hidePageProgress();
             });
 
-            // Auto-refresh notifications every 30 seconds
-            setInterval(() => {
-                fetch('{{ route("notifications.count") }}')
+            const refreshNotificationCount = () => {
+                fetch('{{ route("notifications.count") }}', { cache: 'no-store' })
                     .then(response => response.json())
                     .then(data => {
-                        const badge = document.querySelector('.notification-badge');
-                        if (badge) {
-                            if (data.count > 0) {
-                                badge.textContent = data.count;
-                                badge.style.display = 'flex';
-                            } else {
-                                badge.style.display = 'none';
-                            }
+                        let badge = document.querySelector('.notification-badge');
+                        if (!badge) {
+                            return;
                         }
-                    });
-            }, 30000);
+                        if (data.count > 0) {
+                            badge.textContent = data.count;
+                            badge.style.display = 'flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    })
+                    .catch(() => {});
+            };
+
+            // Auto-refresh notifications every 15 seconds
+            refreshNotificationCount();
+            setInterval(refreshNotificationCount, 15000);
 
             const chatWidget = document.getElementById('chatWidget');
             if (chatWidget) {

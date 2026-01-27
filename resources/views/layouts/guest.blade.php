@@ -117,7 +117,7 @@
 
             .auth-container {
                 width: 100%;
-                max-width: 1400px;
+                max-width: 1200px;
                 margin: 0 auto;
             }
 
@@ -125,9 +125,9 @@
             .auth-hero {
                 background: var(--gradient-primary);
                 border-radius: var(--radius-xl);
-                padding: 4rem;
+                padding: 3rem;
                 height: 100%;
-                min-height: 600px;
+                min-height: 420px;
                 position: relative;
                 overflow: hidden;
                 display: flex;
@@ -251,7 +251,7 @@
                 border-radius: var(--radius-xl);
                 padding: 4rem;
                 height: 100%;
-                min-height: 600px;
+                min-height: 460px;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
@@ -674,7 +674,7 @@
             <div class="auth-container">
                 <div class="row g-4">
                     <!-- Left Panel - Brand/Illustration -->
-                    <div class="col-lg-6">
+                    <div class="col-lg-6 col-xl-6">
                         <div class="auth-hero">
                             <div class="brand-header">
                                 <a href="{{ url('/') }}" class="brand-logo text-decoration-none">
@@ -742,7 +742,7 @@
                     </div>
 
                     <!-- Right Panel - Form -->
-                    <div class="col-lg-6">
+                    <div class="col-lg-6 col-xl-6">
                         <div class="auth-form-section">
                             @if(isset($backUrl))
                                 <a href="{{ $backUrl }}" class="back-link">

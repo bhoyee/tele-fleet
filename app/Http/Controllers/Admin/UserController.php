@@ -11,7 +11,9 @@ use App\Notifications\UserWelcomeCredentials;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class UserController extends Controller
 {
@@ -39,7 +41,14 @@ class UserController extends Controller
         $data['password'] = Hash::make($plainPassword);
 
         $newUser = User::create($data);
-        $newUser->notify(new UserWelcomeCredentials($plainPassword));
+        try {
+            $newUser->notify(new UserWelcomeCredentials($plainPassword));
+        } catch (Throwable $exception) {
+            Log::warning('User welcome notification failed.', [
+                'user_id' => $newUser->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
 
         return redirect()
             ->route('admin.users.index')

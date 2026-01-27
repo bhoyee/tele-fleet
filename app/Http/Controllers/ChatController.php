@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Carbon;
+use Throwable;
 
 class ChatController extends Controller
 {
@@ -104,7 +105,14 @@ class ChatController extends Controller
             'user_id' => $assignee->id,
         ]);
 
-        Notification::send($assignee, new ChatRequestNotification($conversation));
+        try {
+            Notification::send($assignee, new ChatRequestNotification($conversation));
+        } catch (Throwable $exception) {
+            Log::warning('Chat request notification failed.', [
+                'conversation_id' => $conversation->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
         try {
             event(new ChatRequestCreated($conversation, $assignee->id));
         } catch (BroadcastException $e) {
@@ -154,7 +162,14 @@ class ChatController extends Controller
             'user_id' => $target->id,
         ]);
 
-        Notification::send($target, new ChatRequestNotification($conversation));
+        try {
+            Notification::send($target, new ChatRequestNotification($conversation));
+        } catch (Throwable $exception) {
+            Log::warning('Chat request notification failed.', [
+                'conversation_id' => $conversation->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
         try {
             event(new ChatRequestCreated($conversation, $target->id));
         } catch (BroadcastException $e) {
@@ -273,7 +288,15 @@ class ChatController extends Controller
             ->get()
             ->pluck('user');
 
-        Notification::send($otherUsers, new ChatMessageNotification($conversation, $message));
+        try {
+            Notification::send($otherUsers, new ChatMessageNotification($conversation, $message));
+        } catch (Throwable $exception) {
+            Log::warning('Chat message notification failed.', [
+                'conversation_id' => $conversation->id,
+                'message_id' => $message->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
         try {
             event(new ChatMessageSent($conversation, $message));
         } catch (BroadcastException $e) {
