@@ -76,6 +76,7 @@ class DashboardController extends Controller
 
     private function buildMetrics(User $user): array
     {
+        $now = Carbon::now();
         $role = $user->role;
         $branchId = $user->branch_id;
 
