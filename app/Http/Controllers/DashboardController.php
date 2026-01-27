@@ -154,10 +154,8 @@ class DashboardController extends Controller
                 ->distinct('assigned_driver_id')
                 ->count('assigned_driver_id');
 
-            $activeDriversToday = Driver::where('status', 'active')->count();
-            $driversUnassignedToday = max(0, $activeDriversToday - $driversAssignedToday);
-
             $totalDriversRegistered = Driver::where('status', '!=', 'suspended')->count();
+            $driversUnassignedToday = max(0, $totalDriversRegistered - $driversAssignedToday);
         }
 
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_HEAD], true)) {
