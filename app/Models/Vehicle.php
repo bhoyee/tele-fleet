@@ -21,9 +21,13 @@ class Vehicle extends Model
         'fuel_type',
         'engine_capacity',
         'current_mileage',
+        'last_maintenance_mileage',
         'insurance_expiry',
         'registration_expiry',
         'status',
+        'maintenance_state',
+        'maintenance_due_notified_at',
+        'maintenance_overdue_notified_at',
         'created_by',
     ];
 
@@ -31,6 +35,9 @@ class Vehicle extends Model
         'insurance_expiry' => 'date',
         'registration_expiry' => 'date',
         'current_mileage' => 'integer',
+        'last_maintenance_mileage' => 'integer',
+        'maintenance_due_notified_at' => 'datetime',
+        'maintenance_overdue_notified_at' => 'datetime',
     ];
 
     public function branch(): BelongsTo
@@ -41,5 +48,10 @@ class Vehicle extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function maintenances()
+    {
+        return $this->hasMany(VehicleMaintenance::class);
     }
 }

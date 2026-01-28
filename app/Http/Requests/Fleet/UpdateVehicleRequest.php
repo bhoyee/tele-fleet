@@ -19,14 +19,14 @@ class UpdateVehicleRequest extends FormRequest
 
         return [
             'registration_number' => ['required', 'string', 'max:50', Rule::unique('vehicles', 'registration_number')->ignore($vehicleId)],
-            'branch_id' => ['required', 'exists:branches,id'],
             'make' => ['required', 'string', 'max:100'],
             'model' => ['required', 'string', 'max:100'],
             'year' => ['required', 'integer', 'min:1980', 'max:'.$currentYear],
             'color' => ['nullable', 'string', 'max:50'],
             'fuel_type' => ['required', Rule::in(['petrol', 'diesel', 'hybrid', 'electric'])],
             'engine_capacity' => ['nullable', 'string', 'max:50'],
-            'current_mileage' => ['required', 'integer', 'min:0'],
+            'last_maintenance_mileage' => ['required', 'integer', 'min:0'],
+            'current_mileage' => ['required', 'integer', 'min:0', 'gte:last_maintenance_mileage'],
             'insurance_expiry' => ['nullable', 'date'],
             'registration_expiry' => ['nullable', 'date'],
             'status' => ['required', Rule::in(['available', 'in_use', 'maintenance', 'offline'])],
