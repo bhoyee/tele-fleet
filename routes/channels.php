@@ -39,3 +39,19 @@ Broadcast::channel('incidents.user.{userId}', function ($user, $userId): bool {
 Broadcast::channel('incidents.all', function ($user): bool {
     return in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true);
 });
+
+Broadcast::channel('dashboard.refresh', function ($user): bool {
+    return (bool) $user;
+});
+
+Broadcast::channel('vehicles.all', function ($user): bool {
+    return in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true);
+});
+
+Broadcast::channel('drivers.all', function ($user): bool {
+    return in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true);
+});
+
+Broadcast::channel('maintenances.all', function ($user): bool {
+    return in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true);
+});
