@@ -71,8 +71,6 @@ class IncidentReportController extends Controller
         if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
             $branches = $branches->where('id', $user->branch_id);
             $trips = $trips->where('branch_id', $user->branch_id);
-            $vehicles = $vehicles->where('branch_id', $user->branch_id);
-            $drivers = $drivers->where('branch_id', $user->branch_id);
         }
 
         return view('incidents.create', compact('branches', 'trips', 'vehicles', 'drivers'));
@@ -145,8 +143,6 @@ class IncidentReportController extends Controller
         if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
             $branches = $branches->where('id', $user->branch_id);
             $trips = $trips->where('branch_id', $user->branch_id);
-            $vehicles = $vehicles->where('branch_id', $user->branch_id);
-            $drivers = $drivers->where('branch_id', $user->branch_id);
         }
 
         return view('incidents.edit', compact('incident', 'branches', 'trips', 'vehicles', 'drivers'));
