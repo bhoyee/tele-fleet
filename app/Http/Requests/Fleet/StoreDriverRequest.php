@@ -22,7 +22,6 @@ class StoreDriverRequest extends FormRequest
             'phone' => ['required', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
-            'branch_id' => ['required', 'exists:branches,id'],
             'status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
         ];
     }

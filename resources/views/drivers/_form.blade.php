@@ -40,16 +40,6 @@
         @error('status') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
-        <label class="form-label" for="branch_id">Branch</label>
-        <select class="form-select" id="branch_id" name="branch_id" required>
-            <option value="">Select branch</option>
-            @foreach ($branches as $branch)
-                <option value="{{ $branch->id }}" @selected((string) old('branch_id', $driver?->branch_id ?? '') === (string) $branch->id)>{{ $branch->name }}</option>
-            @endforeach
-        </select>
-        @error('branch_id') <div class="text-danger small">{{ $message }}</div> @enderror
-    </div>
-    <div class="col-md-6">
         <label class="form-label" for="address">Address</label>
         <input class="form-control" id="address" name="address" value="{{ old('address', $driver?->address ?? '') }}">
     </div>

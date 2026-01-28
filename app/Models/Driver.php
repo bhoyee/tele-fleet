@@ -15,6 +15,7 @@ class Driver extends Model
         'license_number',
         'license_type',
         'license_expiry',
+        'license_expiry_notified_at',
         'phone',
         'email',
         'address',
@@ -24,6 +25,7 @@ class Driver extends Model
 
     protected $casts = [
         'license_expiry' => 'date',
+        'license_expiry_notified_at' => 'datetime',
     ];
 
     public function branch(): BelongsTo
