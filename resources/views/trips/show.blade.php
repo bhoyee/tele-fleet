@@ -243,6 +243,15 @@
             <div class="card shadow-sm border-0 mt-4">
                 <div class="card-body">
                     <h5 class="fw-semibold mb-3">Assignment</h5>
+                    @if ($tripRequest->requires_reassignment)
+                        <div class="alert alert-warning d-flex align-items-start">
+                            <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+                            <div>
+                                <div class="fw-semibold">Assignment at risk</div>
+                                <div class="small text-muted">{{ $tripRequest->assignment_conflict_reason ?? 'Vehicle entered maintenance.' }}</div>
+                            </div>
+                        </div>
+                    @endif
                     <div class="text-muted small mb-1">Vehicle</div>
                     <div class="fw-semibold">{{ $tripRequest->assignedVehicle?->registration_number ?? 'N/A' }}</div>
                     <div class="text-muted small mb-1 mt-3">Driver</div>

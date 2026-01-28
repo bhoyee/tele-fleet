@@ -169,10 +169,8 @@ class TripRequestController extends Controller
         $drivers = collect();
 
         if (in_array(auth()->user()?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
-            $vehicles = Vehicle::where('status', 'available')
-                ->orderBy('registration_number')
-                ->get();
-            $drivers = Driver::where('status', '!=', 'suspended')
+            $vehicles = $this->availableVehiclesNow();
+            $drivers = Driver::where('status', 'active')
                 ->orderBy('full_name')
                 ->get();
         }
@@ -191,7 +189,9 @@ class TripRequestController extends Controller
         }
 
         if ($tripRequest->assignedVehicle) {
-            $tripRequest->assignedVehicle->update(['status' => 'available']);
+            if ($tripRequest->assignedVehicle->status === 'in_use') {
+                $tripRequest->assignedVehicle->update(['status' => 'available']);
+            }
         }
 
 
@@ -288,17 +288,24 @@ class TripRequestController extends Controller
         $vehicle = Vehicle::findOrFail($request->assigned_vehicle_id);
         $driver = Driver::findOrFail($request->assigned_driver_id);
 
-        if ($vehicle->status !== 'available') {
+        if (in_array($vehicle->status, ['maintenance', 'offline'], true)) {
             return redirect()
                 ->back()
                 ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is not available.'])
                 ->withInput();
         }
 
-        if ($driver->status === 'suspended') {
+        if ($driver->status !== 'active') {
             return redirect()
                 ->back()
                 ->withErrors(['assigned_driver_id' => 'Selected driver is not available.'])
+                ->withInput();
+        }
+
+        if (! $this->isVehicleAvailableNow($vehicle->id)) {
+            return redirect()
+                ->back()
+                ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is currently in use.'])
                 ->withInput();
         }
 
@@ -307,10 +314,15 @@ class TripRequestController extends Controller
             'assigned_vehicle_id' => $request->assigned_vehicle_id,
             'assigned_driver_id' => $request->assigned_driver_id,
             'assigned_at' => now(),
+            'requires_reassignment' => false,
+            'assignment_conflict_reason' => null,
+            'assignment_conflict_at' => null,
             'updated_by_user_id' => request()->user()->id,
         ]);
 
-        $vehicle->update(['status' => 'in_use']);
+        if ($this->tripHasStarted($tripRequest)) {
+            $vehicle->update(['status' => 'in_use']);
+        }
 
         $auditLog->log('trip_request.assigned', $tripRequest, [], $tripRequest->toArray());
 
@@ -646,7 +658,9 @@ class TripRequestController extends Controller
         $tripRequest->load(['assignedVehicle', 'assignedDriver']);
 
         if ($tripRequest->assignedVehicle) {
-            $tripRequest->assignedVehicle->update(['status' => 'available']);
+            if ($tripRequest->assignedVehicle->status === 'in_use') {
+                $tripRequest->assignedVehicle->update(['status' => 'available']);
+            }
         }
 
 
@@ -662,8 +676,8 @@ class TripRequestController extends Controller
 
     public function assignmentForm(TripRequest $tripRequest): View
     {
-        $vehicles = Vehicle::where('status', 'available')->orderBy('registration_number')->get();
-        $drivers = Driver::where('status', '!=', 'suspended')->orderBy('full_name')->get();
+        $vehicles = $this->availableVehiclesNow();
+        $drivers = Driver::where('status', 'active')->orderBy('full_name')->get();
 
         return view('trips.assign', compact('tripRequest', 'vehicles', 'drivers'));
     }
@@ -674,6 +688,63 @@ class TripRequestController extends Controller
         $count = TripRequest::whereDate('created_at', now()->toDateString())->count() + 1;
 
         return sprintf('TR-%s-%03d', $today, $count);
+    }
+
+    private function availableVehiclesNow()
+    {
+        $activeAssignedIds = $this->activeAssignedVehicleIds();
+
+        return Vehicle::where('status', 'available')
+            ->when($activeAssignedIds->isNotEmpty(), function ($query) use ($activeAssignedIds): void {
+                $query->whereNotIn('id', $activeAssignedIds);
+            })
+            ->orderBy('registration_number')
+            ->get();
+    }
+
+    private function isVehicleAvailableNow(int $vehicleId): bool
+    {
+        return ! $this->activeAssignedVehicleIds()->contains($vehicleId);
+    }
+
+    private function activeAssignedVehicleIds()
+    {
+        $now = now();
+        $today = $now->toDateString();
+
+        return TripRequest::whereNotNull('assigned_vehicle_id')
+            ->whereIn('status', ['approved', 'assigned'])
+            ->where(function ($query): void {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->where(function ($query) use ($today, $now): void {
+                $query->whereDate('trip_date', '<', $today)
+                    ->orWhere(function ($sub) use ($today, $now): void {
+                        $sub->whereDate('trip_date', $today)
+                            ->where(function ($timeQuery) use ($now): void {
+                                $timeQuery->whereNull('trip_time')
+                                    ->orWhere('trip_time', '<=', $now->format('H:i'));
+                            });
+                    });
+            })
+            ->pluck('assigned_vehicle_id')
+            ->unique();
+    }
+
+    private function tripHasStarted(TripRequest $tripRequest): bool
+    {
+        if (! $tripRequest->trip_date) {
+            return false;
+        }
+
+        $time = $tripRequest->trip_time ?? '00:00';
+        try {
+            $start = \Illuminate\Support\Carbon::createFromFormat('Y-m-d H:i', $tripRequest->trip_date->format('Y-m-d').' '.$time);
+        } catch (\Exception $exception) {
+            $start = \Illuminate\Support\Carbon::parse($tripRequest->trip_date->format('Y-m-d').' '.$time);
+        }
+
+        return now()->greaterThanOrEqualTo($start);
     }
 
     private function buildNotificationRecipients(TripRequest $tripRequest, ?User $requester = null)

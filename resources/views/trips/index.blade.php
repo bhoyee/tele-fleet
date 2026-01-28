@@ -103,6 +103,9 @@
                                     @else
                                         <span class="badge bg-secondary">Unassigned</span>
                                     @endif
+                                    @if ($trip->requires_reassignment)
+                                        <span class="badge bg-warning text-dark ms-2">Reassign</span>
+                                    @endif
                                 </td>
                                 <td class="text-end">
                                     @if ($canEdit)

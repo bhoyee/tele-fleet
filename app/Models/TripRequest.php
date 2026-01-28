@@ -24,6 +24,9 @@ class TripRequest extends Model
         'number_of_passengers',
         'additional_notes',
         'status',
+        'requires_reassignment',
+        'assignment_conflict_reason',
+        'assignment_conflict_at',
         'approved_by_user_id',
         'approved_at',
         'rejection_reason',
@@ -51,6 +54,7 @@ class TripRequest extends Model
         'overdue_notified_at' => 'datetime',
         'reminder_notified_at' => 'datetime',
         'assignment_reminder_notified_at' => 'datetime',
+        'assignment_conflict_at' => 'datetime',
     ];
 
     public function branch(): BelongsTo
