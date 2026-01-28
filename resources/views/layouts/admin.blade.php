@@ -804,6 +804,12 @@
                                     <span>Branches</span>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('admin.maintenance-settings.*')) active @endif" href="{{ route('admin.maintenance-settings.edit') }}">
+                                    <i class="bi bi-sliders nav-icon"></i>
+                                    <span>Maintenance Settings</span>
+                                </a>
+                            </li>
                         @endif
                         
                         @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
@@ -817,6 +823,12 @@
                                 <a class="nav-link @if (request()->routeIs('drivers.*')) active @endif" href="{{ route('drivers.index') }}">
                                     <i class="bi bi-person-badge nav-icon"></i>
                                     <span>Drivers</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('maintenances.*')) active @endif" href="{{ route('maintenances.index') }}">
+                                    <i class="bi bi-tools nav-icon"></i>
+                                    <span>Maintenance</span>
                                 </a>
                             </li>
                         @endif

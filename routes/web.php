@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\MaintenanceSettingsController;
 use App\Http\Controllers\Branch\BranchController;
 use App\Http\Controllers\Fleet\DriverController;
 use App\Http\Controllers\Fleet\IncidentReportController;
+use App\Http\Controllers\Fleet\MaintenanceController;
 use App\Http\Controllers\Fleet\TripRequestController;
 use App\Http\Controllers\Fleet\VehicleController;
 use App\Http\Controllers\NotificationController;
@@ -46,6 +48,8 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('users', UserController::class)->except(['show']);
+    Route::get('maintenance-settings', [MaintenanceSettingsController::class, 'edit'])->name('maintenance-settings.edit');
+    Route::patch('maintenance-settings', [MaintenanceSettingsController::class, 'update'])->name('maintenance-settings.update');
 });
 
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
@@ -53,8 +57,19 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
-    Route::resource('vehicles', VehicleController::class)->except(['show']);
-    Route::resource('drivers', DriverController::class)->except(['show']);
+    Route::resource('vehicles', VehicleController::class);
+    Route::get('vehicles/data', [VehicleController::class, 'indexData'])->name('vehicles.data');
+    Route::resource('drivers', DriverController::class);
+    Route::get('drivers/data', [DriverController::class, 'indexData'])->name('drivers.data');
+    Route::resource('maintenances', MaintenanceController::class);
+    Route::get('maintenances/data', [MaintenanceController::class, 'indexData'])->name('maintenances.data');
+    Route::get('maintenances/export/csv', [MaintenanceController::class, 'exportCsv'])->name('maintenances.export.csv');
+    Route::get('maintenances/export/pdf', [MaintenanceController::class, 'exportPdf'])->name('maintenances.export.pdf');
+});
+
+Route::middleware(['auth', 'role:super_admin'])->group(function () {
+    Route::patch('vehicles/{vehicle}/restore', [VehicleController::class, 'restore'])->name('vehicles.restore');
+    Route::delete('vehicles/{vehicle}/force', [VehicleController::class, 'forceDelete'])->name('vehicles.force');
 });
 
 Route::middleware(['auth', 'role:branch_admin,branch_head'])->group(function () {
