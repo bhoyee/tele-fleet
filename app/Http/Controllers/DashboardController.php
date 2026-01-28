@@ -82,14 +82,7 @@ class DashboardController extends Controller
 
         $totalVehicles = Vehicle::count();
         $maintenanceVehicles = Vehicle::where('status', 'maintenance')->count();
-        $assignedNow = TripRequest::whereNotNull('assigned_vehicle_id')
-            ->whereIn('status', ['approved', 'assigned'])
-            ->where(function ($query): void {
-                $query->whereNull('is_completed')->orWhere('is_completed', false);
-            })
-            ->whereDate('trip_date', '<=', Carbon::today())
-            ->distinct('assigned_vehicle_id')
-            ->count('assigned_vehicle_id');
+        $assignedNow = $this->activeAssignedVehicleIds()->count();
         $availableVehicles = max(0, $totalVehicles - $maintenanceVehicles - $assignedNow);
 
         $personalTripRequests = null;
@@ -191,9 +184,9 @@ class DashboardController extends Controller
 
             $driversUnassignedToday = max(0, $totalDriversRegistered - $driversUnavailableToday);
 
-            $vehiclesAvailable = Vehicle::where('status', 'available')->count();
-            $vehiclesInUse = Vehicle::where('status', 'in_use')->count();
             $vehiclesMaintenance = Vehicle::where('status', 'maintenance')->count();
+            $vehiclesInUse = $assignedNow;
+            $vehiclesAvailable = max(0, $totalVehicles - $vehiclesMaintenance - $vehiclesInUse);
         }
 
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_HEAD], true)) {
@@ -244,11 +237,7 @@ class DashboardController extends Controller
             $incidentReview = IncidentReport::where('status', IncidentReport::STATUS_REVIEW)->count();
             $incidentResolved = IncidentReport::where('status', IncidentReport::STATUS_RESOLVED)->count();
 
-            $today = $now->toDateString();
-            $maintenanceDue = Vehicle::where(function ($query) use ($today): void {
-                $query->whereDate('insurance_expiry', '<=', $today)
-                    ->orWhereDate('registration_expiry', '<=', $today);
-            })->count();
+            $maintenanceDue = Vehicle::whereIn('maintenance_state', ['due', 'overdue'])->count();
             $maintenanceInProgress = Vehicle::where('status', 'maintenance')->count();
 
             $todayActiveTrips = TripRequest::whereDate('trip_date', Carbon::today())
@@ -359,13 +348,7 @@ class DashboardController extends Controller
         $maintenanceVehicles = Vehicle::where('status', 'maintenance')->count();
         $baseAvailable = max(0, $totalVehicles - $maintenanceVehicles);
 
-        $activeAssignedVehicles = TripRequest::whereNotNull('assigned_vehicle_id')
-            ->whereIn('status', ['approved', 'assigned'])
-            ->where(function ($query): void {
-                $query->whereNull('is_completed')->orWhere('is_completed', false);
-            })
-            ->distinct('assigned_vehicle_id')
-            ->count('assigned_vehicle_id');
+        $activeAssignedVehicles = $this->activeAssignedVehicleIds()->count();
 
         $calendarStart = $monthStart->copy()->subDays(7);
         $calendarEnd = $monthEnd->copy();
@@ -440,6 +423,30 @@ class DashboardController extends Controller
             'window_days' => $now->diffInDays($windowEnd) + 1,
             'max_available' => $baseAvailable,
         ];
+    }
+
+    private function activeAssignedVehicleIds()
+    {
+        $now = Carbon::now();
+        $today = $now->toDateString();
+
+        return TripRequest::whereNotNull('assigned_vehicle_id')
+            ->whereIn('status', ['approved', 'assigned'])
+            ->where(function ($query): void {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->where(function ($query) use ($today, $now): void {
+                $query->whereDate('trip_date', '<', $today)
+                    ->orWhere(function ($sub) use ($today, $now): void {
+                        $sub->whereDate('trip_date', $today)
+                            ->where(function ($timeQuery) use ($now): void {
+                                $timeQuery->whereNull('trip_time')
+                                    ->orWhere('trip_time', '<=', $now->format('H:i'));
+                            });
+                    });
+            })
+            ->pluck('assigned_vehicle_id')
+            ->unique();
     }
 
     private function calendarBounds(): array

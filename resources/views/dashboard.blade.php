@@ -1358,11 +1358,40 @@
             const showBranchCharts = {{ $showBranchCharts ? 'true' : 'false' }};
             const showFleetOverview = {{ $showFleetOverview ? 'true' : 'false' }};
             const showTripStatusChart = {{ $showTripStatusChart ? 'true' : 'false' }};
+            const currentRole = "{{ auth()->user()->role }}";
+            const currentBranchId = {{ auth()->user()->branch_id ?? 'null' }};
             
             let selectedMonth = new Date().getMonth() + 1;
             let selectedYear = new Date().getFullYear();
             let tripChart = null;
             let fleetGaugeCharts = {};
+            let dashboardRefreshTimer = null;
+
+            const scheduleDashboardRefresh = () => {
+                if (dashboardRefreshTimer) {
+                    return;
+                }
+                dashboardRefreshTimer = window.setTimeout(() => {
+                    updateMetrics();
+                    updateCalendar();
+                    updateTripStatus();
+                    updateUpcomingTrips();
+                    dashboardRefreshTimer = null;
+                }, 800);
+            };
+
+            const shouldRefreshForEvent = (event) => {
+                if (!event || !event.branch_id) {
+                    return true;
+                }
+                if (['super_admin', 'fleet_manager'].includes(currentRole)) {
+                    return true;
+                }
+                if (!currentBranchId) {
+                    return false;
+                }
+                return Number(event.branch_id) === Number(currentBranchId);
+            };
 
             // Update metrics function
             const updateMetrics = async () => {
@@ -1739,10 +1768,24 @@
                 }
             };
 
+            const initDashboardRealtime = () => {
+                const echo = window.ChatEcho ?? window.Echo;
+                if (!echo || typeof echo.private !== 'function') {
+                    return;
+                }
+                echo.private('dashboard.refresh')
+                    .listen('.dashboard.updated', (event) => {
+                        if (shouldRefreshForEvent(event)) {
+                            scheduleDashboardRefresh();
+                        }
+                    });
+            };
+
             // Initialize dashboard if branch charts should be shown
             if (showBranchCharts) {
                 document.addEventListener('DOMContentLoaded', function() {
                     initFleetGauges();
+                    initDashboardRealtime();
                     // Calendar controls
                     const monthSelect = document.getElementById('calendarMonthSelect');
                     const yearSelect = document.getElementById('calendarYearSelect');
@@ -1805,6 +1848,12 @@
                     setInterval(updateUpcomingTrips, 60000);
                 });
             }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!showBranchCharts) {
+                    initDashboardRealtime();
+                }
+            });
 
             // Make chart responsive on window resize
             window.addEventListener('resize', function() {
