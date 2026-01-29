@@ -2,6 +2,10 @@
 
 Tele-Fleet is a single-company fleet management system for Nigeria-based operations with multiple branches. It delivers a working demo with role-based workflows, professional UI, and real-time features (notifications + chat).
 
+Documentation:
+- Technical Manual: docs/technical-manual.md
+- User Manual: docs/user-manual.md
+
 ## Highlights
 - Role-based dashboards and access control (Super Admin, Fleet Manager, Branch Head, Branch Admin).
 - Trip workflow: request -> approval -> assignment -> logbook.
