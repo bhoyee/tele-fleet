@@ -39,6 +39,7 @@
                                     </span>
                                 </td>
                                 <td class="text-end">
+                                    <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-secondary">View</a>
                                     <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\MaintenanceSettingsController;
+use App\Http\Controllers\Admin\HealthController;
+use App\Http\Controllers\Admin\ChatManagementController;
 use App\Http\Controllers\Branch\BranchController;
 use App\Http\Controllers\Fleet\DriverController;
 use App\Http\Controllers\Fleet\IncidentReportController;
@@ -43,17 +45,24 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read_all');
+    Route::delete('/notifications/cleanup', [NotificationController::class, 'cleanupDuplicates'])->name('notifications.cleanup');
     Route::get('/notifications/count', [NotificationController::class, 'count'])->name('notifications.count');
 });
 
 Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::resource('users', UserController::class)->except(['show']);
+    Route::resource('users', UserController::class);
     Route::get('maintenance-settings', [MaintenanceSettingsController::class, 'edit'])->name('maintenance-settings.edit');
     Route::patch('maintenance-settings', [MaintenanceSettingsController::class, 'update'])->name('maintenance-settings.update');
+    Route::get('chats', [ChatManagementController::class, 'index'])->name('chats.index');
+    Route::get('chats/{conversation}', [ChatManagementController::class, 'show'])->name('chats.show');
+    Route::patch('chats/{conversation}/close', [ChatManagementController::class, 'close'])->name('chats.close');
+    Route::delete('chats/{conversation}', [ChatManagementController::class, 'destroy'])->name('chats.destroy');
 });
 
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
-    Route::resource('branches', BranchController::class)->except(['show']);
+    Route::resource('branches', BranchController::class);
+    Route::get('admin/health', [HealthController::class, 'index'])->name('admin.health');
+    Route::get('admin/health/data', [HealthController::class, 'data'])->name('admin.health.data');
 });
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
@@ -70,9 +79,11 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::patch('vehicles/{vehicle}/restore', [VehicleController::class, 'restore'])->name('vehicles.restore');
     Route::delete('vehicles/{vehicle}/force', [VehicleController::class, 'forceDelete'])->name('vehicles.force');
+    Route::patch('drivers/{driver}/restore', [DriverController::class, 'restore'])->name('drivers.restore');
+    Route::delete('drivers/{driver}/force', [DriverController::class, 'forceDelete'])->name('drivers.force');
 });
 
-Route::middleware(['auth', 'role:branch_admin,branch_head'])->group(function () {
+Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::get('incidents/create', [IncidentReportController::class, 'create'])->name('incidents.create');
     Route::post('incidents', [IncidentReportController::class, 'store'])->name('incidents.store');
 });
@@ -84,6 +95,7 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_h
     Route::get('incidents/{incident}/edit', [IncidentReportController::class, 'edit'])->name('incidents.edit');
     Route::patch('incidents/{incident}', [IncidentReportController::class, 'update'])->name('incidents.update');
     Route::patch('incidents/{incident}/cancel', [IncidentReportController::class, 'cancel'])->name('incidents.cancel');
+    Route::get('incidents/{incident}/attachments/{filename}/preview', [IncidentReportController::class, 'previewAttachment'])->name('incidents.attachments.preview');
     Route::get('incidents/{incident}/attachments/{filename}', [IncidentReportController::class, 'downloadAttachment'])->name('incidents.attachments.download');
 });
 
@@ -91,13 +103,18 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
     Route::patch('incidents/{incident}/status', [IncidentReportController::class, 'updateStatus'])->name('incidents.status');
 });
 
-Route::middleware(['auth', 'role:super_admin'])->group(function () {
+Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
     Route::delete('incidents/{incident}', [IncidentReportController::class, 'destroy'])->name('incidents.destroy');
+});
+
+Route::middleware(['auth', 'role:super_admin'])->group(function () {
+    Route::patch('incidents/{incident}/restore', [IncidentReportController::class, 'restore'])->name('incidents.restore');
+    Route::delete('incidents/{incident}/force', [IncidentReportController::class, 'forceDelete'])->name('incidents.force');
     Route::get('incidents/export/csv', [IncidentReportController::class, 'exportCsv'])->name('incidents.export.csv');
     Route::get('incidents/export/pdf', [IncidentReportController::class, 'exportPdf'])->name('incidents.export.pdf');
 });
 
-Route::middleware(['auth', 'role:super_admin,branch_admin,branch_head'])->group(function () {
+Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::get('trips/create', [TripRequestController::class, 'create'])->name('trips.create');
     Route::post('trips', [TripRequestController::class, 'store'])->name('trips.store');
     Route::get('trips/my-requests', [TripRequestController::class, 'myRequests'])->name('trips.my');
@@ -120,6 +137,15 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_h
     Route::get('reports/my-requests/export/pdf', [ReportController::class, 'exportMyRequestsPdf'])->name('reports.my-requests.pdf');
 });
 
+Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
+    Route::get('reports/fleet', [ReportController::class, 'fleetReport'])->name('reports.fleet');
+    Route::get('reports/fleet/export/csv', [ReportController::class, 'exportFleetReportCsv'])->name('reports.fleet.csv');
+    Route::get('reports/fleet/export/pdf', [ReportController::class, 'exportFleetReportPdf'])->name('reports.fleet.pdf');
+    Route::get('reports/custom', [ReportController::class, 'customReport'])->name('reports.custom');
+    Route::get('reports/custom/export/csv', [ReportController::class, 'exportCustomReportCsv'])->name('reports.custom.csv');
+    Route::get('reports/custom/export/pdf', [ReportController::class, 'exportCustomReportPdf'])->name('reports.custom.pdf');
+});
+
 Route::middleware(['auth', 'role:branch_admin,branch_head'])->group(function () {
     Route::get('reports/branch', [ReportController::class, 'branchReport'])->name('reports.branch');
     Route::get('reports/branch/export/excel', [ReportController::class, 'exportBranchExcel'])->name('reports.branch.excel');
@@ -128,6 +154,9 @@ Route::middleware(['auth', 'role:branch_admin,branch_head'])->group(function () 
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
     Route::get('logbooks', [TripRequestController::class, 'logbookIndex'])->name('logbooks.index');
+    Route::get('logbooks/manage', [TripRequestController::class, 'manageLogbooks'])->name('logbooks.manage');
+    Route::get('logbooks/{tripLog}', [TripRequestController::class, 'showLogbook'])->name('logbooks.show');
+    Route::delete('logbooks/{tripLog}', [TripRequestController::class, 'archiveLogbook'])->name('logbooks.archive');
     Route::patch('trips/{tripRequest}/approve', [TripRequestController::class, 'approve'])->name('trips.approve');
     Route::patch('trips/{tripRequest}/reject', [TripRequestController::class, 'reject'])->name('trips.reject');
     Route::patch('trips/{tripRequest}/cancel', [TripRequestController::class, 'cancel'])->name('trips.cancel');
@@ -137,14 +166,24 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
     Route::post('trips/{tripRequest}/logbook', [TripRequestController::class, 'storeLogbook'])->name('trips.logbook.store');
     Route::get('trips/{tripRequest}/logbook/edit', [TripRequestController::class, 'editLogbook'])->name('trips.logbook.edit');
     Route::patch('trips/{tripRequest}/logbook', [TripRequestController::class, 'updateLogbook'])->name('trips.logbook.update');
+    Route::delete('trips/{tripRequest}/logbook', [TripRequestController::class, 'destroyLogbook'])->name('trips.logbook.destroy');
 });
 
-Route::middleware(['auth', 'role:super_admin,branch_admin,branch_head'])->group(function () {
+Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::delete('trips/{tripRequest}', [TripRequestController::class, 'destroy'])->name('trips.destroy');
 });
 
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
-    Route::delete('trips/{tripRequest}/logbook', [TripRequestController::class, 'destroyLogbook'])->name('trips.logbook.destroy');
+    Route::patch('trips/{tripRequest}/restore', [TripRequestController::class, 'restore'])->name('trips.restore');
+    Route::delete('trips/{tripRequest}/force', [TripRequestController::class, 'forceDelete'])->name('trips.force');
+    Route::patch('logbooks/{tripLog}/restore', [TripRequestController::class, 'restoreLogbook'])->name('logbooks.restore');
+    Route::delete('logbooks/{tripLog}/force', [TripRequestController::class, 'forceDeleteLogbook'])->name('logbooks.force');
+    Route::get('system/backups', [\App\Http\Controllers\Admin\SystemToolsController::class, 'backups'])->name('system.backups');
+    Route::post('system/backups/run', [\App\Http\Controllers\Admin\SystemToolsController::class, 'runBackup'])->name('system.backups.run');
+    Route::get('system/backups/download/{filename}', [\App\Http\Controllers\Admin\SystemToolsController::class, 'downloadBackup'])->name('system.backups.download');
+    Route::delete('system/backups/{filename}', [\App\Http\Controllers\Admin\SystemToolsController::class, 'deleteBackup'])->name('system.backups.delete');
+    Route::get('system/logs', [\App\Http\Controllers\Admin\SystemToolsController::class, 'logs'])->name('system.logs');
+    Route::get('system/logs/download/{filename}', [\App\Http\Controllers\Admin\SystemToolsController::class, 'downloadLog'])->name('system.logs.download');
 });
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {

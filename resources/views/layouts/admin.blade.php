@@ -91,6 +91,8 @@
                 padding: 0;
                 box-shadow: 2px 0 12px rgba(5, 108, 163, 0.03);
                 background: linear-gradient(to bottom, #ffffff, #f8fbfe);
+                display: flex;
+                flex-direction: column;
             }
 
             .sidebar-brand {
@@ -113,6 +115,9 @@
 
             .sidebar-nav {
                 padding: 1.5rem 0.75rem;
+                overflow-y: auto;
+                flex: 1;
+                padding-bottom: 5rem;
             }
 
             .sidebar-footer {
@@ -491,6 +496,11 @@
                 font-weight: 600;
             }
 
+            .notification-list {
+                max-height: 360px;
+                overflow-y: auto;
+            }
+
             /* Quick Stats */
             .quick-stats {
                 background: linear-gradient(135deg, #056CA3 0%, #065E8C 100%);
@@ -766,6 +776,7 @@
                 }
             }
         </style>
+        @stack('styles')
     </head>
     <body>
         <div class="page-progress" id="pageProgress" aria-hidden="true"></div>
@@ -799,6 +810,18 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('admin.chats.*')) active @endif" href="{{ route('admin.chats.index') }}">
+                                    <i class="bi bi-chat-square-dots nav-icon"></i>
+                                    <span>Chat Management</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('admin.health')) active @endif" href="{{ route('admin.health') }}">
+                                    <i class="bi bi-activity nav-icon"></i>
+                                    <span>System Health</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('branches.*')) active @endif" href="{{ route('branches.index') }}">
                                     <i class="bi bi-building nav-icon"></i>
                                     <span>Branches</span>
@@ -808,6 +831,18 @@
                                 <a class="nav-link @if (request()->routeIs('admin.maintenance-settings.*')) active @endif" href="{{ route('admin.maintenance-settings.edit') }}">
                                     <i class="bi bi-sliders nav-icon"></i>
                                     <span>Maintenance Settings</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('system.backups*')) active @endif" href="{{ route('system.backups') }}">
+                                    <i class="bi bi-database-check nav-icon"></i>
+                                    <span>Database Backups</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('system.logs*')) active @endif" href="{{ route('system.logs') }}">
+                                    <i class="bi bi-file-text nav-icon"></i>
+                                    <span>System Logs</span>
                                 </a>
                             </li>
                         @endif
@@ -867,15 +902,29 @@
                         @endif
                         @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('reports.*')) active @endif" href="{{ route('reports.my-requests') }}">
+                                <a class="nav-link @if (request()->routeIs('reports.my-requests*')) active @endif" href="{{ route('reports.my-requests') }}">
                                     <i class="bi bi-bar-chart nav-icon"></i>
                                     <span>My Reports</span>
                                 </a>
                             </li>
                         @endif
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('reports.fleet')) active @endif" href="{{ route('reports.fleet') }}">
+                                    <i class="bi bi-graph-up nav-icon"></i>
+                                    <span>Fleet Reports</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('reports.custom*')) active @endif" href="{{ route('reports.custom') }}">
+                                    <i class="bi bi-sliders nav-icon"></i>
+                                    <span>Custom Reports</span>
+                                </a>
+                            </li>
+                        @endif
                         @if (auth()->user()?->role === \App\Models\User::ROLE_BRANCH_HEAD)
                             <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('reports.branch.*')) active @endif" href="{{ route('reports.branch') }}">
+                                <a class="nav-link @if (request()->routeIs('reports.branch*')) active @endif" href="{{ route('reports.branch') }}">
                                     <i class="bi bi-clipboard-data nav-icon"></i>
                                     <span>Branch Report</span>
                                 </a>
@@ -927,7 +976,7 @@
                         </div>
                         @php
                             $unreadCount = auth()->user()?->unreadNotifications()->count() ?? 0;
-                            $latestNotifications = auth()->user()?->notifications()->latest()->take(5)->get() ?? collect();
+                            $latestNotifications = auth()->user()?->unreadNotifications()->latest()->get() ?? collect();
                         @endphp
                         <div class="dropdown position-relative">
                             <button class="btn btn-light position-relative" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 10px; border: 1px solid rgba(5, 108, 163, 0.2);">
@@ -945,53 +994,64 @@
                                         </form>
                                     @endif
                                 </div>
-                                @forelse ($latestNotifications as $notification)
-                                    <div class="px-3 py-2 border-bottom">
+                                <div class="notification-list">
+                                    @forelse ($latestNotifications as $notification)
+                                        <div class="px-3 py-2 border-bottom">
                                         @php
                                             $notificationType = class_basename($notification->type ?? '');
                                             $isChat = in_array($notificationType, ['ChatMessageNotification', 'ChatRequestNotification'], true);
                                             $title = $isChat
                                                 ? 'Chat Update'
                                                 : ($notification->data['request_number'] ?? 'Trip Update');
-                                            $message = $isChat
-                                                ? 'New chat activity'
-                                                : ($notification->data['purpose'] ?? 'Trip status updated');
+
+                                            $message = match ($notificationType) {
+                                                'TripRequestCreated' => 'New trip request submitted.',
+                                                'TripRequestApproved' => 'Trip request approved.',
+                                                'TripRequestAssigned' => 'Trip assigned to driver/vehicle.',
+                                                'TripRequestRejected' => 'Trip request rejected.',
+                                                'TripRequestCancelled' => 'Trip request cancelled.',
+                                                'TripAssignmentPending' => 'Trip awaiting assignment.',
+                                                'TripAssignmentConflict' => 'Trip assignment needs attention.',
+                                                'TripCompletionReminderNotification' => 'Trip completion reminder sent.',
+                                                'OverdueTripNotification' => 'Trip marked overdue.',
+                                                default => $notification->data['status']
+                                                    ? ('Status: ' . ucfirst($notification->data['status']))
+                                                    : ($notification->data['purpose'] ?? 'Trip update received.'),
+                                            };
+
                                             $viewUrl = ! empty($notification->data['trip_request_id'])
                                                 ? route('trips.show', $notification->data['trip_request_id'])
                                                 : ($isChat && ! empty($notification->data['conversation_id'])
                                                     ? null
                                                     : null);
                                         @endphp
-                                        <div class="d-flex justify-content-between">
-                                            <div class="fw-semibold small">
-                                                {{ $title }}
-                                                @if (! $notification->read_at)
+                                            <div class="d-flex justify-content-between">
+                                                <div class="fw-semibold small">
+                                                    {{ $title }}
                                                     <span class="badge bg-primary ms-1">New</span>
-                                                @endif
+                                                </div>
+                                                <small class="text-muted">{{ $notification->created_at->diffForHumans() }}</small>
                                             </div>
-                                            <small class="text-muted">{{ $notification->created_at->diffForHumans() }}</small>
-                                        </div>
-                                        <div class="text-muted small">
-                                            {{ $message }}
-                                        </div>
-                                        <div class="d-flex gap-2 mt-2">
-                                            @if (! $notification->read_at)
+                                            <div class="text-muted small">
+                                                {{ $message }}
+                                            </div>
+                                            <div class="d-flex gap-2 mt-2">
                                                 <form method="POST" action="{{ route('notifications.read', $notification->id) }}">
                                                     @csrf
                                                     @method('PATCH')
                                                     <button class="btn btn-outline-primary btn-sm" type="submit">Mark read</button>
                                                 </form>
-                                            @endif
-                                            @if ($viewUrl)
-                                                <a class="btn btn-light btn-sm" href="{{ $viewUrl }}">View</a>
-                                            @elseif ($isChat && ! empty($notification->data['conversation_id']))
-                                                <button class="btn btn-light btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget">Open chat</button>
-                                            @endif
+                                                @if ($viewUrl)
+                                                    <a class="btn btn-light btn-sm" href="{{ $viewUrl }}">View</a>
+                                                @elseif ($isChat && ! empty($notification->data['conversation_id']))
+                                                    <button class="btn btn-light btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget">Open chat</button>
+                                                @endif
+                                            </div>
                                         </div>
-                                    </div>
-                                @empty
-                                    <div class="px-3 py-4 text-center text-muted">No notifications yet.</div>
-                                @endforelse
+                                    @empty
+                                        <div class="px-3 py-4 text-center text-muted">No unread notifications.</div>
+                                    @endforelse
+                                </div>
                                 <div class="px-3 py-2 text-center border-top">
                                     <a class="text-decoration-none fw-semibold text-primary" href="{{ route('notifications.index') }}">View all notifications</a>
                                 </div>
@@ -1284,9 +1344,14 @@
                 }
                 if (link.hasAttribute('data-download')) {
                     showPageProgress();
-                    setTimeout(() => {
-                        hidePageProgress();
-                    }, 1500);
+                    const cleanup = () => hidePageProgress();
+                    setTimeout(cleanup, 1200);
+                    window.addEventListener('focus', cleanup, { once: true });
+                    document.addEventListener('visibilitychange', () => {
+                        if (!document.hidden) {
+                            cleanup();
+                        }
+                    }, { once: true });
                     return;
                 }
 

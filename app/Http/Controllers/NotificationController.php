@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
@@ -35,6 +36,42 @@ class NotificationController extends Controller
         return redirect()
             ->back()
             ->with('success', 'All notifications marked as read.');
+    }
+
+    public function cleanupDuplicates(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $rows = DB::table('notifications')
+            ->where('notifiable_id', $user->id)
+            ->where('notifiable_type', get_class($user))
+            ->orderBy('created_at')
+            ->get(['id', 'type', 'data', 'created_at']);
+
+        $seen = [];
+        $duplicateIds = [];
+
+        foreach ($rows as $row) {
+            $key = implode('|', [
+                $row->type,
+                (string) $row->data,
+                $row->created_at,
+            ]);
+
+            if (isset($seen[$key])) {
+                $duplicateIds[] = $row->id;
+                continue;
+            }
+
+            $seen[$key] = true;
+        }
+
+        if (! empty($duplicateIds)) {
+            DB::table('notifications')->whereIn('id', $duplicateIds)->delete();
+        }
+
+        return redirect()
+            ->back()
+            ->with('success', 'Removed ' . count($duplicateIds) . ' duplicate notifications.');
     }
 
     public function count(Request $request)

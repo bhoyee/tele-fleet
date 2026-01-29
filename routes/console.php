@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -9,7 +10,11 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('telefleet:snapshot-availability')->dailyAt('00:10');
-Schedule::command('telefleet:notify-overdue-trips')->hourly();
+Schedule::command('telefleet:notify-overdue-trips')->hourly()->withoutOverlapping();
 Schedule::command('telefleet:notify-unassigned-trips')->everyFifteenMinutes();
 Schedule::command('telefleet:check-maintenance-mileage')->hourly();
 Schedule::command('telefleet:check-driver-license-expiry')->dailyAt('08:00');
+Schedule::command('telefleet:backup-database')->dailyAt(env('BACKUP_SCHEDULE_TIME', '02:00'));
+Schedule::call(function (): void {
+    Cache::put('telefleet.scheduler_heartbeat', now()->format('M d, Y H:i:s'), now()->addMinutes(10));
+})->everyMinute();

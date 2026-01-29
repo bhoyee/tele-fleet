@@ -4,30 +4,53 @@
             <h1 class="h3 mb-1">Notifications</h1>
             <p class="text-muted mb-0">Review recent updates and actions.</p>
         </div>
-        <form method="POST" action="{{ route('notifications.read_all') }}">
-            @csrf
-            @method('PATCH')
-            <button class="btn btn-outline-secondary" type="submit">Mark all read</button>
-        </form>
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ route('notifications.cleanup') }}">
+                @csrf
+                @method('DELETE')
+                <button class="btn btn-outline-secondary" type="submit">Remove duplicates</button>
+            </form>
+            <form method="POST" action="{{ route('notifications.read_all') }}">
+                @csrf
+                @method('PATCH')
+                <button class="btn btn-outline-secondary" type="submit">Mark all read</button>
+            </form>
+        </div>
     </div>
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
             @forelse ($notifications as $notification)
+                @php
+                    $notificationType = class_basename($notification->type ?? '');
+                    $isChat = in_array($notificationType, ['ChatMessageNotification', 'ChatRequestNotification'], true);
+                    $title = $isChat
+                        ? 'Chat Update'
+                        : ($notification->data['request_number'] ?? 'Trip Update');
+                    $message = match ($notificationType) {
+                        'TripRequestCreated' => 'New trip request submitted.',
+                        'TripRequestApproved' => 'Trip request approved.',
+                        'TripRequestAssigned' => 'Trip assigned to driver/vehicle.',
+                        'TripRequestRejected' => 'Trip request rejected.',
+                        'TripRequestCancelled' => 'Trip request cancelled.',
+                        'TripAssignmentPending' => 'Trip awaiting assignment.',
+                        'TripAssignmentConflict' => 'Trip assignment needs attention.',
+                        'TripCompletionReminderNotification' => 'Trip completion reminder sent.',
+                        'OverdueTripNotification' => 'Trip marked overdue.',
+                        default => $notification->data['status']
+                            ? ('Status: ' . ucfirst($notification->data['status']))
+                            : ($notification->data['purpose'] ?? 'Trip update received.'),
+                    };
+                @endphp
                 <div class="d-flex justify-content-between align-items-start border-bottom py-3">
                     <div>
                         <div class="fw-semibold">
-                            {{ $notification->data['request_number'] ?? 'Trip Update' }}
+                            {{ $title }}
                             @if (! $notification->read_at)
                                 <span class="badge bg-primary ms-2">New</span>
                             @endif
                         </div>
-                        <div class="text-muted small">
-                            {{ $notification->data['purpose'] ?? 'Trip status updated' }}
-                            @if (! empty($notification->data['status']))
-                                · Status: {{ ucfirst($notification->data['status']) }}
-                            @endif
-                        </div>
+                        <div class="text-muted small">{{ $message }}</div>
                         <div class="text-muted small">Received {{ $notification->created_at->diffForHumans() }}</div>
                     </div>
                     <div class="text-end">

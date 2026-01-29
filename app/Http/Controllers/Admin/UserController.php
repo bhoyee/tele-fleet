@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Models\AuditLog;
 use App\Models\Branch;
+use App\Models\LoginHistory;
+use App\Models\TripRequest;
 use App\Models\User;
 use App\Notifications\UserWelcomeCredentials;
+use App\Services\AuditLogService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +37,7 @@ class UserController extends Controller
         return view('admin.users.create', compact('branches', 'roles', 'statuses'));
     }
 
-    public function store(StoreUserRequest $request): RedirectResponse
+    public function store(StoreUserRequest $request, AuditLogService $auditLog): RedirectResponse
     {
         $data = $request->validated();
         $passwordProvided = $request->filled('password');
@@ -41,6 +45,7 @@ class UserController extends Controller
         $data['password'] = Hash::make($plainPassword);
 
         $newUser = User::create($data);
+        $auditLog->log('user.created', $newUser, [], $newUser->toArray());
         try {
             $newUser->notify(new UserWelcomeCredentials($plainPassword));
         } catch (Throwable $exception) {
@@ -65,9 +70,37 @@ class UserController extends Controller
         return view('admin.users.edit', compact('user', 'branches', 'roles', 'statuses'));
     }
 
-    public function update(UpdateUserRequest $request, User $user): RedirectResponse
+    public function show(User $user): View
+    {
+        $user->load('branch');
+        $activities = AuditLog::where('user_id', $user->id)
+            ->latest()
+            ->take(200)
+            ->get();
+        $loginHistory = LoginHistory::where('user_id', $user->id)
+            ->orderByDesc('logged_in_at')
+            ->take(50)
+            ->get();
+
+        $tripRequestNumbers = $activities
+            ->where('model_type', TripRequest::class)
+            ->pluck('model_id')
+            ->unique()
+            ->filter()
+            ->values();
+
+        $tripRequestMap = $tripRequestNumbers->isEmpty()
+            ? collect()
+            : TripRequest::whereIn('id', $tripRequestNumbers)
+                ->pluck('request_number', 'id');
+
+        return view('admin.users.show', compact('user', 'activities', 'tripRequestMap', 'loginHistory'));
+    }
+
+    public function update(UpdateUserRequest $request, User $user, AuditLogService $auditLog): RedirectResponse
     {
         $data = $request->validated();
+        $oldValues = $user->getOriginal();
 
         if (! empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
@@ -76,15 +109,17 @@ class UserController extends Controller
         }
 
         $user->update($data);
+        $auditLog->log('user.updated', $user, $oldValues, $user->getChanges());
 
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'User updated successfully.');
     }
 
-    public function destroy(User $user): RedirectResponse
+    public function destroy(User $user, AuditLogService $auditLog): RedirectResponse
     {
         $user->forceDelete();
+        $auditLog->log('user.force_deleted', $user);
 
         return redirect()
             ->route('admin.users.index')
