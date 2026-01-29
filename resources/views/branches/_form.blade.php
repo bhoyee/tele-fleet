@@ -32,15 +32,6 @@
         <label class="form-label" for="email">Email</label>
         <input class="form-control" id="email" name="email" type="email" value="{{ old('email', $branch?->email ?? '') }}">
     </div>
-    <div class="col-md-4">
-        <label class="form-label" for="manager_id">Manager</label>
-        <select class="form-select" id="manager_id" name="manager_id">
-            <option value="">Select manager</option>
-            @foreach ($managers as $manager)
-                <option value="{{ $manager->id }}" @selected((string) old('manager_id', $branch?->manager_id ?? '') === (string) $manager->id)>{{ $manager->name }}</option>
-            @endforeach
-        </select>
-    </div>
     <div class="col-12">
         <div class="form-check">
             <input class="form-check-input" type="checkbox" id="is_head_office" name="is_head_office" value="1" @checked(old('is_head_office', $branch?->is_head_office ?? false))>

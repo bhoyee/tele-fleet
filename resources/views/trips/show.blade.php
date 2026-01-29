@@ -65,16 +65,14 @@
                             <div class="text-muted small">Notes</div>
                             <div class="fw-semibold">{{ $tripRequest->additional_notes ?: 'N/A' }}</div>
                         </div>
-                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
-                            <div class="col-md-6">
-                                <div class="text-muted small">Last Updated By</div>
-                                <div class="fw-semibold">{{ $tripRequest->updatedBy?->name ?? 'N/A' }}</div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="text-muted small">Last Updated At</div>
-                                <div class="fw-semibold">{{ $tripRequest->updated_at?->format('M d, Y H:i') ?? 'N/A' }}</div>
-                            </div>
-                        @endif
+                        <div class="col-md-6">
+                            <div class="text-muted small">Last Updated By</div>
+                            <div class="fw-semibold">{{ $tripRequest->updatedBy?->name ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Last Updated At</div>
+                            <div class="fw-semibold">{{ $tripRequest->updated_at?->format('M d, Y H:i') ?? 'N/A' }}</div>
+                        </div>
                     </div>
                 </div>
             </div>

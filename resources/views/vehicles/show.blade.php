@@ -79,6 +79,94 @@
         </div>
     </div>
 
+    @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN && $analytics)
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header">Vehicle Analytics</div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-3">
+                        <div class="text-muted small">Utilization ({{ $analytics['range_days'] }} days)</div>
+                        <div class="fw-semibold">{{ $analytics['utilization'] }}%</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small">Trips in Range</div>
+                        <div class="fw-semibold">{{ $analytics['total_trips'] }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small">Assigned Days</div>
+                        <div class="fw-semibold">{{ $analytics['assigned_days'] }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small">Fleet Utilization (Avg)</div>
+                        <div class="fw-semibold">{{ $analytics['fleet_utilization'] }}%</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Last Trip</div>
+                        <div class="fw-semibold">{{ $analytics['last_trip_date']?->format('M d, Y') ?? 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Next Scheduled Trip</div>
+                        <div class="fw-semibold">{{ $analytics['next_trip_date']?->format('M d, Y') ?? 'N/A' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header">Current & Upcoming Trips</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Request #</th>
+                            <th>Trip Date</th>
+                            <th>Destination</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($activeTrips as $trip)
+                            <tr>
+                                <td>{{ $trip->request_number }}</td>
+                                <td>
+                                    <div>{{ $trip->trip_date?->format('M d, Y') }}</div>
+                                    <small class="text-muted">{{ $trip->trip_time ? \Illuminate\Support\Carbon::parse($trip->trip_time)->format('g:i A') : 'N/A' }}</small>
+                                </td>
+                                <td>{{ $trip->destination }}</td>
+                                <td>
+                                    @php
+                                        $dueStatus = $trip->dueStatus();
+                                        $statusLabel = $dueStatus ? ucfirst($dueStatus) : ucfirst($trip->status);
+                                        $statusClass = $dueStatus === 'overdue'
+                                            ? 'danger'
+                                            : ($dueStatus === 'due'
+                                                ? 'warning'
+                                                : ($trip->status === 'assigned'
+                                                    ? 'primary'
+                                                    : 'success'));
+                                    @endphp
+                                    <span class="badge bg-{{ $statusClass }}">
+                                        {{ $statusLabel }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">No active or upcoming trips for this vehicle.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>Maintenance Timeline</span>

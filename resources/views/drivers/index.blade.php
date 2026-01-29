@@ -4,7 +4,16 @@
             <h1 class="h3 mb-1">Drivers</h1>
             <p class="text-muted mb-0">Manage driver records and compliance.</p>
         </div>
-        <a href="{{ route('drivers.create') }}" class="btn btn-primary">New Driver</a>
+        <div class="d-flex gap-2">
+            @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                @if (!($showArchived ?? false))
+                    <a href="{{ route('drivers.index', ['archived' => 1]) }}" class="btn btn-outline-secondary">Show Archived</a>
+                @else
+                    <a href="{{ route('drivers.index') }}" class="btn btn-outline-secondary">Back to Active</a>
+                @endif
+            @endif
+            <a href="{{ route('drivers.create') }}" class="btn btn-primary">New Driver</a>
+        </div>
     </div>
 
     <div class="card shadow-sm border-0">
@@ -34,16 +43,33 @@
                                     </span>
                                 </td>
                                 <td class="text-end">
-                                    <a href="{{ route('drivers.show', $driver) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                    <a href="{{ route('drivers.edit', $driver) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-danger"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#archiveDriverModal"
-                                            data-action="{{ route('drivers.destroy', $driver) }}"
-                                            data-name="{{ $driver->full_name }}">
-                                        Archive
-                                    </button>
+                                    @if (!($showArchived ?? false))
+                                        <a href="{{ route('drivers.show', $driver) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="{{ route('drivers.edit', $driver) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#archiveDriverModal"
+                                                data-action="{{ route('drivers.destroy', $driver) }}"
+                                                data-name="{{ $driver->full_name }}">
+                                            {{ auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN ? 'Delete' : 'Archive' }}
+                                        </button>
+                                    @elseif (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                                        <a href="{{ route('drivers.show', $driver->id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <form method="POST" action="{{ route('drivers.restore', $driver->id) }}" class="d-inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                                        </form>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#forceDeleteDriverModal"
+                                                data-action="{{ route('drivers.force', $driver->id) }}"
+                                                data-name="{{ $driver->full_name }}">
+                                            Delete Permanently
+                                        </button>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
@@ -57,18 +83,40 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Archive Driver</h5>
+                    <h5 class="modal-title">Delete Driver</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-0">Archive driver <strong id="archiveDriverName"></strong>? You can restore later if needed.</p>
+                    <p class="mb-0">Delete driver <strong id="archiveDriverName"></strong>?</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <form method="POST" id="archiveDriverForm">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-danger">Archive Driver</button>
+                        <button type="submit" class="btn btn-danger">Delete Driver</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="forceDeleteDriverModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Driver Permanently</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Permanently delete driver <strong id="forceDeleteDriverName"></strong>? This cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="POST" id="forceDeleteDriverForm">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">Delete Permanently</button>
                     </form>
                 </div>
             </div>
@@ -89,6 +137,18 @@
             }
         </script>
         <script>
+            const forceDeleteDriverModal = document.getElementById('forceDeleteDriverModal');
+            if (forceDeleteDriverModal) {
+                forceDeleteDriverModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const action = button.getAttribute('data-action');
+                    const name = button.getAttribute('data-name');
+                    document.getElementById('forceDeleteDriverForm').setAttribute('action', action);
+                    document.getElementById('forceDeleteDriverName').textContent = name;
+                });
+            }
+        </script>
+        <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const table = document.querySelector('.datatable');
                 if (!table) {
@@ -99,10 +159,14 @@
                     return;
                 }
 
-                const dataUrl = "{{ route('drivers.data') }}";
+                const showArchived = @json($showArchived ?? false);
+                const currentUserRole = "{{ auth()->user()?->role }}";
+                const dataUrl = "{{ route('drivers.data') }}" + (showArchived ? "?archived=1" : "");
                 const showUrlTemplate = "{{ route('drivers.show', ['driver' => '__ID__']) }}";
                 const editUrlTemplate = "{{ route('drivers.edit', ['driver' => '__ID__']) }}";
                 const deleteUrlTemplate = "{{ route('drivers.destroy', ['driver' => '__ID__']) }}";
+                const restoreUrlTemplate = "{{ route('drivers.restore', ['driver' => '__ID__']) }}";
+                const forceDeleteUrlTemplate = "{{ route('drivers.force', ['driver' => '__ID__']) }}";
 
                 const escapeHtml = (value) => String(value ?? '')
                     .replace(/&/g, '&amp;')
@@ -128,6 +192,35 @@
                     }
 
                     tbody.innerHTML = rows.map((driver) => {
+                        const archivedActions = `
+                            <a href="${showUrlTemplate.replace('__ID__', driver.id)}" class="btn btn-sm btn-outline-primary">View</a>
+                            <form method="POST" action="${restoreUrlTemplate.replace('__ID__', driver.id)}" class="d-inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="_method" value="PATCH">
+                                <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                            </form>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#forceDeleteDriverModal"
+                                    data-action="${forceDeleteUrlTemplate.replace('__ID__', driver.id)}"
+                                    data-name="${escapeHtml(driver.full_name)}">
+                                Delete Permanently
+                            </button>
+                        `;
+                        const activeActions = `
+                            <a href="${showUrlTemplate.replace('__ID__', driver.id)}" class="btn btn-sm btn-outline-primary">View</a>
+                            <a href="${editUrlTemplate.replace('__ID__', driver.id)}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#archiveDriverModal"
+                                    data-action="${deleteUrlTemplate.replace('__ID__', driver.id)}"
+                                    data-name="${escapeHtml(driver.full_name)}">
+                                ${currentUserRole === 'super_admin' ? 'Delete' : 'Archive'}
+                            </button>
+                        `;
+
                         return `
                             <tr>
                                 <td>${escapeHtml(driver.full_name)}</td>
@@ -138,16 +231,7 @@
                                     <span class="badge ${statusBadge(driver.status)}">${escapeHtml(driver.status)}</span>
                                 </td>
                                 <td class="text-end">
-                                    <a href="${showUrlTemplate.replace('__ID__', driver.id)}" class="btn btn-sm btn-outline-primary">View</a>
-                                    <a href="${editUrlTemplate.replace('__ID__', driver.id)}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-danger"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#archiveDriverModal"
-                                            data-action="${deleteUrlTemplate.replace('__ID__', driver.id)}"
-                                            data-name="${escapeHtml(driver.full_name)}">
-                                        Archive
-                                    </button>
+                                    ${showArchived ? archivedActions : activeActions}
                                 </td>
                             </tr>
                         `;

@@ -43,13 +43,23 @@ class NotifyOverdueTrips extends Command
         $recipients = User::whereIn('role', [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER])->get();
 
         foreach ($reminderTrips as $trip) {
-            Notification::send($recipients, new TripCompletionReminderNotification($trip));
-            $trip->forceFill(['reminder_notified_at' => Carbon::now()])->save();
+            $updated = TripRequest::whereKey($trip->id)
+                ->whereNull('reminder_notified_at')
+                ->update(['reminder_notified_at' => Carbon::now()]);
+
+            if ($updated > 0) {
+                Notification::send($recipients, new TripCompletionReminderNotification($trip));
+            }
         }
 
         foreach ($trips as $trip) {
-            Notification::send($recipients, new OverdueTripNotification($trip));
-            $trip->forceFill(['overdue_notified_at' => Carbon::now()])->save();
+            $updated = TripRequest::whereKey($trip->id)
+                ->whereNull('overdue_notified_at')
+                ->update(['overdue_notified_at' => Carbon::now()]);
+
+            if ($updated > 0) {
+                Notification::send($recipients, new OverdueTripNotification($trip));
+            }
         }
 
         $this->info('Trip reminder notifications processed.');

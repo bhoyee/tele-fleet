@@ -11,6 +11,7 @@ use App\Events\TripRequestChanged;
 use App\Models\VehicleMaintenance;
 use App\Models\TripRequest;
 use App\Notifications\TripAssignmentConflict;
+use App\Services\AuditLogService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -49,7 +50,7 @@ class MaintenanceController extends Controller
         return view('maintenances.create', compact('vehicles', 'statuses'));
     }
 
-    public function store(StoreMaintenanceRequest $request): RedirectResponse
+    public function store(StoreMaintenanceRequest $request, AuditLogService $auditLog): RedirectResponse
     {
         $data = $request->validated();
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
@@ -61,6 +62,7 @@ class MaintenanceController extends Controller
 
         $maintenance = VehicleMaintenance::create($data);
         $this->syncVehicleStatus($vehicle, $maintenance->status, $request->user());
+        $auditLog->log('maintenance.created', $maintenance, [], $maintenance->toArray());
 
         return redirect()
             ->route('maintenances.show', $maintenance)
@@ -82,7 +84,7 @@ class MaintenanceController extends Controller
         return view('maintenances.edit', compact('maintenance', 'vehicles', 'statuses'));
     }
 
-    public function update(UpdateMaintenanceRequest $request, VehicleMaintenance $maintenance): RedirectResponse
+    public function update(UpdateMaintenanceRequest $request, VehicleMaintenance $maintenance, AuditLogService $auditLog): RedirectResponse
     {
         $data = $request->validated();
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
@@ -90,24 +92,27 @@ class MaintenanceController extends Controller
         $data['branch_id'] = $vehicle->branch_id;
         $data = $this->normalizeStatusDates($data, $maintenance);
 
+        $oldValues = $maintenance->getOriginal();
         $maintenance->update($data);
         $this->syncVehicleStatus($vehicle, $maintenance->status, $request->user());
+        $auditLog->log('maintenance.updated', $maintenance, $oldValues, $maintenance->getChanges());
 
         return redirect()
             ->route('maintenances.show', $maintenance)
             ->with('success', 'Maintenance updated successfully.');
     }
 
-    public function destroy(VehicleMaintenance $maintenance): RedirectResponse
+    public function destroy(VehicleMaintenance $maintenance, AuditLogService $auditLog): RedirectResponse
     {
         $maintenance->delete();
+        $auditLog->log('maintenance.deleted', $maintenance);
 
         return redirect()
             ->route('maintenances.index')
             ->with('success', 'Maintenance record deleted.');
     }
 
-    public function exportCsv(Request $request)
+    public function exportCsv(Request $request, AuditLogService $auditLog)
     {
         $statusFilter = $request->query('status');
 
@@ -123,6 +128,10 @@ class MaintenanceController extends Controller
 
         $maintenances = $query->get();
         $filename = 'maintenance-records-' . now()->format('Ymd-His') . '.csv';
+        $auditLog->log('maintenance.export_csv', null, [], [
+            'status' => $statusFilter,
+            'count' => $maintenances->count(),
+        ]);
 
         return response()->streamDownload(function () use ($maintenances): void {
             $handle = fopen('php://output', 'wb');
@@ -144,7 +153,7 @@ class MaintenanceController extends Controller
         ]);
     }
 
-    public function exportPdf(Request $request)
+    public function exportPdf(Request $request, AuditLogService $auditLog)
     {
         $statusFilter = $request->query('status');
 
@@ -159,6 +168,10 @@ class MaintenanceController extends Controller
         }
 
         $maintenances = $query->get();
+        $auditLog->log('maintenance.export_pdf', null, [], [
+            'status' => $statusFilter,
+            'count' => $maintenances->count(),
+        ]);
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('maintenances/report-pdf', [
             'maintenances' => $maintenances,

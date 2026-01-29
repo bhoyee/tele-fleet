@@ -34,6 +34,7 @@ class TripRequestController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
+        $showArchived = $request->boolean('archived') && $user->role === User::ROLE_SUPER_ADMIN;
 
         $query = TripRequest::with([
             'branch',
@@ -43,22 +44,68 @@ class TripRequestController extends Controller
             'assignedDriver',
         ])->orderByDesc('created_at');
 
-        if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+        if ($showArchived) {
+            $query->onlyTrashed();
+        } elseif (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
             $query->where('branch_id', $user->branch_id);
         }
 
         $trips = $query->get();
 
-        return view('trips.index', compact('trips'));
+        $analytics = null;
+        $historyTrips = collect();
+        if ($user->role === User::ROLE_SUPER_ADMIN) {
+            $now = Carbon::now();
+            $monthStart = $now->copy()->startOfMonth();
+            $monthEnd = $now->copy()->endOfMonth();
+
+            $monthlyQuery = TripRequest::whereBetween('trip_date', [$monthStart, $monthEnd]);
+            $totalTrips = (clone $monthlyQuery)->count();
+            $allTimeTrips = TripRequest::count();
+            $pendingTrips = (clone $monthlyQuery)->where('status', 'pending')->count();
+            $approvedTrips = (clone $monthlyQuery)->whereIn('status', ['approved', 'assigned', 'completed'])->count();
+            $assignedTrips = (clone $monthlyQuery)->where('status', 'assigned')->count();
+            $completedTrips = (clone $monthlyQuery)->where('status', 'completed')->count();
+            $rejectedTrips = (clone $monthlyQuery)->where('status', 'rejected')->count();
+            $cancelledTrips = (clone $monthlyQuery)->where('status', 'cancelled')->count();
+
+            $approvalRate = $totalTrips > 0 ? round(($approvedTrips / $totalTrips) * 100, 1) : 0;
+            $completionRate = $totalTrips > 0 ? round(($completedTrips / $totalTrips) * 100, 1) : 0;
+
+            $analytics = [
+                'total' => $totalTrips,
+                'all_time' => $allTimeTrips,
+                'pending' => $pendingTrips,
+                'approved' => $approvedTrips,
+                'assigned' => $assignedTrips,
+                'completed' => $completedTrips,
+                'rejected' => $rejectedTrips,
+                'cancelled' => $cancelledTrips,
+                'approval_rate' => $approvalRate,
+                'completion_rate' => $completionRate,
+                'range_label' => $monthStart->format('M Y'),
+            ];
+
+            $historyTrips = TripRequest::with(['branch', 'requestedBy'])
+                ->whereIn('status', ['completed', 'cancelled', 'rejected'])
+                ->orderByDesc('trip_date')
+                ->limit(30)
+                ->get();
+        }
+
+        return view('trips.index', compact('trips', 'showArchived', 'analytics', 'historyTrips'));
     }
 
     public function indexData(Request $request): JsonResponse
     {
         $user = $request->user();
+        $showArchived = $request->boolean('archived') && $user->role === User::ROLE_SUPER_ADMIN;
 
         $query = TripRequest::query()->orderByDesc('created_at');
 
-        if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+        if ($showArchived) {
+            $query->onlyTrashed();
+        } elseif (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -78,6 +125,7 @@ class TripRequestController extends Controller
                 'status' => $trip->status,
                 'assigned' => (bool) ($trip->assigned_vehicle_id && $trip->assigned_driver_id),
                 'due_status' => $trip->dueStatus(),
+                'is_archived' => $trip->trashed(),
             ];
         });
 
@@ -370,6 +418,51 @@ class TripRequestController extends Controller
         return view('trips.logbook-index', compact('trips'));
     }
 
+    public function manageLogbooks(Request $request): View
+    {
+        $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
+
+        $query = TripLog::with([
+            'tripRequest.branch',
+            'tripRequest.assignedVehicle',
+            'tripRequest.assignedDriver',
+            'enteredBy',
+            'editedBy',
+        ])->orderByDesc('log_date');
+
+        if ($showArchived) {
+            $query->onlyTrashed();
+        }
+
+        $logs = $query->get();
+
+        return view('trips.logbook-manage', compact('logs', 'showArchived'));
+    }
+
+    public function showLogbook(Request $request, int $tripLog): View
+    {
+        $query = TripLog::with([
+            'tripRequest.assignedDriver',
+            'tripRequest.assignedVehicle',
+        ]);
+
+        if ($request->user()?->role === User::ROLE_SUPER_ADMIN) {
+            $query->withTrashed();
+        }
+
+        $log = $query->findOrFail($tripLog);
+        $tripRequest = $log->tripRequest;
+        $tripRequest->setRelation('log', $log);
+
+        $backUrl = route('logbooks.manage', $request->boolean('archived') ? ['archived' => 1] : []);
+
+        return view('trips.logbook', [
+            'tripRequest' => $tripRequest,
+            'viewOnly' => true,
+            'backUrl' => $backUrl,
+        ]);
+    }
+
     public function edit(TripRequest $tripRequest): View
     {
         $this->authorizeTripMutation(request()->user(), $tripRequest);
@@ -524,6 +617,30 @@ class TripRequestController extends Controller
             ->with('success', 'Trip deleted.');
     }
 
+    public function restore(int $tripRequest, AuditLogService $auditLog): RedirectResponse
+    {
+        $trip = TripRequest::onlyTrashed()->findOrFail($tripRequest);
+
+        $trip->restore();
+        $auditLog->log('trip_request.restored', $trip, [], $trip->toArray());
+
+        return redirect()
+            ->route('trips.index', ['archived' => 1])
+            ->with('success', 'Trip restored.');
+    }
+
+    public function forceDelete(int $tripRequest, AuditLogService $auditLog): RedirectResponse
+    {
+        $trip = TripRequest::onlyTrashed()->findOrFail($tripRequest);
+
+        $auditLog->log('trip_request.force_deleted', $trip, [], $trip->toArray());
+        $trip->forceDelete();
+
+        return redirect()
+            ->route('trips.index', ['archived' => 1])
+            ->with('success', 'Trip permanently deleted.');
+    }
+
     private function authorizeTripMutation(?User $user, TripRequest $tripRequest): void
     {
         if (! $user) {
@@ -579,7 +696,7 @@ class TripRequestController extends Controller
         return $tripRequest->status !== 'pending';
     }
 
-    public function destroyLogbook(TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
+    public function destroyLogbook(Request $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
         $tripRequest->load('log');
 
@@ -589,25 +706,77 @@ class TripRequestController extends Controller
                 ->with('error', 'No logbook found to delete.');
         }
 
-        $logId = $tripRequest->log->id;
-        $tripRequest->log->delete();
+        $this->archiveLogEntry($tripRequest->log, $request, $auditLog);
 
-        $tripRequest->update([
-            'status' => 'assigned',
-            'is_completed' => false,
-            'logbook_entered_by' => null,
-            'logbook_entered_at' => null,
-            'updated_by_user_id' => $request->user()->id,
+        return redirect()
+            ->route('logbooks.index')
+            ->with('success', 'Logbook archived.');
+    }
+
+    public function archiveLogbook(Request $request, int $tripLog, AuditLogService $auditLog): RedirectResponse
+    {
+        $log = TripLog::with('tripRequest')->findOrFail($tripLog);
+
+        $this->archiveLogEntry($log, $request, $auditLog);
+
+        return redirect()
+            ->route('logbooks.manage')
+            ->with('success', 'Logbook archived.');
+    }
+
+    public function restoreLogbook(Request $request, int $tripLog, AuditLogService $auditLog): RedirectResponse
+    {
+        $log = TripLog::withTrashed()->with('tripRequest')->findOrFail($tripLog);
+
+        if (! $log->trashed()) {
+            return redirect()
+                ->route('logbooks.manage')
+                ->with('error', 'Logbook is already active.');
+        }
+
+        $log->restore();
+
+        $tripRequest = $log->tripRequest;
+        if ($tripRequest) {
+            $tripRequest->update([
+                'status' => 'completed',
+                'is_completed' => true,
+                'logbook_entered_by' => $log->entered_by_user_id ?? $request->user()->id,
+                'logbook_entered_at' => $log->created_at ?? now(),
+                'updated_by_user_id' => $request->user()->id,
+            ]);
+        }
+
+        $auditLog->log('trip_request.logbook_restored', $tripRequest, [], [
+            'trip_log_id' => $log->id,
         ]);
+        $this->broadcastTripChange($tripRequest, 'logbook_restored');
 
-        $auditLog->log('trip_request.logbook_deleted', $tripRequest, [], [
+        return redirect()
+            ->route('logbooks.manage', ['archived' => 1])
+            ->with('success', 'Logbook restored.');
+    }
+
+    public function forceDeleteLogbook(Request $request, int $tripLog, AuditLogService $auditLog): RedirectResponse
+    {
+        $log = TripLog::withTrashed()->with('tripRequest')->findOrFail($tripLog);
+        $tripRequest = $log->tripRequest;
+        $logId = $log->id;
+
+        if ($tripRequest) {
+            $this->resetTripAfterLogRemoval($tripRequest, $request);
+        }
+
+        $log->forceDelete();
+
+        $auditLog->log('trip_request.logbook_deleted_permanently', $tripRequest, [], [
             'trip_log_id' => $logId,
         ]);
         $this->broadcastTripChange($tripRequest, 'logbook_deleted');
 
         return redirect()
-            ->route('logbooks.index')
-            ->with('success', 'Logbook deleted.');
+            ->route('logbooks.manage', ['archived' => 1])
+            ->with('success', 'Logbook deleted permanently.');
     }
 
     public function storeLogbook(LogTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
@@ -752,11 +921,12 @@ class TripRequestController extends Controller
         $recipients = collect();
 
         $fleetManagers = User::where('role', User::ROLE_FLEET_MANAGER)->get();
+        $superAdmins = User::where('role', User::ROLE_SUPER_ADMIN)->get();
         $branchHeads = User::where('role', User::ROLE_BRANCH_HEAD)
             ->where('branch_id', $tripRequest->branch_id)
             ->get();
 
-        $recipients = $recipients->merge($fleetManagers)->merge($branchHeads);
+        $recipients = $recipients->merge($fleetManagers)->merge($superAdmins)->merge($branchHeads);
 
         if ($requester) {
             $recipients->push($requester);
@@ -800,6 +970,33 @@ class TripRequestController extends Controller
         }
 
         return $status !== 'completed' && now()->lt($tripMoment);
+    }
+
+    private function archiveLogEntry(TripLog $log, Request $request, AuditLogService $auditLog): void
+    {
+        $tripRequest = $log->tripRequest;
+        $logId = $log->id;
+
+        $log->delete();
+
+        if ($tripRequest) {
+            $this->resetTripAfterLogRemoval($tripRequest, $request);
+            $auditLog->log('trip_request.logbook_archived', $tripRequest, [], [
+                'trip_log_id' => $logId,
+            ]);
+            $this->broadcastTripChange($tripRequest, 'logbook_deleted');
+        }
+    }
+
+    private function resetTripAfterLogRemoval(TripRequest $tripRequest, Request $request): void
+    {
+        $tripRequest->update([
+            'status' => 'assigned',
+            'is_completed' => false,
+            'logbook_entered_by' => null,
+            'logbook_entered_at' => null,
+            'updated_by_user_id' => $request->user()->id,
+        ]);
     }
 
     private function broadcastTripChange(TripRequest $tripRequest, string $action): void

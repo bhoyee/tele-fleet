@@ -6,8 +6,15 @@
         </div>
         <div class="d-flex gap-2">
             @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                <a class="btn btn-outline-primary" href="{{ route('incidents.export.csv') }}" data-download>Export CSV</a>
-                <a class="btn btn-outline-dark" href="{{ route('incidents.export.pdf') }}" data-download>Export PDF</a>
+                @if (!($showArchived ?? false))
+                    <a class="btn btn-outline-secondary" href="{{ route('incidents.index', ['archived' => 1]) }}">Show Archived</a>
+                @else
+                    <a class="btn btn-outline-secondary" href="{{ route('incidents.index') }}">Back to Active</a>
+                @endif
+            @endif
+            @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                <a class="btn btn-outline-primary" href="{{ route('incidents.export.csv', ($showArchived ?? false) ? ['archived' => 1] : []) }}" data-download>Export CSV</a>
+                <a class="btn btn-outline-dark" href="{{ route('incidents.export.pdf', ($showArchived ?? false) ? ['archived' => 1] : []) }}" data-download>Export PDF</a>
             @endif
             @if (auth()->check())
                 <a href="{{ route('incidents.create') }}" class="btn btn-primary" data-loading>New Incident</a>
@@ -41,7 +48,7 @@
                                 <td>{{ $incident->incident_date?->format('M d, Y') }}</td>
                                 <td class="text-end">
                                     <a href="{{ route('incidents.show', $incident) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
-                                    @if ($incident->status === \App\Models\IncidentReport::STATUS_OPEN)
+                                    @if ($incident->status === \App\Models\IncidentReport::STATUS_OPEN && !($showArchived ?? false))
                                         <a href="{{ route('incidents.edit', $incident) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-warning"
@@ -52,7 +59,7 @@
                                             Cancel
                                         </button>
                                     @endif
-                                    @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN && $incident->status === \App\Models\IncidentReport::STATUS_OPEN)
+                                    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true) && !($showArchived ?? false))
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
@@ -60,6 +67,21 @@
                                                 data-delete-action="{{ route('incidents.destroy', $incident) }}"
                                                 data-delete-label="{{ $incident->reference }}">
                                             Delete
+                                        </button>
+                                    @endif
+                                    @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                                        <form method="POST" action="{{ route('incidents.restore', $incident->id) }}" class="d-inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                                        </form>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#forceDeleteIncidentModal"
+                                                data-delete-action="{{ route('incidents.force', $incident->id) }}"
+                                                data-delete-label="{{ $incident->reference }}">
+                                            Delete Permanently
                                         </button>
                                     @endif
                                 </td>
@@ -71,7 +93,7 @@
         </div>
     </div>
 
-    @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true) && !($showArchived ?? false))
         <div class="modal fade" id="deleteIncidentModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -112,6 +134,30 @@
                 });
             </script>
         @endpush
+    @endif
+
+    @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+        <div class="modal fade" id="forceDeleteIncidentModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Incident Permanently</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">Permanently delete incident <strong id="forceDeleteIncidentLabel"></strong>? This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <form method="POST" id="forceDeleteIncidentForm">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Delete Permanently</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     @endif
 
     <div class="modal fade" id="cancelIncidentModal" tabindex="-1" aria-hidden="true">
@@ -182,6 +228,32 @@
         </script>
     @endpush
 
+    @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+        @push('scripts')
+            <script>
+                document.addEventListener('click', (event) => {
+                    const button = event.target.closest('[data-delete-action]');
+                    if (!button) {
+                        return;
+                    }
+                    const form = document.getElementById('forceDeleteIncidentForm');
+                    if (!form) {
+                        return;
+                    }
+                    const action = button.getAttribute('data-delete-action');
+                    const label = button.getAttribute('data-delete-label');
+                    if (action) {
+                        form.setAttribute('action', action);
+                    }
+                    const labelEl = document.getElementById('forceDeleteIncidentLabel');
+                    if (labelEl && label) {
+                        labelEl.textContent = label;
+                    }
+                });
+            </script>
+        @endpush
+    @endif
+
     @push('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', () => {
@@ -195,11 +267,14 @@
                 }
 
                 const currentUser = @json($currentUserData);
-                const dataUrl = "{{ route('incidents.data') }}";
+                const showArchived = @json($showArchived ?? false);
+                const dataUrl = "{{ route('incidents.data') }}" + (showArchived ? "?archived=1" : "");
                 const showUrlTemplate = "{{ route('incidents.show', ['incident' => '__ID__']) }}";
                 const editUrlTemplate = "{{ route('incidents.edit', ['incident' => '__ID__']) }}";
                 const cancelUrlTemplate = "{{ route('incidents.cancel', ['incident' => '__ID__']) }}";
                 const deleteUrlTemplate = "{{ route('incidents.destroy', ['incident' => '__ID__']) }}";
+                const restoreUrlTemplate = "{{ route('incidents.restore', ['incident' => '__ID__']) }}";
+                const forceDeleteUrlTemplate = "{{ route('incidents.force', ['incident' => '__ID__']) }}";
 
                 let poller = null;
                 const startPollingFallback = () => {
@@ -230,11 +305,11 @@
                 };
 
                 const canEdit = (incident) => {
-                    return incident.status === 'open';
+                    return incident.status === 'open' && !showArchived;
                 };
 
                 const canDelete = (incident) => {
-                    return currentUser.role === 'super_admin' && incident.status === 'open';
+                    return ['super_admin', 'fleet_manager'].includes(currentUser.role) && !showArchived;
                 };
 
                 const renderRows = (rows) => {
@@ -267,6 +342,23 @@
                                 Delete
                                </button>`
                             : '';
+                        const restoreHtml = showArchived && currentUser.role === 'super_admin'
+                            ? `
+                                <form method="POST" action="${restoreUrlTemplate.replace('__ID__', incident.id)}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="_method" value="PATCH">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                                </form>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#forceDeleteIncidentModal"
+                                        data-delete-action="${forceDeleteUrlTemplate.replace('__ID__', incident.id)}"
+                                        data-delete-label="${escapeHtml(incident.reference)}">
+                                    Delete Permanently
+                                </button>
+                              `
+                            : '';
 
                         return `
                             <tr>
@@ -278,7 +370,7 @@
                                     </span>
                                 </td>
                                 <td>${escapeHtml(incident.incident_date)}</td>
-                                <td class="text-end">${viewHtml} ${editHtml} ${cancelHtml} ${deleteHtml}</td>
+                                <td class="text-end">${viewHtml} ${editHtml} ${cancelHtml} ${deleteHtml} ${restoreHtml}</td>
                             </tr>
                         `;
                     }).join('');

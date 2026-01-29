@@ -81,7 +81,12 @@
 
                     <div class="col-md-6">
                         <label class="form-label" for="incident_time">Incident Time</label>
-                        <input class="form-control" id="incident_time" name="incident_time" type="time" value="{{ old('incident_time', $incident->incident_time) }}">
+                        @php
+                            $incidentTimeValue = $incident->incident_time
+                                ? \Illuminate\Support\Carbon::parse($incident->incident_time)->format('H:i')
+                                : '';
+                        @endphp
+                        <input class="form-control" id="incident_time" name="incident_time" type="time" value="{{ old('incident_time', $incidentTimeValue) }}">
                         @error('incident_time') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
 

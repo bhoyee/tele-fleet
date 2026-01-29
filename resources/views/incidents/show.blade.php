@@ -68,6 +68,14 @@
                             <div class="text-muted small">Driver</div>
                             <div class="fw-semibold">{{ $incident->driver?->full_name ?? 'N/A' }}</div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Last Updated By</div>
+                            <div class="fw-semibold">{{ $incident->updatedBy?->name ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Last Updated At</div>
+                            <div class="fw-semibold">{{ $incident->updated_at?->format('M d, Y H:i') ?? 'N/A' }}</div>
+                        </div>
                         <div class="col-md-12">
                             <div class="text-muted small">Description</div>
                             <div class="fw-semibold">{{ $incident->description }}</div>
@@ -80,16 +88,45 @@
                 <div class="card shadow-sm border-0">
                     <div class="card-body">
                         <h5 class="fw-semibold mb-3">Attachments</h5>
-                        <div class="d-flex flex-column gap-2">
+                        <div class="row g-3">
                             @foreach ($incident->attachments as $attachment)
-                                <a class="text-decoration-none" href="{{ route('incidents.attachments.download', [$incident, basename($attachment)]) }}">
-                                    {{ basename($attachment) }}
-                                </a>
+                                @php
+                                    $filename = basename($attachment);
+                                    $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                                    $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+                                    $isPdf = $extension === 'pdf';
+                                    $previewType = $isImage ? 'image' : ($isPdf ? 'pdf' : 'document');
+                                    $url = route('incidents.attachments.preview', [$incident, $filename]);
+                                @endphp
+                                <div class="col-12">
+                                    <div class="border rounded-3 p-2 bg-light">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="small fw-semibold text-truncate" style="max-width: 220px;">{{ $filename }}</span>
+                                            <a class="small text-decoration-none" href="{{ route('incidents.attachments.download', [$incident, $filename]) }}">
+                                                Download
+                                            </a>
+                                        </div>
+                                        @if ($isImage)
+                                            <div class="incident-attachment-preview">
+                                                <img src="{{ $url }}" alt="{{ $filename }}">
+                                            </div>
+                                        @elseif ($isPdf)
+                                            <div class="incident-attachment-preview">
+                                                <iframe src="{{ $url }}" class="w-100 border-0" style="height: 620px;" title="{{ $filename }}"></iframe>
+                                            </div>
+                                        @else
+                                            <div class="incident-attachment-file">
+                                                <i class="bi bi-file-earmark-text me-2"></i>
+                                                <span class="text-muted">Preview not available</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
                             @endforeach
                         </div>
-                    </div>
-                </div>
-            @endif
+        </div>
+    </div>
+@endif
         </div>
 
         <div class="col-lg-5">
@@ -139,6 +176,35 @@
         </div>
     </div>
 </x-admin-layout>
+
+@push('styles')
+    <style>
+        .incident-attachment-preview {
+            max-height: 340px;
+            overflow: auto;
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        .incident-attachment-preview img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .incident-attachment-file {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 220px;
+            border-radius: 10px;
+            background: #fff;
+        }
+    </style>
+@endpush
+
+@push('scripts')
+@endpush
 
 @if ($incident->status === \App\Models\IncidentReport::STATUS_OPEN)
     <div class="modal fade" id="cancelIncidentModal" tabindex="-1" aria-hidden="true">

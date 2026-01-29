@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class IncidentReport extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     public const STATUS_OPEN = 'open';
     public const STATUS_REVIEW = 'under_review';
@@ -36,6 +38,7 @@ class IncidentReport extends Model
         'attachments',
         'resolution_notes',
         'closed_by_user_id',
+        'updated_by_user_id',
         'closed_at',
     ];
 
@@ -74,5 +77,10 @@ class IncidentReport extends Model
     public function closedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by_user_id');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by_user_id');
     }
 }

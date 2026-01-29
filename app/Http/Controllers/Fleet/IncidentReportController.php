@@ -16,6 +16,7 @@ use App\Events\IncidentReportChanged;
 use App\Notifications\IncidentReported;
 use App\Notifications\IncidentStatusUpdated;
 use App\Notifications\IncidentUpdated;
+use App\Services\AuditLogService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -30,14 +31,16 @@ class IncidentReportController extends Controller
 {
     public function index(Request $request): View
     {
-        $incidents = $this->buildIncidentQuery($request)->get();
+        $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
+        $incidents = $this->buildIncidentQuery($request, $showArchived)->get();
 
-        return view('incidents.index', compact('incidents'));
+        return view('incidents.index', compact('incidents', 'showArchived'));
     }
 
     public function indexData(Request $request): JsonResponse
     {
-        $incidents = $this->buildIncidentQuery($request)->get();
+        $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
+        $incidents = $this->buildIncidentQuery($request, $showArchived)->get();
 
         $payload = $incidents->map(function (IncidentReport $incident): array {
             return [
@@ -48,6 +51,7 @@ class IncidentReportController extends Controller
                 'incident_date' => $incident->incident_date?->format('M d, Y') ?? '',
                 'branch_id' => $incident->branch_id,
                 'reported_by_user_id' => $incident->reported_by_user_id,
+                'is_archived' => $incident->trashed(),
             ];
         });
 
@@ -76,7 +80,7 @@ class IncidentReportController extends Controller
         return view('incidents.create', compact('branches', 'trips', 'vehicles', 'drivers'));
     }
 
-    public function store(StoreIncidentReportRequest $request): RedirectResponse
+    public function store(StoreIncidentReportRequest $request, AuditLogService $auditLog): RedirectResponse
     {
         $data = $request->validated();
         $user = $request->user();
@@ -85,6 +89,7 @@ class IncidentReportController extends Controller
         $data['branch_id'] = $data['branch_id'] ?? $user->branch_id;
         $data['reference'] = $this->generateReference();
         $data['status'] = IncidentReport::STATUS_OPEN;
+        $data['updated_by_user_id'] = $user->id;
 
         $attachments = [];
         if ($request->hasFile('attachments')) {
@@ -95,6 +100,7 @@ class IncidentReportController extends Controller
         $data['attachments'] = $attachments ?: null;
 
         $incident = IncidentReport::create($data);
+        $auditLog->log('incident.created', $incident, [], $incident->toArray());
 
         $recipients = $this->buildRecipients($incident, $user);
         try {
@@ -115,7 +121,7 @@ class IncidentReportController extends Controller
     public function show(IncidentReport $incident): View
     {
         $this->authorizeIncidentView($incident, request()->user());
-        $incident->load(['tripRequest', 'branch', 'vehicle', 'driver', 'reportedBy', 'closedBy']);
+        $incident->load(['tripRequest', 'branch', 'vehicle', 'driver', 'reportedBy', 'closedBy', 'updatedBy']);
 
         return view('incidents.show', compact('incident'));
     }
@@ -148,7 +154,7 @@ class IncidentReportController extends Controller
         return view('incidents.edit', compact('incident', 'branches', 'trips', 'vehicles', 'drivers'));
     }
 
-    public function update(UpdateIncidentReportRequest $request, IncidentReport $incident): RedirectResponse
+    public function update(UpdateIncidentReportRequest $request, IncidentReport $incident, AuditLogService $auditLog): RedirectResponse
     {
         $this->authorizeIncidentMutation($incident, $request->user());
 
@@ -169,7 +175,10 @@ class IncidentReportController extends Controller
         }
         $data['attachments'] = $attachments ?: null;
 
+        $oldValues = $incident->getOriginal();
+        $data['updated_by_user_id'] = $request->user()->id;
         $incident->update($data);
+        $auditLog->log('incident.updated', $incident, $oldValues, $incident->getChanges());
 
         $recipients = $this->buildRecipients($incident, $incident->reportedBy ?? $request->user());
         try {
@@ -187,7 +196,7 @@ class IncidentReportController extends Controller
             ->with('success', 'Incident updated successfully.');
     }
 
-    public function cancel(IncidentReport $incident, Request $request): RedirectResponse
+    public function cancel(IncidentReport $incident, Request $request, AuditLogService $auditLog): RedirectResponse
     {
         $this->authorizeIncidentMutation($incident, $request->user());
 
@@ -197,11 +206,14 @@ class IncidentReportController extends Controller
                 ->with('error', 'Only open incidents can be cancelled.');
         }
 
+        $oldValues = $incident->getOriginal();
         $incident->update([
             'status' => IncidentReport::STATUS_CANCELLED,
             'closed_by_user_id' => $request->user()->id,
+            'updated_by_user_id' => $request->user()->id,
             'closed_at' => now(),
         ]);
+        $auditLog->log('incident.cancelled', $incident, $oldValues, $incident->getChanges());
 
         $recipients = $this->buildRecipients($incident, $incident->reportedBy ?? $request->user());
         try {
@@ -219,7 +231,7 @@ class IncidentReportController extends Controller
             ->with('success', 'Incident cancelled.');
     }
 
-    public function updateStatus(UpdateIncidentStatusRequest $request, IncidentReport $incident): RedirectResponse
+    public function updateStatus(UpdateIncidentStatusRequest $request, IncidentReport $incident, AuditLogService $auditLog): RedirectResponse
     {
         $data = $request->validated();
 
@@ -236,7 +248,10 @@ class IncidentReportController extends Controller
             $updates['closed_at'] = null;
         }
 
+        $oldValues = $incident->getOriginal();
+        $updates['updated_by_user_id'] = $request->user()->id;
         $incident->update($updates);
+        $auditLog->log('incident.status_updated', $incident, $oldValues, $incident->getChanges());
 
         $recipients = $this->buildRecipients($incident, $incident->reportedBy ?? $request->user());
         try {
@@ -254,23 +269,12 @@ class IncidentReportController extends Controller
             ->with('success', 'Incident status updated.');
     }
 
-    public function destroy(IncidentReport $incident): RedirectResponse
+    public function destroy(IncidentReport $incident, AuditLogService $auditLog): RedirectResponse
     {
         $this->authorizeIncidentMutation($incident, request()->user());
 
-        if ($incident->status !== IncidentReport::STATUS_OPEN) {
-            return redirect()
-                ->route('incidents.index')
-                ->with('error', 'Only open incidents can be deleted.');
-        }
-
-        if (! empty($incident->attachments)) {
-            foreach ($incident->attachments as $attachment) {
-                Storage::disk('public')->delete($attachment);
-            }
-        }
-
         $incident->delete();
+        $auditLog->log('incident.deleted', $incident);
         $this->broadcastIncidentChangeData($incident->id, $incident->branch_id, $incident->reported_by_user_id, 'deleted');
 
         return redirect()
@@ -278,10 +282,44 @@ class IncidentReportController extends Controller
             ->with('success', 'Incident report deleted.');
     }
 
-    public function exportCsv(Request $request)
+    public function restore(int $incident, AuditLogService $auditLog): RedirectResponse
     {
-        $incidents = $this->buildIncidentQuery($request)->get();
+        $incidentModel = IncidentReport::onlyTrashed()->findOrFail($incident);
+        $incidentModel->restore();
+        $auditLog->log('incident.restored', $incidentModel);
+        $this->broadcastIncidentChangeData($incidentModel->id, $incidentModel->branch_id, $incidentModel->reported_by_user_id, 'restored');
+
+        return redirect()
+            ->route('incidents.index', ['archived' => 1])
+            ->with('success', 'Incident report restored.');
+    }
+
+    public function forceDelete(int $incident, AuditLogService $auditLog): RedirectResponse
+    {
+        $incidentModel = IncidentReport::onlyTrashed()->findOrFail($incident);
+        if (! empty($incidentModel->attachments)) {
+            foreach ($incidentModel->attachments as $attachment) {
+                Storage::disk('public')->delete($attachment);
+            }
+        }
+        $incidentModel->forceDelete();
+        $auditLog->log('incident.force_deleted', $incidentModel);
+        $this->broadcastIncidentChangeData($incidentModel->id, $incidentModel->branch_id, $incidentModel->reported_by_user_id, 'force_deleted');
+
+        return redirect()
+            ->route('incidents.index', ['archived' => 1])
+            ->with('success', 'Incident report permanently deleted.');
+    }
+
+    public function exportCsv(Request $request, AuditLogService $auditLog)
+    {
+        $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
+        $incidents = $this->buildIncidentQuery($request, $showArchived)->get();
         $filename = 'incident-reports-' . now()->format('Ymd-His') . '.csv';
+        $auditLog->log('incident.export_csv', null, [], [
+            'archived' => $showArchived,
+            'count' => $incidents->count(),
+        ]);
 
         return response()->streamDownload(function () use ($incidents): void {
             $handle = fopen('php://output', 'wb');
@@ -303,9 +341,14 @@ class IncidentReportController extends Controller
         ]);
     }
 
-    public function exportPdf(Request $request)
+    public function exportPdf(Request $request, AuditLogService $auditLog)
     {
-        $incidents = $this->buildIncidentQuery($request)->get();
+        $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
+        $incidents = $this->buildIncidentQuery($request, $showArchived)->get();
+        $auditLog->log('incident.export_pdf', null, [], [
+            'archived' => $showArchived,
+            'count' => $incidents->count(),
+        ]);
 
         $pdf = Pdf::loadView('incidents/report-pdf', [
             'incidents' => $incidents,
@@ -325,6 +368,20 @@ class IncidentReportController extends Controller
         }
 
         return Storage::disk('public')->download($path);
+    }
+
+    public function previewAttachment(IncidentReport $incident, string $filename)
+    {
+        $path = collect($incident->attachments ?? [])
+            ->first(fn ($item) => basename($item) === $filename);
+
+        if (! $path || ! Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->response($path, $filename, [
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ]);
     }
 
     private function generateReference(): string
@@ -360,14 +417,16 @@ class IncidentReportController extends Controller
         return $recipients->unique('id')->values();
     }
 
-    private function buildIncidentQuery(Request $request)
+    private function buildIncidentQuery(Request $request, bool $showArchived = false)
     {
         $user = $request->user();
 
         $query = IncidentReport::with(['branch', 'vehicle', 'driver', 'reportedBy'])
             ->orderByDesc('incident_date');
 
-        if ($user->role === User::ROLE_BRANCH_ADMIN) {
+        if ($showArchived) {
+            $query->onlyTrashed();
+        } elseif ($user->role === User::ROLE_BRANCH_ADMIN) {
             $query->where('reported_by_user_id', $user->id);
         }
 

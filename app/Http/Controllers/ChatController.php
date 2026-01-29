@@ -14,6 +14,7 @@ use App\Models\ChatParticipant;
 use App\Models\User;
 use App\Notifications\ChatMessageNotification;
 use App\Notifications\ChatRequestNotification;
+use App\Services\AuditLogService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -69,7 +70,7 @@ class ChatController extends Controller
         return view('chat.show', compact('conversation'));
     }
 
-    public function storeSupport(StoreSupportChatRequest $request): RedirectResponse|JsonResponse
+    public function storeSupport(StoreSupportChatRequest $request, AuditLogService $auditLog): RedirectResponse|JsonResponse
     {
         $user = $request->user();
         $issueType = $request->validated()['issue_type'];
@@ -104,6 +105,10 @@ class ChatController extends Controller
             'chat_conversation_id' => $conversation->id,
             'user_id' => $assignee->id,
         ]);
+        $auditLog->log('chat.support_requested', $conversation, [], [
+            'issue_type' => $issueType,
+            'assigned_to' => $assignee->id,
+        ]);
 
         try {
             Notification::send($assignee, new ChatRequestNotification($conversation));
@@ -135,7 +140,7 @@ class ChatController extends Controller
             ->with('success', 'Chat request sent.');
     }
 
-    public function storeDirect(StoreDirectChatRequest $request): RedirectResponse|JsonResponse
+    public function storeDirect(StoreDirectChatRequest $request, AuditLogService $auditLog): RedirectResponse|JsonResponse
     {
         $user = $request->user();
         $target = User::findOrFail($request->validated()['user_id']);
@@ -160,6 +165,9 @@ class ChatController extends Controller
         ChatParticipant::create([
             'chat_conversation_id' => $conversation->id,
             'user_id' => $target->id,
+        ]);
+        $auditLog->log('chat.direct_requested', $conversation, [], [
+            'assigned_to' => $target->id,
         ]);
 
         try {
@@ -192,7 +200,7 @@ class ChatController extends Controller
             ->with('success', 'Chat request sent.');
     }
 
-    public function accept(ChatConversation $conversation, Request $request): RedirectResponse|JsonResponse
+    public function accept(ChatConversation $conversation, Request $request, AuditLogService $auditLog): RedirectResponse|JsonResponse
     {
         $user = $request->user();
         $this->authorizeParticipant($conversation, $user);
@@ -202,6 +210,7 @@ class ChatController extends Controller
         if ($participant && ! $participant->accepted_at) {
             $participant->update(['accepted_at' => now()]);
             $conversation->update(['status' => ChatConversation::STATUS_ACTIVE]);
+            $auditLog->log('chat.accepted', $conversation, [], ['accepted_by' => $user->id]);
             try {
                 event(new ChatRequestAccepted($conversation, $user->id));
             } catch (BroadcastException $e) {
@@ -222,12 +231,13 @@ class ChatController extends Controller
         return redirect()->route('chat.show', $conversation);
     }
 
-    public function decline(ChatConversation $conversation, Request $request): RedirectResponse|JsonResponse
+    public function decline(ChatConversation $conversation, Request $request, AuditLogService $auditLog): RedirectResponse|JsonResponse
     {
         $user = $request->user();
         $this->authorizeParticipant($conversation, $user);
 
         $conversation->update(['status' => ChatConversation::STATUS_DECLINED]);
+        $auditLog->log('chat.declined', $conversation, [], ['declined_by' => $user->id]);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -239,7 +249,7 @@ class ChatController extends Controller
         return redirect()->route('chat.index')->with('success', 'Chat request declined.');
     }
 
-    public function close(ChatConversation $conversation, Request $request): RedirectResponse|JsonResponse
+    public function close(ChatConversation $conversation, Request $request, AuditLogService $auditLog): RedirectResponse|JsonResponse
     {
         $user = $request->user();
         $this->authorizeParticipant($conversation, $user);
@@ -250,6 +260,7 @@ class ChatController extends Controller
                 'closed_by_user_id' => $user->id,
                 'closed_at' => now(),
             ]);
+            $auditLog->log('chat.closed', $conversation, [], ['closed_by' => $user->id]);
         }
 
         if ($request->expectsJson()) {
@@ -262,7 +273,7 @@ class ChatController extends Controller
         return redirect()->route('chat.show', $conversation)->with('success', 'Chat closed.');
     }
 
-    public function sendMessage(StoreChatMessageRequest $request, ChatConversation $conversation): RedirectResponse|JsonResponse
+    public function sendMessage(StoreChatMessageRequest $request, ChatConversation $conversation, AuditLogService $auditLog): RedirectResponse|JsonResponse
     {
         $user = $request->user();
         $this->authorizeParticipant($conversation, $user);
@@ -275,6 +286,9 @@ class ChatController extends Controller
             'chat_conversation_id' => $conversation->id,
             'user_id' => $user->id,
             'message' => $request->validated()['message'],
+        ]);
+        $auditLog->log('chat.message_sent', $message, [], [
+            'conversation_id' => $conversation->id,
         ]);
 
         $conversation->touch();

@@ -1,9 +1,10 @@
 <x-admin-layout>
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="h3 mb-1">Logbooks</h1>
             <p class="text-muted mb-0">Track trips pending logbook entry and completed logs.</p>
         </div>
+        <a class="btn btn-outline-secondary" href="{{ route('logbooks.manage') }}">Manage Logbooks</a>
     </div>
 
     @php
@@ -22,6 +23,7 @@
                             <th>Vehicle</th>
                             <th>Driver</th>
                             <th>Status</th>
+                            <th>Due Status</th>
                             <th>Logbook</th>
                             @if ($isSuperAdmin)
                                 <th>Entered By</th>
@@ -44,6 +46,18 @@
                                     </span>
                                 </td>
                                 <td>
+                                    @php
+                                        $dueStatus = $trip->dueStatus();
+                                        $dueLabel = $dueStatus ? ucfirst($dueStatus) : 'On Schedule';
+                                        $dueClass = $dueStatus === 'overdue'
+                                            ? 'danger'
+                                            : ($dueStatus === 'due'
+                                                ? 'warning text-dark'
+                                                : 'secondary');
+                                    @endphp
+                                    <span class="badge bg-{{ $dueClass }}">{{ $dueLabel }}</span>
+                                </td>
+                                <td>
                                     @if ($trip->log)
                                         <span class="badge bg-success">Completed</span>
                                     @else
@@ -56,17 +70,8 @@
                                 @endif
                                 <td class="text-end">
                                     @if ($trip->log)
-                                        <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-primary" data-loading>Edit Logbook</a>
-                                        @if ($isSuperAdmin)
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-danger"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#deleteLogbookModal"
-                                                    data-delete-action="{{ route('trips.logbook.destroy', $trip) }}"
-                                                    data-delete-label="{{ $trip->request_number }}">
-                                                Delete Logbook
-                                            </button>
-                                        @endif
+                                        <a href="{{ route('logbooks.show', $trip->log->id) }}" class="btn btn-sm btn-outline-primary" data-loading>View Logbook</a>
+                                        <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit Logbook</a>
                                     @else
                                         <a href="{{ route('trips.logbook', $trip) }}" class="btn btn-sm btn-dark" data-loading>Enter Logbook</a>
                                     @endif
@@ -78,47 +83,4 @@
             </div>
         </div>
     </div>
-
-    @if ($isSuperAdmin)
-        <div class="modal fade" id="deleteLogbookModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Delete Logbook</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p class="mb-0">Delete logbook for <strong id="deleteLogbookLabel"></strong>? This action cannot be undone.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <form method="POST" id="deleteLogbookForm">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger">Delete Logbook</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @push('scripts')
-            <script>
-                document.querySelectorAll('[data-delete-action]').forEach((button) => {
-                    button.addEventListener('click', () => {
-                        const action = button.getAttribute('data-delete-action');
-                        const label = button.getAttribute('data-delete-label');
-                        const form = document.getElementById('deleteLogbookForm');
-                        if (form) {
-                            form.setAttribute('action', action);
-                        }
-                        const labelEl = document.getElementById('deleteLogbookLabel');
-                        if (labelEl) {
-                            labelEl.textContent = label;
-                        }
-                    });
-                });
-            </script>
-        @endpush
-    @endif
 </x-admin-layout>

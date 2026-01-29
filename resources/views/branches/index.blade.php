@@ -16,7 +16,6 @@
                             <th>Name</th>
                             <th>Code</th>
                             <th>Location</th>
-                            <th>Manager</th>
                             <th>Head Office</th>
                             <th class="text-end">Actions</th>
                         </tr>
@@ -27,7 +26,6 @@
                                 <td>{{ $branch->name }}</td>
                                 <td>{{ $branch->code }}</td>
                                 <td>{{ trim($branch->city . ', ' . $branch->state, ', ') ?: 'N/A' }}</td>
-                                <td>{{ $branch->manager?->name ?? 'N/A' }}</td>
                                 <td>
                                     @if ($branch->is_head_office)
                                         <span class="badge bg-primary">Yes</span>
@@ -36,6 +34,7 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
+                                    <a href="{{ route('branches.show', $branch) }}" class="btn btn-sm btn-outline-secondary">View</a>
                                     <a href="{{ route('branches.edit', $branch) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"

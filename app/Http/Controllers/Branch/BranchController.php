@@ -21,9 +21,7 @@ class BranchController extends Controller
 
     public function create(): View
     {
-        $managers = User::orderBy('name')->get();
-
-        return view('branches.create', compact('managers'));
+        return view('branches.create');
     }
 
     public function store(StoreBranchRequest $request): RedirectResponse
@@ -44,9 +42,22 @@ class BranchController extends Controller
 
     public function edit(Branch $branch): View
     {
-        $managers = User::orderBy('name')->get();
+        return view('branches.edit', compact('branch'));
+    }
 
-        return view('branches.edit', compact('branch', 'managers'));
+    public function show(Branch $branch): View
+    {
+        $branch->load('manager');
+        $branchAdmins = User::where('branch_id', $branch->id)
+            ->where('role', User::ROLE_BRANCH_ADMIN)
+            ->orderBy('name')
+            ->get();
+        $branchHeads = User::where('branch_id', $branch->id)
+            ->where('role', User::ROLE_BRANCH_HEAD)
+            ->orderBy('name')
+            ->get();
+
+        return view('branches.show', compact('branch', 'branchAdmins', 'branchHeads'));
     }
 
     public function update(UpdateBranchRequest $request, Branch $branch): RedirectResponse
