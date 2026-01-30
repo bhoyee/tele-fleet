@@ -532,36 +532,6 @@
                 to { transform: rotate(360deg); }
             }
 
-            /* Stats (for hero section) */
-            .stats-container {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 1.5rem;
-                margin: 2rem 0;
-            }
-
-            .stat-item {
-                text-align: center;
-                padding: 1rem;
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: var(--radius-md);
-                backdrop-filter: blur(10px);
-            }
-
-            .stat-value {
-                font-size: 1.75rem;
-                font-weight: 700;
-                color: white;
-                display: block;
-                line-height: 1;
-                margin-bottom: 0.25rem;
-            }
-
-            .stat-label {
-                font-size: 0.875rem;
-                color: rgba(255, 255, 255, 0.8);
-            }
-
             /* Responsive Design */
             @media (max-width: 1199.98px) {
                 .auth-hero,
@@ -569,9 +539,6 @@
                     padding: 3rem;
                 }
                 
-                .stats-container {
-                    grid-template-columns: repeat(2, 1fr);
-                }
             }
 
             @media (max-width: 991.98px) {
@@ -598,9 +565,6 @@
                     font-size: 1.75rem;
                 }
                 
-                .stats-container {
-                    grid-template-columns: repeat(3, 1fr);
-                }
             }
 
             @media (max-width: 767.98px) {
@@ -635,10 +599,6 @@
                     gap: 1rem;
                 }
                 
-                .stats-container {
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 1rem;
-                }
             }
 
             @media (max-width: 575.98px) {
@@ -655,9 +615,6 @@
                     display: none;
                 }
                 
-                .stats-container {
-                    grid-template-columns: 1fr;
-                }
             }
         </style>
     </head>
@@ -690,22 +647,6 @@
                                 <p class="hero-description">
                                     @yield('hero-description', 'Streamline Your Corporate Fleet Operations with comprehensive vehicle management, trip coordination, and real-time tracking.')
                                 </p>
-
-                                <!-- Stats Section -->
-                                <div class="stats-container">
-                                    <div class="stat-item">
-                                        <span class="stat-value">150+</span>
-                                        <span class="stat-label">Managed Vehicles</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-value">85+</span>
-                                        <span class="stat-label">Professional Drivers</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-value">15+</span>
-                                        <span class="stat-label">Branch Locations</span>
-                                    </div>
-                                </div>
 
                                 <div class="features-grid">
                                     <div class="feature-item">
