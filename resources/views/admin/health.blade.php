@@ -62,6 +62,42 @@
         </div>
     </div>
 
+    <div class="card shadow-sm border-0 mt-4">
+        <div class="card-header">Test SMS (Africa's Talking Sandbox)</div>
+        <div class="card-body">
+            <form method="POST" action="{{ route('sms.test') }}" class="row g-3 align-items-end">
+                @csrf
+                <div class="col-md-4">
+                    <label class="form-label" for="smsPhone">Recipient Phone</label>
+                    <input class="form-control" id="smsPhone" name="phone" placeholder="+2348012345678" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="smsMessage">Message</label>
+                    <input class="form-control" id="smsMessage" name="message" maxlength="160" required>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" type="submit">Send Test</button>
+                </div>
+            </form>
+            @if (session('sms_response'))
+                @php $smsResponse = session('sms_response'); @endphp
+                <div class="alert {{ ($smsResponse['ok'] ?? false) ? 'alert-success' : 'alert-danger' }} mt-3 mb-0">
+                    <div class="fw-semibold">SMS API Response</div>
+                    <div class="small">Status: {{ $smsResponse['status'] ?? 'N/A' }}</div>
+                    @if (! empty($smsResponse['error']))
+                        <div class="small">Error: {{ $smsResponse['error'] }}</div>
+                    @endif
+                    @if (! empty($smsResponse['body']))
+                        <pre class="small mt-2 mb-0">{{ json_encode($smsResponse['body'], JSON_PRETTY_PRINT) }}</pre>
+                    @elseif (! empty($smsResponse['raw']))
+                        <pre class="small mt-2 mb-0">{{ $smsResponse['raw'] }}</pre>
+                    @endif
+                </div>
+            @endif
+            <div class="small text-muted mt-2">Uses sandbox endpoint configured in .env. Check logs for API response.</div>
+        </div>
+    </div>
+
     @push('scripts')
         <script>
             const refreshHealth = () => {
