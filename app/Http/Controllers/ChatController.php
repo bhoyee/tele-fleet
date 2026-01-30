@@ -219,6 +219,31 @@ class ChatController extends Controller
                     'error' => $e->getMessage(),
                 ]);
             }
+            $defaultMessage = 'Support is online now. How can we help?';
+            $alreadySent = ChatMessage::where('chat_conversation_id', $conversation->id)
+                ->where('message', $defaultMessage)
+                ->exists();
+            if (! $alreadySent) {
+                $message = ChatMessage::create([
+                    'chat_conversation_id' => $conversation->id,
+                    'user_id' => $user->id,
+                    'message' => $defaultMessage,
+                ]);
+                $conversation->update(['updated_at' => now()]);
+                $otherUsers = $conversation->participants()
+                    ->where('user_id', '!=', $user->id)
+                    ->with('user')
+                    ->get()
+                    ->pluck('user');
+                try {
+                    event(new ChatMessageSent($conversation, $message));
+                } catch (BroadcastException $e) {
+                    Log::warning('Chat auto message broadcast failed', [
+                        'conversation_id' => $conversation->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         }
 
         if ($request->expectsJson()) {
@@ -261,6 +286,27 @@ class ChatController extends Controller
                 'closed_at' => now(),
             ]);
             $auditLog->log('chat.closed', $conversation, [], ['closed_by' => $user->id]);
+            $closedMessage = 'This chat has been closed. For new questions, please start a new chat request.';
+            $alreadySent = ChatMessage::where('chat_conversation_id', $conversation->id)
+                ->where('message', $closedMessage)
+                ->exists();
+            if (! $alreadySent) {
+                $message = ChatMessage::create([
+                    'chat_conversation_id' => $conversation->id,
+                    'user_id' => $user->id,
+                    'message' => $closedMessage,
+                ]);
+                $conversation->touch();
+                try {
+                    event(new ChatMessageSent($conversation, $message));
+                } catch (BroadcastException $e) {
+                    Log::warning('Chat close message broadcast failed', [
+                        'conversation_id' => $conversation->id,
+                        'message_id' => $message->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         }
 
         if ($request->expectsJson()) {
@@ -302,15 +348,6 @@ class ChatController extends Controller
             ->get()
             ->pluck('user');
 
-        try {
-            Notification::send($otherUsers, new ChatMessageNotification($conversation, $message));
-        } catch (Throwable $exception) {
-            Log::warning('Chat message notification failed.', [
-                'conversation_id' => $conversation->id,
-                'message_id' => $message->id,
-                'error' => $exception->getMessage(),
-            ]);
-        }
         try {
             event(new ChatMessageSent($conversation, $message));
         } catch (BroadcastException $e) {
