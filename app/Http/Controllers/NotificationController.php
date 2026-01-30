@@ -11,8 +11,10 @@ class NotificationController extends Controller
 {
     public function index(Request $request): View
     {
+        $excludedTypes = [\App\Notifications\ChatMessageNotification::class];
         $notifications = $request->user()
             ->notifications()
+            ->whereNotIn('type', $excludedTypes)
             ->latest()
             ->paginate(15);
 
@@ -31,7 +33,12 @@ class NotificationController extends Controller
 
     public function markAllRead(Request $request): RedirectResponse
     {
-        $request->user()->unreadNotifications->markAsRead();
+        $excludedTypes = [\App\Notifications\ChatMessageNotification::class];
+        $request->user()
+            ->unreadNotifications()
+            ->whereNotIn('type', $excludedTypes)
+            ->get()
+            ->markAsRead();
 
         return redirect()
             ->back()
@@ -76,8 +83,12 @@ class NotificationController extends Controller
 
     public function count(Request $request)
     {
+        $excludedTypes = [\App\Notifications\ChatMessageNotification::class];
         return response()->json([
-            'count' => $request->user()->unreadNotifications()->count(),
+            'count' => $request->user()
+                ->unreadNotifications()
+                ->whereNotIn('type', $excludedTypes)
+                ->count(),
         ]);
     }
 }

@@ -1036,8 +1036,14 @@
                             <span class="fw-semibold text-primary">{{ auth()->user()?->branch?->name ?? 'Head Office' }}</span>
                         </div>
                         @php
-                            $unreadCount = auth()->user()?->unreadNotifications()->count() ?? 0;
-                            $latestNotifications = auth()->user()?->unreadNotifications()->latest()->get() ?? collect();
+                            $excludedNotificationTypes = [\App\Notifications\ChatMessageNotification::class];
+                            $unreadCount = auth()->user()?->unreadNotifications()
+                                ->whereNotIn('type', $excludedNotificationTypes)
+                                ->count() ?? 0;
+                            $latestNotifications = auth()->user()?->unreadNotifications()
+                                ->whereNotIn('type', $excludedNotificationTypes)
+                                ->latest()
+                                ->get() ?? collect();
                         @endphp
                         <div class="dropdown position-relative">
                             <button class="btn btn-light position-relative" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 10px; border: 1px solid rgba(5, 108, 163, 0.2);">
