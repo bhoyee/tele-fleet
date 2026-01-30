@@ -187,6 +187,20 @@
             border: 1px solid rgba(5, 108, 163, 0.12);
         }
 
+        .metric-subcard.metric-subcard--alert {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.22);
+            box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.08) inset;
+        }
+
+        .metric-subcard.metric-subcard--alert .metric-subvalue {
+            color: #b91c1c;
+        }
+
+        .metric-subcard.metric-subcard--alert .metric-subtitle {
+            color: #c2410c;
+        }
+
         .metric-subvalue {
             font-weight: 700;
             font-size: 1.25rem;
@@ -946,7 +960,7 @@
                         <div class="metric-subvalue" data-metric="futureTrips">{{ $futureTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Future trips</div>
                     </div>
-                    <div class="metric-subcard">
+                    <div class="metric-subcard metric-subcard--alert">
                         <div class="metric-subvalue" data-metric="unassignedTrips">{{ $unassignedTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Unassigned</div>
                     </div>
@@ -1009,7 +1023,7 @@
                 </div>
                 <div class="metric-label">Incident Reports</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard">
+                    <div class="metric-subcard metric-subcard--alert">
                         <div class="metric-subvalue" data-metric="incidentOpen">{{ $incidentOpen ?? 0 }}</div>
                         <div class="metric-subtitle">Open</div>
                     </div>
@@ -1037,7 +1051,7 @@
                 </div>
                 <div class="metric-label">Maintenance Due</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard">
+                    <div class="metric-subcard metric-subcard--alert">
                         <div class="metric-subvalue" data-metric="maintenanceDue">{{ $maintenanceDue ?? 0 }}</div>
                         <div class="metric-subtitle">Due</div>
                     </div>
@@ -1087,11 +1101,11 @@
                 </div>
                 <div class="metric-label">Uncompleted Trips</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard">
+                    <div class="metric-subcard metric-subcard--alert">
                         <div class="metric-subvalue" data-metric="dueTrips">{{ $dueTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Due</div>
                     </div>
-                    <div class="metric-subcard">
+                    <div class="metric-subcard metric-subcard--alert">
                         <div class="metric-subvalue" data-metric="overdueTrips">{{ $overdueTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Overdue</div>
                     </div>
