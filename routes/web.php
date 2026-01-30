@@ -125,9 +125,9 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')
     Route::get('maintenance-settings', [MaintenanceSettingsController::class, 'edit'])->name('maintenance-settings.edit');
     Route::patch('maintenance-settings', [MaintenanceSettingsController::class, 'update'])->name('maintenance-settings.update');
     Route::get('chats', [ChatManagementController::class, 'index'])->name('chats.index');
-    Route::get('chats/{conversation}', [ChatManagementController::class, 'show'])->name('chats.show');
-    Route::patch('chats/{conversation}/close', [ChatManagementController::class, 'close'])->name('chats.close');
-    Route::delete('chats/{conversation}', [ChatManagementController::class, 'destroy'])->name('chats.destroy');
+    Route::get('chats/{conversation}', [ChatManagementController::class, 'show'])->withTrashed()->name('chats.show');
+    Route::patch('chats/{conversation}/close', [ChatManagementController::class, 'close'])->withTrashed()->name('chats.close');
+    Route::delete('chats/{conversation}', [ChatManagementController::class, 'destroy'])->withTrashed()->name('chats.destroy');
 });
 
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
@@ -269,6 +269,7 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_h
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function () {
     Route::patch('chat/{conversation}/close', [ChatController::class, 'close'])->name('chat.close');
+    Route::delete('chat/{conversation}/history', [ChatController::class, 'softDeleteHistory'])->name('chat.history.delete');
 });
 
 Route::middleware(['auth', 'role:branch_admin,branch_head'])->group(function () {

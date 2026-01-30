@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ChatConversation extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     public const TYPE_SUPPORT = 'support';
     public const TYPE_DIRECT = 'direct';

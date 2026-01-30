@@ -700,6 +700,31 @@
                 border: 1px solid rgba(5, 108, 163, 0.15);
             }
 
+            .chat-status-pill {
+                font-size: 0.7rem;
+                font-weight: 600;
+                padding: 0.15rem 0.5rem;
+                border-radius: 999px;
+                background: rgba(148, 163, 184, 0.2);
+                color: #64748b;
+            }
+
+            .chat-status-pill.closed {
+                background: rgba(239, 68, 68, 0.12);
+                color: #dc2626;
+            }
+
+            .chat-history-delete {
+                border: none;
+                background: transparent;
+                color: #dc2626;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                font-size: 0.75rem;
+                padding: 0;
+            }
+
             .chat-widget-thread {
                 flex: 1;
                 display: flex;
@@ -1452,6 +1477,7 @@
                 const acceptUrlTemplate = "{{ route('chat.accept', ['conversation' => '__ID__']) }}";
                 const declineUrlTemplate = "{{ route('chat.decline', ['conversation' => '__ID__']) }}";
                 const closeUrlTemplate = "{{ route('chat.close', ['conversation' => '__ID__']) }}";
+                const historyDeleteUrlTemplate = "{{ route('chat.history.delete', ['conversation' => '__ID__']) }}";
                 const widgetConversationsUrl = "{{ route('chat.widget.conversations') }}";
                 const widgetConversationUrlTemplate = "{{ route('chat.widget.conversation', ['conversation' => '__ID__']) }}";
                 const supportUrl = "{{ route('chat.support') }}";
@@ -1668,6 +1694,7 @@
                         const safeStatus = escapeHtml(item.status ?? '');
                         const unreadCount = Number(item.unread_count ?? 0);
                         const statusLabel = currentView === 'history' ? 'closed' : safeStatus;
+                        const statusClass = statusLabel === 'closed' ? 'chat-status-pill closed' : 'chat-status-pill';
                         row.innerHTML = `
                             <div class="d-flex justify-content-between">
                                 <div>
@@ -1675,8 +1702,9 @@
                                     <div class="small text-muted text-truncate">${safeMessage}</div>
                                 </div>
                                 <div class="d-flex flex-column align-items-end gap-1">
-                                    <span class="badge bg-light text-muted">${statusLabel}</span>
+                                    <span class="${statusClass}">${statusLabel}</span>
                                     ${currentView === 'active' && unreadCount > 0 ? `<span class="badge bg-primary">${unreadCount}</span>` : ''}
+                                    ${currentView === 'history' ? `<button class="chat-history-delete" type="button" data-history-delete="${item.id}"><i class="bi bi-trash"></i>Remove</button>` : ''}
                                 </div>
                             </div>
                         `;
@@ -1984,6 +2012,38 @@
                     }
                 };
 
+                const handleHistoryDelete = async (conversationId) => {
+                    if (!conversationId) {
+                        return;
+                    }
+                    try {
+                        const response = await fetch(historyDeleteUrlTemplate.replace('__ID__', conversationId), {
+                            method: 'DELETE',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken ?? '',
+                            },
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed');
+                        }
+                        if (activeConversationId && Number(activeConversationId) === Number(conversationId)) {
+                            activeConversationId = null;
+                            if (chatWidgetMessages) {
+                                chatWidgetMessages.innerHTML = '<div class="chat-widget-placeholder">Conversation removed.</div>';
+                            }
+                            setInputEnabled(false);
+                            toggleAcceptActions(false);
+                            setCloseEnabled(false);
+                        }
+                        await loadChatWidgetData();
+                    } catch (error) {
+                        if (chatWidgetMessages) {
+                            chatWidgetMessages.innerHTML = '<div class="chat-widget-placeholder">Unable to remove chat history.</div>';
+                        }
+                    }
+                };
+
                 chatWidget.addEventListener('show.bs.offcanvas', () => {
                     listenUserChannel();
                     loadChatWidgetData();
@@ -2012,6 +2072,10 @@
                     const retryButton = event.target.closest('.chat-widget-retry');
                     if (retryButton && retryButton.dataset.retry) {
                         retryFailedMessage(retryButton.dataset.retry);
+                    }
+                    const deleteButton = event.target.closest('[data-history-delete]');
+                    if (deleteButton && deleteButton.dataset.historyDelete) {
+                        handleHistoryDelete(deleteButton.dataset.historyDelete);
                     }
                 });
 

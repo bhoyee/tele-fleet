@@ -17,7 +17,7 @@ class ChatManagementController extends Controller
         $status = $request->query('status');
         $type = $request->query('type');
 
-        $query = ChatConversation::with(['creator', 'assignee', 'participants.user'])
+        $query = ChatConversation::withTrashed()->with(['creator', 'assignee', 'participants.user'])
             ->with(['messages' => function ($q): void {
                 $q->latest()->limit(1);
             }])
@@ -37,7 +37,9 @@ class ChatManagementController extends Controller
 
     public function show(ChatConversation $conversation): View
     {
-        $conversation->load(['creator', 'assignee', 'participants.user', 'messages.user']);
+        $conversation = ChatConversation::withTrashed()
+            ->with(['creator', 'assignee', 'participants.user', 'messages.user'])
+            ->findOrFail($conversation->id);
 
         return view('admin.chats.show', compact('conversation'));
     }

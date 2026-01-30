@@ -487,6 +487,21 @@ class ChatController extends Controller
         ]);
     }
 
+    public function softDeleteHistory(ChatConversation $conversation, Request $request, AuditLogService $auditLog): JsonResponse
+    {
+        $user = $request->user();
+        $this->authorizeParticipant($conversation, $user);
+
+        if ($conversation->status !== ChatConversation::STATUS_CLOSED) {
+            return response()->json(['message' => 'Only closed chats can be archived.'], 422);
+        }
+
+        $conversation->delete();
+        $auditLog->log('chat.history_deleted', $conversation, [], ['deleted_by' => $user->id]);
+
+        return response()->json(['status' => 'ok']);
+    }
+
     private function authorizeParticipant(ChatConversation $conversation, User $user): void
     {
         $isParticipant = $conversation->participants()->where('user_id', $user->id)->exists();
