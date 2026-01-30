@@ -1061,12 +1061,21 @@
                                         @php
                                             $notificationData = is_array($notification->data ?? null) ? $notification->data : [];
                                             $notificationType = class_basename($notification->type ?? '');
-                                            $isChat = in_array($notificationType, ['ChatMessageNotification', 'ChatRequestNotification'], true);
-                                            $title = $isChat
-                                                ? 'Chat Update'
-                                                : ($notificationData['request_number'] ?? 'Trip Update');
+                                            $chatTypes = ['ChatRequestNotification', 'ChatClosedNotification', 'ChatMessageNotification'];
+                                            $isChat = in_array($notificationType, $chatTypes, true);
+                                            $tripLabel = $notificationData['request_number'] ?? null;
+                                            $tripTitle = $tripLabel ? "{$tripLabel} Update" : 'Trip Update';
+                                            $title = match ($notificationType) {
+                                                'ChatRequestNotification' => 'Chat Request',
+                                                'ChatClosedNotification' => 'Chat Closed',
+                                                'ChatMessageNotification' => 'Chat Message',
+                                                default => $tripTitle,
+                                            };
 
                                             $message = match ($notificationType) {
+                                                'ChatRequestNotification' => 'New chat request received.',
+                                                'ChatClosedNotification' => 'Chat has been closed.',
+                                                'ChatMessageNotification' => 'New chat message received.',
                                                 'TripRequestCreated' => 'New trip request submitted.',
                                                 'TripRequestApproved' => 'Trip request approved.',
                                                 'TripRequestAssigned' => 'Trip assigned to driver/vehicle.',
@@ -1080,6 +1089,10 @@
                                                     ? ('Status: ' . ucfirst($notificationData['status']))
                                                     : ($notificationData['purpose'] ?? 'Trip update received.'),
                                             };
+
+                                            if (! $isChat && $tripLabel) {
+                                                $message = "{$tripLabel} • {$message}";
+                                            }
 
                                             $viewUrl = ! empty($notificationData['trip_request_id'])
                                                 ? route('trips.show', $notificationData['trip_request_id'])
