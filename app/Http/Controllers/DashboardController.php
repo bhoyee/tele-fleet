@@ -56,11 +56,21 @@ class DashboardController extends Controller
         $trips = $this->buildUpcomingTrips($request->user());
 
         $payload = $trips->map(function (TripRequest $trip): array {
+            $formattedTime = 'N/A';
+            if (! empty($trip->trip_time)) {
+                $timeValue = (string) $trip->trip_time;
+                $timeFormat = strlen($timeValue) === 5 ? 'H:i' : 'H:i:s';
+                try {
+                    $formattedTime = Carbon::createFromFormat($timeFormat, $timeValue)->format('g:i A');
+                } catch (\Throwable $e) {
+                    $formattedTime = 'N/A';
+                }
+            }
             return [
                 'request_number' => $trip->request_number,
                 'trip_date' => $trip->trip_date?->format('M d') ?? '',
                 'trip_day' => $trip->trip_date?->format('D') ?? '',
-                'trip_time' => $trip->trip_time ? Carbon::createFromFormat('H:i', $trip->trip_time)->format('g:i A') : 'N/A',
+                'trip_time' => $formattedTime,
                 'destination' => $trip->destination ?? '',
                 'status' => $trip->status ?? '',
                 'vehicle' => $trip->assignedVehicle?->registration_number ?? '—',
