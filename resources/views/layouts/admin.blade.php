@@ -742,6 +742,42 @@
                 border: 1px solid rgba(5, 108, 163, 0.1);
             }
 
+            .chat-widget-meta {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-top: 0.35rem;
+                font-size: 0.75rem;
+                opacity: 0.75;
+            }
+
+            .chat-widget-status {
+                font-size: 0.7rem;
+                font-weight: 600;
+                padding: 0.15rem 0.4rem;
+                border-radius: 999px;
+                background: rgba(5, 108, 163, 0.08);
+                color: #056CA3;
+            }
+
+            .chat-widget-status.sending {
+                background: rgba(59, 130, 246, 0.7);
+                color: #fff;
+            }
+
+            .chat-widget-status.failed {
+                background: rgba(239, 68, 68, 0.12);
+                color: #dc2626;
+            }
+
+            .chat-widget-retry {
+                background: transparent;
+                border: none;
+                color: #dc2626;
+                font-weight: 600;
+                padding: 0;
+            }
+
             .chat-widget-input {
                 display: flex;
                 gap: 0.5rem;
@@ -1538,10 +1574,17 @@
                         const safeName = escapeHtml(message.user_name ?? 'User');
                         const safeMessage = escapeHtml(message.message ?? '');
                         const safeTime = escapeHtml(message.created_at ?? '');
+                        const derivedStatus = message.user_id === userId && !message.status ? 'sent' : message.status;
+                        const status = derivedStatus ? escapeHtml(derivedStatus) : '';
+                        const isFailed = status === 'failed';
                         wrapper.innerHTML = `
                             <div class="small fw-semibold mb-1">${safeName}</div>
                             <div>${safeMessage}</div>
-                            <div class="small opacity-75 mt-1">${safeTime}</div>
+                            <div class="chat-widget-meta">
+                                <span>${safeTime}</span>
+                                ${status ? `<span class="chat-widget-status ${status}">${status}</span>` : ''}
+                                ${isFailed ? `<button class="chat-widget-retry" type="button" data-retry="${message.client_id ?? ''}">Retry</button>` : ''}
+                            </div>
                         `;
                         chatWidgetMessages.appendChild(wrapper);
                     });
@@ -1793,6 +1836,17 @@
                     }
                 };
 
+                const retryFailedMessage = (clientId) => {
+                    const failedMessage = activeMessages.find((item) => item.client_id === clientId);
+                    if (!failedMessage) {
+                        return;
+                    }
+                    chatWidgetInput.value = failedMessage.message ?? '';
+                    activeMessages = activeMessages.filter((item) => item.client_id !== clientId);
+                    renderMessages(activeMessages, currentUserId);
+                    sendChatMessage();
+                };
+
                 const runSupportRequest = async () => {
                     if (!chatSupportStart || !chatSupportIssue) {
                         return;
@@ -1917,6 +1971,10 @@
                     const item = event.target.closest('.chat-widget-item');
                     if (item && item.dataset.conversationId) {
                         loadConversation(item.dataset.conversationId, { subscribe: true, reset: true });
+                    }
+                    const retryButton = event.target.closest('.chat-widget-retry');
+                    if (retryButton && retryButton.dataset.retry) {
+                        retryFailedMessage(retryButton.dataset.retry);
                     }
                 });
 
