@@ -1141,8 +1141,7 @@
                     <h5 class="mb-0" id="chatWidgetLabel">Chat Support</h5>
                     <small class="text-muted">Realtime assistance</small>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted small d-none d-md-inline">Widget mode only</span>
+                <div class="d-flex align-items-center gap-2 ms-auto">
                     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                 </div>
             </div>
