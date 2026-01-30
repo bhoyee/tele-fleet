@@ -1148,25 +1148,27 @@
             <div class="offcanvas-body">
                 <div class="chat-widget-body">
                     @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
-                        <div class="chat-widget-section">
+                        <div class="chat-widget-section" id="chatSupportSection">
                             <div class="fw-semibold mb-2">Start support chat</div>
-                            <form id="chatSupportForm">
-                                @csrf
-                                <div class="mb-2">
-                                    <select class="form-select" name="issue_type" required>
-                                        <option value="">Select issue type</option>
-                                        <option value="{{ \App\Models\ChatConversation::ISSUE_ADMIN }}">Administrative (Trips/Reports)</option>
-                                        <option value="{{ \App\Models\ChatConversation::ISSUE_TECH }}">Technical Support</option>
-                                    </select>
+                            <div id="chatSupportBot">
+                                <div class="small text-muted mb-2">What do you need help with?</div>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary" type="button" data-issue="{{ \App\Models\ChatConversation::ISSUE_ADMIN }}">
+                                        Administrative (Trips/Reports)
+                                    </button>
+                                    <button class="btn btn-outline-primary" type="button" data-issue="{{ \App\Models\ChatConversation::ISSUE_TECH }}">
+                                        Technical Support
+                                    </button>
                                 </div>
-                                <button class="btn btn-primary w-100" type="submit">Request Support</button>
+                                <button class="btn btn-primary w-100 mt-3" type="button" id="chatSupportStart" disabled>Start chat</button>
+                                <input type="hidden" id="chatSupportIssue" value="">
                                 <div class="small text-muted mt-2">We connect you to the right team after review.</div>
-                            </form>
+                            </div>
                             <div id="chatSupportFeedback" class="mt-2"></div>
                         </div>
                     @endif
 
-                    <div class="chat-widget-section">
+                    <div class="chat-widget-section" id="chatWidgetConversationsSection">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="fw-semibold">Conversations</span>
                             <div class="d-flex align-items-center gap-2">
@@ -1174,7 +1176,6 @@
                                     <button class="btn btn-outline-secondary active" type="button" id="chatWidgetActiveTab">Active</button>
                                     <button class="btn btn-outline-secondary" type="button" id="chatWidgetHistoryTab">History</button>
                                 </div>
-                                <button class="btn btn-sm btn-outline-secondary" type="button" id="chatWidgetRefresh">Refresh</button>
                             </div>
                         </div>
                         <div id="chatWidgetPending" class="mb-3"></div>
@@ -1402,7 +1403,11 @@
                 const chatWidgetDecline = document.getElementById('chatWidgetDecline');
                 const chatWidgetClose = document.getElementById('chatWidgetClose');
                 const chatWidgetBadge = document.getElementById('chatWidgetBadge');
-                const chatSupportForm = document.getElementById('chatSupportForm');
+                const chatWidgetConversationsSection = document.getElementById('chatWidgetConversationsSection');
+                const chatSupportBot = document.getElementById('chatSupportBot');
+                const chatSupportSection = document.getElementById('chatSupportSection');
+                const chatSupportStart = document.getElementById('chatSupportStart');
+                const chatSupportIssue = document.getElementById('chatSupportIssue');
                 const chatSupportFeedback = document.getElementById('chatSupportFeedback');
                 const chatWidgetActiveTab = document.getElementById('chatWidgetActiveTab');
                 const chatWidgetHistoryTab = document.getElementById('chatWidgetHistoryTab');
@@ -1422,6 +1427,7 @@
                 let activeMessages = [];
                 const currentUserId = {{ auth()->id() }};
                 const currentUserName = "{{ auth()->user()?->name }}";
+                const isRequesterRole = {{ in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true) ? 'true' : 'false' }};
 
                 const initEcho = () => {
                     if (window.ChatEcho && typeof window.ChatEcho.private === 'function') {
@@ -1463,7 +1469,12 @@
                     }
                     echo.private("chat.user.{{ auth()->id() }}")
                         .listen(".chat.request", () => loadChatWidgetData())
-                        .listen(".chat.accepted", () => loadChatWidgetData())
+                        .listen(".chat.accepted", (event) => {
+                            loadChatWidgetData();
+                            if (event?.conversation_id && isRequesterRole) {
+                                loadConversation(event.conversation_id, { subscribe: true, reset: true });
+                            }
+                        })
                         .listen(".chat.message", (event) => {
                             if (!event?.conversation_id || !event?.message) {
                                 return;
@@ -1546,6 +1557,7 @@
                     const activeConversations = data.conversations || [];
                     const historyConversations = data.history || [];
                     const conversations = currentView === 'history' ? historyConversations : activeConversations;
+                    const totalConversations = activeConversations.length + historyConversations.length + pending.length;
 
                     if (chatWidgetBadge) {
                         const totalUnread = Number(data.unread_total ?? 0);
@@ -1559,6 +1571,18 @@
                     }
 
                     chatWidgetPending.innerHTML = '';
+                    if (chatWidgetConversationsSection) {
+                        const hideConversations = isRequesterRole
+                            && Boolean(activeConversationId)
+                            && totalConversations === 1
+                            && pending.length === 0;
+                        chatWidgetConversationsSection.classList.toggle('d-none', hideConversations);
+                    }
+
+                    if (chatSupportSection) {
+                        const hideSupport = isRequesterRole && activeConversations.length > 0;
+                        chatSupportSection.classList.toggle('d-none', hideSupport);
+                    }
                     if (currentView === 'active' && pending.length > 0) {
                         const pendingBlock = document.createElement('div');
                         pendingBlock.className = 'mb-2';
@@ -1770,10 +1794,21 @@
                 };
 
                 const runSupportRequest = async () => {
-                    if (!chatSupportForm) {
+                    if (!chatSupportStart || !chatSupportIssue) {
                         return;
                     }
-                    const formData = new FormData(chatSupportForm);
+                    const issueType = chatSupportIssue.value;
+                    if (!issueType) {
+                        return;
+                    }
+                    if (chatSupportStart.dataset.sending === 'true') {
+                        return;
+                    }
+                    chatSupportStart.dataset.sending = 'true';
+                    chatSupportStart.disabled = true;
+                    if (chatSupportFeedback) {
+                        chatSupportFeedback.innerHTML = '<div class="alert alert-info">Sending support request...</div>';
+                    }
                     try {
                         const response = await fetch(supportUrl, {
                             method: 'POST',
@@ -1781,7 +1816,7 @@
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': csrfToken ?? '',
                             },
-                            body: formData,
+                            body: new URLSearchParams({ issue_type: issueType }),
                         });
                         if (!response.ok) {
                             throw new Error('Support request failed.');
@@ -1797,6 +1832,13 @@
                     } catch (error) {
                         if (chatSupportFeedback) {
                             chatSupportFeedback.innerHTML = '<div class="alert alert-danger">Unable to send support request.</div>';
+                        }
+                        if (chatSupportStart) {
+                            chatSupportStart.disabled = false;
+                        }
+                    } finally {
+                        if (chatSupportStart) {
+                            chatSupportStart.dataset.sending = 'false';
                         }
                     }
                 };
@@ -1878,11 +1920,6 @@
                     }
                 });
 
-                const refreshButton = document.getElementById('chatWidgetRefresh');
-                if (refreshButton) {
-                    refreshButton.addEventListener('click', loadChatWidgetData);
-                }
-
                 if (chatWidgetSend) {
                     chatWidgetSend.addEventListener('click', sendChatMessage);
                 }
@@ -1923,9 +1960,28 @@
                     });
                 }
 
-                if (chatSupportForm) {
-                    chatSupportForm.addEventListener('submit', (event) => {
-                        event.preventDefault();
+                if (chatSupportBot) {
+                    chatSupportBot.querySelectorAll('[data-issue]').forEach((button) => {
+                        button.addEventListener('click', () => {
+                            const issue = button.getAttribute('data-issue');
+                            if (chatSupportIssue) {
+                                chatSupportIssue.value = issue ?? '';
+                            }
+                            chatSupportBot.querySelectorAll('[data-issue]').forEach((btn) => {
+                                btn.classList.remove('btn-primary');
+                                btn.classList.add('btn-outline-primary');
+                            });
+                            button.classList.remove('btn-outline-primary');
+                            button.classList.add('btn-primary');
+                            if (chatSupportStart) {
+                                chatSupportStart.disabled = false;
+                            }
+                        });
+                    });
+                }
+
+                if (chatSupportStart) {
+                    chatSupportStart.addEventListener('click', () => {
                         runSupportRequest();
                     });
                 }
