@@ -6,9 +6,10 @@ use App\Models\ChatConversation;
 use App\Models\ChatMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class ChatMessageNotification extends Notification
+class ChatMessageNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
