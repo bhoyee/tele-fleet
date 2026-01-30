@@ -998,11 +998,12 @@
                                     @forelse ($latestNotifications as $notification)
                                         <div class="px-3 py-2 border-bottom">
                                         @php
+                                            $notificationData = is_array($notification->data ?? null) ? $notification->data : [];
                                             $notificationType = class_basename($notification->type ?? '');
                                             $isChat = in_array($notificationType, ['ChatMessageNotification', 'ChatRequestNotification'], true);
                                             $title = $isChat
                                                 ? 'Chat Update'
-                                                : ($notification->data['request_number'] ?? 'Trip Update');
+                                                : ($notificationData['request_number'] ?? 'Trip Update');
 
                                             $message = match ($notificationType) {
                                                 'TripRequestCreated' => 'New trip request submitted.',
@@ -1014,14 +1015,14 @@
                                                 'TripAssignmentConflict' => 'Trip assignment needs attention.',
                                                 'TripCompletionReminderNotification' => 'Trip completion reminder sent.',
                                                 'OverdueTripNotification' => 'Trip marked overdue.',
-                                                default => $notification->data['status']
-                                                    ? ('Status: ' . ucfirst($notification->data['status']))
-                                                    : ($notification->data['purpose'] ?? 'Trip update received.'),
+                                                default => ! empty($notificationData['status'])
+                                                    ? ('Status: ' . ucfirst($notificationData['status']))
+                                                    : ($notificationData['purpose'] ?? 'Trip update received.'),
                                             };
 
-                                            $viewUrl = ! empty($notification->data['trip_request_id'])
-                                                ? route('trips.show', $notification->data['trip_request_id'])
-                                                : ($isChat && ! empty($notification->data['conversation_id'])
+                                            $viewUrl = ! empty($notificationData['trip_request_id'])
+                                                ? route('trips.show', $notificationData['trip_request_id'])
+                                                : ($isChat && ! empty($notificationData['conversation_id'])
                                                     ? null
                                                     : null);
                                         @endphp
