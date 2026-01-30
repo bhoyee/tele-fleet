@@ -1069,7 +1069,10 @@
                                             $notificationType = class_basename($notification->type ?? '');
                                             $chatTypes = ['ChatRequestNotification', 'ChatClosedNotification', 'ChatMessageNotification'];
                                             $isChat = in_array($notificationType, $chatTypes, true);
-                                            $tripLabel = $notificationData['request_number'] ?? null;
+                                            $tripLabel = $notificationData['request_number']
+                                                ?? (! empty($notificationData['trip_request_id'])
+                                                    ? ('Trip #'.$notificationData['trip_request_id'])
+                                                    : null);
                                             $tripTitle = $tripLabel ? "{$tripLabel} Update" : 'Trip Update';
                                             $title = match ($notificationType) {
                                                 'ChatRequestNotification' => 'Chat Request',
