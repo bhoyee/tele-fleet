@@ -74,6 +74,7 @@ class DashboardController extends Controller
                 'trip_time' => $formattedTime,
                 'destination' => $trip->destination ?? '',
                 'status' => $trip->status ?? '',
+                'due_status' => $trip->dueStatus(),
                 'vehicle' => $trip->assignedVehicle?->registration_number ?? '—',
                 'vehicle_model' => $trip->assignedVehicle?->model ?? '',
                 'driver' => $trip->assignedDriver?->full_name ?? '—',

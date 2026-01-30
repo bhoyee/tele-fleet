@@ -684,6 +684,11 @@
             color: #1e40af;
         }
 
+        .status-pending {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+
         .status-approved {
             background: #dcfce7;
             color: #166534;
@@ -1341,16 +1346,23 @@
                                 <td data-label="Status">
                                     @php
                                         $statusClass = match(strtolower($trip->status)) {
+                                            'pending' => 'status-pending',
                                             'requested' => 'status-requested',
                                             'approved' => 'status-approved',
                                             'assigned' => 'status-assigned',
                                             'completed' => 'status-completed',
                                             default => 'bg-light text-dark'
                                         };
+                                        $dueStatus = $trip->dueStatus();
                                     @endphp
                                     <span class="status-badge {{ $statusClass }}">
                                         {{ $trip->status }}
                                     </span>
+                                    @if ($dueStatus)
+                                        <span class="badge bg-{{ $dueStatus === 'overdue' ? 'danger' : 'warning' }} ms-1">
+                                            {{ ucfirst($dueStatus) }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td data-label="Vehicle" class="d-none d-md-table-cell">
                                     <div class="fw-medium">{{ $trip->assignedVehicle?->registration_number ?? '—' }}</div>
@@ -1768,15 +1780,20 @@
                         const canView = ['super_admin', 'fleet_manager'].includes('{{ auth()->user()->role }}');
                         tbody.innerHTML = rows.map((trip) => {
                             const status = String(trip.status ?? '');
-                            const statusClass = status.toLowerCase() === 'requested'
-                                ? 'status-requested'
-                                : (status.toLowerCase() === 'approved'
-                                    ? 'status-approved'
-                                    : (status.toLowerCase() === 'assigned'
-                                        ? 'status-assigned'
-                                        : (status.toLowerCase() === 'completed'
-                                            ? 'status-completed'
-                                            : 'bg-light text-dark')));
+                            const statusClass = status.toLowerCase() === 'pending'
+                                ? 'status-pending'
+                                : (status.toLowerCase() === 'requested'
+                                    ? 'status-requested'
+                                    : (status.toLowerCase() === 'approved'
+                                        ? 'status-approved'
+                                        : (status.toLowerCase() === 'assigned'
+                                            ? 'status-assigned'
+                                            : (status.toLowerCase() === 'completed'
+                                                ? 'status-completed'
+                                                : 'bg-light text-dark'))));
+                            const dueBadge = trip.due_status
+                                ? `<span class="badge bg-${trip.due_status === 'overdue' ? 'danger' : 'warning'} ms-1">${escaped(trip.due_status.charAt(0).toUpperCase() + trip.due_status.slice(1))}</span>`
+                                : '';
 
                             return `
                                 <tr>
@@ -1797,6 +1814,7 @@
                                         <span class="status-badge ${statusClass}">
                                             ${escaped(status)}
                                         </span>
+                                        ${dueBadge}
                                     </td>
                                     <td data-label="Vehicle" class="d-none d-md-table-cell">
                                         <div class="fw-medium">${escaped(trip.vehicle)}</div>
