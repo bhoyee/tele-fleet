@@ -18,8 +18,79 @@ use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    $totalVehicles = \App\Models\Vehicle::count();
+    $maintenanceVehicles = \App\Models\Vehicle::where('status', 'maintenance')->count();
+    $totalDrivers = \App\Models\Driver::count();
+    $totalBranches = \App\Models\Branch::count();
+    $activeTrips = \App\Models\TripRequest::whereNotNull('assigned_vehicle_id')
+        ->whereIn('status', ['approved', 'assigned'])
+        ->where(function ($query): void {
+            $query->whereNull('is_completed')->orWhere('is_completed', false);
+        })
+        ->whereDate('trip_date', '<=', now()->toDateString())
+        ->count();
+    $availableVehicles = max(0, $totalVehicles - $maintenanceVehicles - $activeTrips);
+    $completedToday = \App\Models\TripRequest::where('status', 'completed')
+        ->whereDate('trip_date', now()->toDateString())
+        ->count();
+    $utilization = $totalVehicles > 0
+        ? (int) round((max(0, $totalVehicles - $availableVehicles) / $totalVehicles) * 100)
+        : 0;
+
+    return view('welcome', [
+        'landingMetrics' => [
+            'active_trips' => $activeTrips,
+            'available_vehicles' => $availableVehicles,
+            'completed_today' => $completedToday,
+            'utilization' => $utilization,
+            'total_vehicles' => $totalVehicles,
+            'total_drivers' => $totalDrivers,
+            'total_branches' => $totalBranches,
+        ],
+    ]);
 });
+
+Route::get('/landing-metrics', function () {
+    $totalVehicles = \App\Models\Vehicle::count();
+    $maintenanceVehicles = \App\Models\Vehicle::where('status', 'maintenance')->count();
+    $totalDrivers = \App\Models\Driver::count();
+    $totalBranches = \App\Models\Branch::count();
+    $activeTrips = \App\Models\TripRequest::whereNotNull('assigned_vehicle_id')
+        ->whereIn('status', ['approved', 'assigned'])
+        ->where(function ($query): void {
+            $query->whereNull('is_completed')->orWhere('is_completed', false);
+        })
+        ->whereDate('trip_date', '<=', now()->toDateString())
+        ->count();
+    $availableVehicles = max(0, $totalVehicles - $maintenanceVehicles - $activeTrips);
+    $completedToday = \App\Models\TripRequest::where('status', 'completed')
+        ->whereDate('trip_date', now()->toDateString())
+        ->count();
+    $utilization = $totalVehicles > 0
+        ? (int) round((max(0, $totalVehicles - $availableVehicles) / $totalVehicles) * 100)
+        : 0;
+
+    return response()->json([
+        'active_trips' => $activeTrips,
+        'available_vehicles' => $availableVehicles,
+        'completed_today' => $completedToday,
+        'utilization' => $utilization,
+        'total_vehicles' => $totalVehicles,
+        'total_drivers' => $totalDrivers,
+        'total_branches' => $totalBranches,
+    ]);
+})->name('landing.metrics');
+
+Route::post('/admin/sms/test', function (\Illuminate\Http\Request $request) {
+    $request->validate([
+        'phone' => ['required', 'string'],
+        'message' => ['required', 'string', 'max:160'],
+    ]);
+
+    $response = app(\App\Services\SmsService::class)->send($request->string('phone'), $request->string('message'));
+
+    return back()->with('sms_response', $response);
+})->middleware(['auth', 'role:super_admin'])->name('sms.test');
 
 Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
