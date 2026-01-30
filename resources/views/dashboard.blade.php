@@ -1487,6 +1487,18 @@
                     header.textContent = day;
                     calendarGrid.appendChild(header);
                 });
+
+                if (days.length > 0) {
+                    const firstDateParts = days[0].date.split('-');
+                    const firstDate = new Date(Number(firstDateParts[0]), Number(firstDateParts[1]) - 1, Number(firstDateParts[2]));
+                    const startOffset = firstDate.getDay();
+                    for (let i = 0; i < startOffset; i += 1) {
+                        const spacer = document.createElement('div');
+                        spacer.className = 'calendar-day disabled';
+                        spacer.innerHTML = '<div class="day-number">&nbsp;</div>';
+                        calendarGrid.appendChild(spacer);
+                    }
+                }
                 
                 // Get today's date
                 const today = new Date();
