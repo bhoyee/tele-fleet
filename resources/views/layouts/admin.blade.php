@@ -1787,16 +1787,21 @@
                         chatWidgetSend.dataset.sending = 'true';
                         chatWidgetSend.disabled = true;
                     }
-                    chatWidgetInput.disabled = true;
+                    const clientId = `tmp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+                    chatWidgetInput.value = '';
                     const optimisticMessage = {
                         user_id: currentUserId,
                         user_name: currentUserName,
                         message,
                         created_at: new Date().toLocaleString(),
+                        status: 'sending',
+                        client_id: clientId,
                     };
                     activeMessages.push(optimisticMessage);
                     renderMessages(activeMessages, currentUserId);
                     try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
                         const response = await fetch(messageUrlTemplate.replace('__ID__', activeConversationId), {
                             method: 'POST',
                             headers: {
@@ -1805,33 +1810,32 @@
                                 'X-CSRF-TOKEN': csrfToken ?? '',
                             },
                             body: new URLSearchParams({ message }),
+                            signal: controller.signal,
                         });
+                        clearTimeout(timeoutId);
                         if (!response.ok) {
                             throw new Error('Failed to send.');
                         }
-                        chatWidgetInput.value = '';
                         const data = await response.json();
                         if (data.message) {
-                            activeMessages = activeMessages.filter((item) => item !== optimisticMessage);
+                            activeMessages = activeMessages.filter((item) => item.client_id !== clientId);
                             activeMessages.push(data.message);
                             renderMessages(activeMessages, currentUserId);
                             loadChatWidgetData();
                         }
                     } catch (error) {
-                        activeMessages = activeMessages.filter((item) => item !== optimisticMessage);
+                        activeMessages = activeMessages.map((item) => {
+                            if (item.client_id === clientId) {
+                                return { ...item, status: 'failed' };
+                            }
+                            return item;
+                        });
                         renderMessages(activeMessages, currentUserId);
-                        if (chatWidgetMessages) {
-                            const errorBlock = document.createElement('div');
-                            errorBlock.className = 'alert alert-danger';
-                            errorBlock.textContent = 'Unable to send message.';
-                            chatWidgetMessages.appendChild(errorBlock);
-                        }
                     } finally {
                         if (chatWidgetSend) {
                             chatWidgetSend.dataset.sending = 'false';
                             chatWidgetSend.disabled = false;
                         }
-                        chatWidgetInput.disabled = false;
                         chatWidgetInput.focus();
                     }
                 };
@@ -1902,7 +1906,17 @@
                         return;
                     }
                     const urlTemplate = action === 'accept' ? acceptUrlTemplate : declineUrlTemplate;
+                    const acceptLabel = chatWidgetAccept?.textContent;
+                    const declineLabel = chatWidgetDecline?.textContent;
                     try {
+                        if (action === 'accept' && chatWidgetAccept) {
+                            chatWidgetAccept.disabled = true;
+                            chatWidgetAccept.textContent = 'Accepting...';
+                        }
+                        if (action === 'decline' && chatWidgetDecline) {
+                            chatWidgetDecline.disabled = true;
+                            chatWidgetDecline.textContent = 'Declining...';
+                        }
                         const response = await fetch(urlTemplate.replace('__ID__', activeConversationId), {
                             method: 'PATCH',
                             headers: {
@@ -1919,6 +1933,19 @@
                         if (chatWidgetMessages) {
                             chatWidgetMessages.innerHTML = '<div class="chat-widget-placeholder">Unable to update chat status.</div>';
                         }
+                    } finally {
+                        if (chatWidgetAccept) {
+                            chatWidgetAccept.disabled = false;
+                            if (acceptLabel) {
+                                chatWidgetAccept.textContent = acceptLabel;
+                            }
+                        }
+                        if (chatWidgetDecline) {
+                            chatWidgetDecline.disabled = false;
+                            if (declineLabel) {
+                                chatWidgetDecline.textContent = declineLabel;
+                            }
+                        }
                     }
                 };
 
@@ -1926,7 +1953,13 @@
                     if (!activeConversationId || !chatWidgetClose) {
                         return;
                     }
+                    if (chatWidgetClose.dataset.sending === 'true') {
+                        return;
+                    }
+                    const originalLabel = chatWidgetClose.textContent;
+                    chatWidgetClose.dataset.sending = 'true';
                     chatWidgetClose.disabled = true;
+                    chatWidgetClose.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Closing...';
                     try {
                         const response = await fetch(closeUrlTemplate.replace('__ID__', activeConversationId), {
                             method: 'PATCH',
@@ -1944,6 +1977,10 @@
                         if (chatWidgetMessages) {
                             chatWidgetMessages.innerHTML = '<div class="chat-widget-placeholder">Unable to close chat.</div>';
                         }
+                    } finally {
+                        chatWidgetClose.dataset.sending = 'false';
+                        chatWidgetClose.disabled = false;
+                        chatWidgetClose.innerHTML = originalLabel;
                     }
                 };
 
