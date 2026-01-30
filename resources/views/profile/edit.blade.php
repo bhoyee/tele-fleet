@@ -20,11 +20,13 @@
                     @include('profile.partials.update-password-form')
                 </div>
             </div>
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    @include('profile.partials.delete-user-form')
+            @if (auth()->user()?->role !== \App\Models\User::ROLE_SUPER_ADMIN)
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        @include('profile.partials.delete-user-form')
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
     </div>
 </x-admin-layout>
