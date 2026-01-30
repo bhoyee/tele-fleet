@@ -94,6 +94,18 @@
             min-height: 100px;
         }
 
+        .metric-card.metric-card--warning {
+            background: rgba(245, 158, 11, 0.08);
+            border-color: rgba(245, 158, 11, 0.35);
+            box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.12) inset;
+        }
+
+        .metric-card.metric-card--warning .metric-value,
+        .metric-card.metric-card--warning .metric-label,
+        .metric-card.metric-card--warning .metric-footnote {
+            color: #b45309;
+        }
+
         @media (min-width: 768px) {
             .metric-card {
                 padding: 1.25rem;
@@ -1023,7 +1035,7 @@
 
             <!-- Pending Approval -->
             @if (!is_null($pendingApproval))
-            <div class="metric-card">
+            <div class="metric-card {{ ($pendingApproval ?? 0) > 0 ? 'metric-card--warning' : '' }}">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-hourglass-split"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Pending</span>
