@@ -191,15 +191,15 @@
         /* Stats Cards */
         .stats-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
             margin-top: 4rem;
         }
 
         .stat-card {
             background: white;
             border-radius: 16px;
-            padding: 2rem;
+            padding: 1.5rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
             border: 1px solid var(--neutral-200);
             transition: all 0.3s ease;
@@ -401,6 +401,12 @@
         }
 
         /* Responsive */
+        @media (max-width: 992px) {
+            .stats-container {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
         @media (max-width: 768px) {
             .hero-title {
                 font-size: 2.5rem;
@@ -506,7 +512,7 @@
                             <div class="stat-icon">
                                 <i class="fas fa-car text-primary-600"></i>
                             </div>
-                            <div class="stat-number">150+</div>
+                            <div class="stat-number" id="landingTotalVehicles">{{ $landingMetrics['total_vehicles'] ?? 0 }}</div>
                             <p class="text-muted">Managed Vehicles</p>
                         </div>
                         
@@ -514,15 +520,15 @@
                             <div class="stat-icon">
                                 <i class="fas fa-users text-primary-600"></i>
                             </div>
-                            <div class="stat-number">85+</div>
-                            <p class="text-muted">Professional Drivers</p>
+                            <div class="stat-number" id="landingTotalDrivers">{{ $landingMetrics['total_drivers'] ?? 0 }}</div>
+                            <p class="text-muted">Drivers</p>
                         </div>
                         
                         <div class="stat-card">
                             <div class="stat-icon">
                                 <i class="fas fa-map-marker-alt text-primary-600"></i>
                             </div>
-                            <div class="stat-number">15+</div>
+                            <div class="stat-number" id="landingTotalBranches">{{ $landingMetrics['total_branches'] ?? 0 }}</div>
                             <p class="text-muted">Branch Locations</p>
                         </div>
                     </div>
@@ -545,23 +551,23 @@
                         <div class="dashboard-metrics">
                             <div class="metric-item">
                                 <div class="text-muted small">Active Trips</div>
-                                <div class="h4 mb-0">24</div>
+                                <div class="h4 mb-0" id="landingActiveTrips">{{ $landingMetrics['active_trips'] ?? 0 }}</div>
                             </div>
                             <div class="metric-item">
                                 <div class="text-muted small">Available Vehicles</div>
-                                <div class="h4 mb-0">47</div>
+                                <div class="h4 mb-0" id="landingAvailableVehicles">{{ $landingMetrics['available_vehicles'] ?? 0 }}</div>
                             </div>
                             <div class="metric-item">
-                                <div class="text-muted small">Pending Requests</div>
-                                <div class="h4 mb-0">12</div>
+                                <div class="text-muted small">Trips Completed</div>
+                                <div class="h4 mb-0" id="landingCompletedToday">{{ $landingMetrics['completed_today'] ?? 0 }}</div>
                             </div>
                         </div>
                         
                         <div class="text-center">
                             <div class="progress" style="height: 10px;">
-                                <div class="progress-bar bg-success" style="width: 95%"></div>
+                                <div class="progress-bar bg-success" id="landingUtilizationBar" style="width: {{ $landingMetrics['utilization'] ?? 0 }}%"></div>
                             </div>
-                            <small class="text-muted">Vehicle utilization rate: 95%</small>
+                            <small class="text-muted">Vehicle utilization rate: <span id="landingUtilizationText">{{ $landingMetrics['utilization'] ?? 0 }}</span>%</small>
                         </div>
                     </div>
                 </div>
@@ -687,7 +693,7 @@
                     <p class="lead mb-5 animate-on-scroll" style="animation-delay: 0.1s;">
                         Join leading companies that trust Tele-Fleet for their corporate transportation management.
                     </p>
-                    <div class="animate-on-scroll" style="animation-delay: 0.2s;">
+                    <div class="animate-on-scroll mb-5" style="animation-delay: 0.2s;">
                         @auth
                             <a href="{{ route('dashboard') }}" class="btn btn-primary-custom btn-lg">
                                 <i class="fas fa-tachometer-alt me-2"></i>Access Dashboard
@@ -763,6 +769,37 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        const landingMetricsUrl = "{{ route('landing.metrics') }}";
+        const updateLandingMetrics = (payload) => {
+            if (!payload) return;
+            const activeEl = document.getElementById('landingActiveTrips');
+            const availableEl = document.getElementById('landingAvailableVehicles');
+            const completedEl = document.getElementById('landingCompletedToday');
+            const utilizationBar = document.getElementById('landingUtilizationBar');
+            const utilizationText = document.getElementById('landingUtilizationText');
+            const totalVehiclesEl = document.getElementById('landingTotalVehicles');
+            const totalDriversEl = document.getElementById('landingTotalDrivers');
+            const totalBranchesEl = document.getElementById('landingTotalBranches');
+
+            if (activeEl) activeEl.textContent = payload.active_trips ?? '0';
+            if (availableEl) availableEl.textContent = payload.available_vehicles ?? '0';
+            if (completedEl) completedEl.textContent = payload.completed_today ?? '0';
+            if (utilizationBar) utilizationBar.style.width = `${payload.utilization ?? 0}%`;
+            if (utilizationText) utilizationText.textContent = payload.utilization ?? 0;
+            if (totalVehiclesEl) totalVehiclesEl.textContent = payload.total_vehicles ?? '0';
+            if (totalDriversEl) totalDriversEl.textContent = payload.total_drivers ?? '0';
+            if (totalBranchesEl) totalBranchesEl.textContent = payload.total_branches ?? '0';
+        };
+
+        const refreshLandingMetrics = () => {
+            fetch(landingMetricsUrl, { cache: 'no-store' })
+                .then((response) => response.json())
+                .then((data) => updateLandingMetrics(data))
+                .catch(() => {});
+        };
+
+        setInterval(refreshLandingMetrics, 15000);
+        refreshLandingMetrics();
         // Navbar scroll effect
         window.addEventListener('scroll', function() {
             const navbar = document.getElementById('navbar');
