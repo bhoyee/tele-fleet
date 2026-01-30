@@ -201,6 +201,28 @@
             color: #c2410c;
         }
 
+        .metric-subcard.metric-subcard--overdue {
+            background: rgba(220, 38, 38, 0.16);
+            border-color: rgba(220, 38, 38, 0.38);
+            box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.16) inset;
+        }
+
+        .metric-subcard.metric-subcard--overdue .metric-subvalue,
+        .metric-subcard.metric-subcard--overdue .metric-subtitle {
+            color: #991b1b;
+        }
+
+        .metric-subcard.metric-subcard--success {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.12) inset;
+        }
+
+        .metric-subcard.metric-subcard--success .metric-subvalue,
+        .metric-subcard.metric-subcard--success .metric-subtitle {
+            color: #047857;
+        }
+
         .metric-subvalue {
             font-weight: 700;
             font-size: 1.25rem;
@@ -929,7 +951,7 @@
                         <div class="metric-subvalue" data-metric="driversAssignedToday">{{ $driversAssignedToday ?? 0 }}</div>
                         <div class="metric-subtitle">Assigned today</div>
                     </div>
-                    <div class="metric-subcard">
+                    <div class="metric-subcard {{ ($driversUnassignedToday ?? 0) > 0 ? 'metric-subcard--success' : '' }}">
                         <div class="metric-subvalue" data-metric="driversUnassignedToday">{{ $driversUnassignedToday ?? 0 }}</div>
                         <div class="metric-subtitle">Unassigned</div>
                     </div>
@@ -960,7 +982,7 @@
                         <div class="metric-subvalue" data-metric="futureTrips">{{ $futureTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Future trips</div>
                     </div>
-                    <div class="metric-subcard metric-subcard--alert">
+                    <div class="metric-subcard {{ ($unassignedTrips ?? 0) > 0 ? 'metric-subcard--alert' : '' }}">
                         <div class="metric-subvalue" data-metric="unassignedTrips">{{ $unassignedTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Unassigned</div>
                     </div>
@@ -1023,7 +1045,7 @@
                 </div>
                 <div class="metric-label">Incident Reports</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard metric-subcard--alert">
+                    <div class="metric-subcard {{ ($incidentOpen ?? 0) > 0 ? 'metric-subcard--alert' : '' }}">
                         <div class="metric-subvalue" data-metric="incidentOpen">{{ $incidentOpen ?? 0 }}</div>
                         <div class="metric-subtitle">Open</div>
                     </div>
@@ -1051,7 +1073,7 @@
                 </div>
                 <div class="metric-label">Maintenance Due</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard metric-subcard--alert">
+                    <div class="metric-subcard {{ ($maintenanceDue ?? 0) > 0 ? 'metric-subcard--alert' : '' }}">
                         <div class="metric-subvalue" data-metric="maintenanceDue">{{ $maintenanceDue ?? 0 }}</div>
                         <div class="metric-subtitle">Due</div>
                     </div>
@@ -1101,11 +1123,11 @@
                 </div>
                 <div class="metric-label">Uncompleted Trips</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard metric-subcard--alert">
+                    <div class="metric-subcard {{ ($dueTrips ?? 0) > 0 ? 'metric-subcard--alert' : '' }}">
                         <div class="metric-subvalue" data-metric="dueTrips">{{ $dueTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Due</div>
                     </div>
-                    <div class="metric-subcard metric-subcard--alert">
+                    <div class="metric-subcard {{ ($overdueTrips ?? 0) > 0 ? 'metric-subcard--overdue' : '' }}">
                         <div class="metric-subvalue" data-metric="overdueTrips">{{ $overdueTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Overdue</div>
                     </div>
