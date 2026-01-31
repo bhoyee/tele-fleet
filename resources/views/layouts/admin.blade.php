@@ -995,6 +995,12 @@
                             </li>
                             <li class="nav-item mt-3"></li>
                             <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('admin.user-manual')) active @endif" href="{{ route('admin.user-manual') }}">
+                                    <i class="bi bi-journal-richtext nav-icon"></i>
+                                    <span>User Manual</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('admin.health')) active @endif" href="{{ route('admin.health') }}">
                                     <i class="bi bi-activity nav-icon"></i>
                                     <span>System Health</span>
@@ -1083,6 +1089,7 @@
                                             $notificationType = class_basename($notification->type ?? '');
                                             $chatTypes = ['ChatRequestNotification', 'ChatClosedNotification', 'ChatMessageNotification'];
                                             $isChat = in_array($notificationType, $chatTypes, true);
+                                            $isSystemHealth = $notificationType === 'SystemHealthAlert';
                                             $tripLabel = $notificationData['request_number']
                                                 ?? (! empty($notificationData['trip_request_id'])
                                                     ? ('Trip #'.$notificationData['trip_request_id'])
@@ -1092,6 +1099,7 @@
                                                 'ChatRequestNotification' => 'Chat Request',
                                                 'ChatClosedNotification' => 'Chat Closed',
                                                 'ChatMessageNotification' => 'Chat Message',
+                                                'SystemHealthAlert' => $notificationData['title'] ?? 'System Health',
                                                 default => $tripTitle,
                                             };
 
@@ -1099,6 +1107,7 @@
                                                 'ChatRequestNotification' => 'New chat request received.',
                                                 'ChatClosedNotification' => 'Chat has been closed.',
                                                 'ChatMessageNotification' => 'New chat message received.',
+                                                'SystemHealthAlert' => $notificationData['message'] ?? 'System health alert.',
                                                 'TripRequestCreated' => 'New trip request submitted.',
                                                 'TripRequestApproved' => 'Trip request approved.',
                                                 'TripRequestAssigned' => 'Trip assigned to driver/vehicle.',
@@ -1119,9 +1128,11 @@
 
                                             $viewUrl = ! empty($notificationData['trip_request_id'])
                                                 ? route('trips.show', $notificationData['trip_request_id'])
-                                                : ($isChat && ! empty($notificationData['conversation_id'])
-                                                    ? null
-                                                    : null);
+                                                : ($isSystemHealth
+                                                    ? route('admin.health')
+                                                    : ($isChat && ! empty($notificationData['conversation_id'])
+                                                        ? null
+                                                        : null));
                                         @endphp
                                             <div class="d-flex justify-content-between">
                                                 <div class="fw-semibold small">
