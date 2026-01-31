@@ -120,7 +120,9 @@
 
     <div class="text-center pt-4 mt-4 border-top">
         <p class="text-muted small mb-2">Having trouble resetting your password?</p>
-        <a href="#" class="fw-semibold text-decoration-none" style="color: #056CA3;">Contact Support</a>
+        <button type="button" class="btn btn-link fw-semibold text-decoration-none p-0 align-baseline" style="color: #056CA3;" data-bs-toggle="modal" data-bs-target="#supportContactModal">
+            Contact Support
+        </button>
     </div>
 
     <style>

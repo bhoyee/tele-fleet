@@ -6,6 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>@yield('title', config('app.name', 'Tele-Fleet'))</title>
+        <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=manrope:400,500,600,700,800&display=swap" rel="stylesheet" />
@@ -719,6 +720,28 @@
                                 {{ $slot }}
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @php
+            $supportEmail = config('app.support_email') ?? config('mail.from.address') ?? 'support@tele-fleet.test';
+        @endphp
+        <div class="modal fade" id="supportContactModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Contact Support</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-2">Need help signing in? Contact the system administrator:</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-envelope-fill text-primary"></i>
+                            <a href="mailto:{{ $supportEmail }}" class="fw-semibold text-decoration-none">{{ $supportEmail }}</a>
+                        </div>
+                        <p class="text-muted small mt-3 mb-0">Please include your full name, branch, and a brief description of the issue.</p>
                     </div>
                 </div>
             </div>

@@ -92,7 +92,9 @@
 
         <div class="text-center pt-4 border-top">
             <p class="text-muted mb-0">Don't have an account? 
-                <a href="#" class="fw-semibold text-decoration-none" style="color: #056CA3;">Contact Administrator</a>
+                <button type="button" class="btn btn-link fw-semibold text-decoration-none p-0 align-baseline" style="color: #056CA3;" data-bs-toggle="modal" data-bs-target="#supportContactModal">
+                    Contact Administrator
+                </button>
             </p>
         </div>
     </form>
