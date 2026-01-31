@@ -78,6 +78,9 @@ class MaintenanceController extends Controller
 
     public function edit(VehicleMaintenance $maintenance): View
     {
+        if ($maintenance->status === VehicleMaintenance::STATUS_COMPLETED) {
+            abort(403, 'Completed maintenance records cannot be edited.');
+        }
         $vehicles = Vehicle::orderBy('registration_number')->get();
         $statuses = $this->statusOptions();
 
@@ -86,6 +89,11 @@ class MaintenanceController extends Controller
 
     public function update(UpdateMaintenanceRequest $request, VehicleMaintenance $maintenance, AuditLogService $auditLog): RedirectResponse
     {
+        if ($maintenance->status === VehicleMaintenance::STATUS_COMPLETED) {
+            return redirect()
+                ->route('maintenances.show', $maintenance)
+                ->with('error', 'Completed maintenance records cannot be edited.');
+        }
         $data = $request->validated();
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
 

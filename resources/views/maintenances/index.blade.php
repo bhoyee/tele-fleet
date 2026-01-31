@@ -70,7 +70,9 @@
                                 <td>{{ $maintenance->cost !== null ? number_format($maintenance->cost, 2) : '—' }}</td>
                                 <td class="text-end">
                                     <a href="{{ route('maintenances.show', $maintenance) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                    <a href="{{ route('maintenances.edit', $maintenance) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    @if ($maintenance->status !== \App\Models\VehicleMaintenance::STATUS_COMPLETED)
+                                        <a href="{{ route('maintenances.edit', $maintenance) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    @endif
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"
                                             data-bs-toggle="modal"
@@ -181,7 +183,9 @@
                                 <td>${escapeHtml(maintenance.cost)}</td>
                                 <td class="text-end">
                                     <a href="${showUrlTemplate.replace('__ID__', maintenance.id)}" class="btn btn-sm btn-outline-primary">View</a>
-                                    <a href="${editUrlTemplate.replace('__ID__', maintenance.id)}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    ${maintenance.status !== 'completed'
+                                        ? `<a href="${editUrlTemplate.replace('__ID__', maintenance.id)}" class="btn btn-sm btn-outline-secondary">Edit</a>`
+                                        : ''}
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"
                                             data-bs-toggle="modal"
