@@ -871,43 +871,13 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('admin.chats.*')) active @endif" href="{{ route('admin.chats.index') }}">
-                                    <i class="bi bi-chat-square-dots nav-icon"></i>
-                                    <span>Chat Management</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('admin.health')) active @endif" href="{{ route('admin.health') }}">
-                                    <i class="bi bi-activity nav-icon"></i>
-                                    <span>System Health</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('branches.*')) active @endif" href="{{ route('branches.index') }}">
                                     <i class="bi bi-building nav-icon"></i>
                                     <span>Branches</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('admin.maintenance-settings.*')) active @endif" href="{{ route('admin.maintenance-settings.edit') }}">
-                                    <i class="bi bi-sliders nav-icon"></i>
-                                    <span>Maintenance Settings</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('system.backups*')) active @endif" href="{{ route('system.backups') }}">
-                                    <i class="bi bi-database-check nav-icon"></i>
-                                    <span>Database Backups</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('system.logs*')) active @endif" href="{{ route('system.logs') }}">
-                                    <i class="bi bi-file-text nav-icon"></i>
-                                    <span>System Logs</span>
-                                </a>
-                            </li>
                         @endif
-                        
+
                         @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
                             <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('vehicles.*')) active @endif" href="{{ route('vehicles.index') }}">
@@ -921,14 +891,8 @@
                                     <span>Drivers</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('maintenances.*')) active @endif" href="{{ route('maintenances.index') }}">
-                                    <i class="bi bi-tools nav-icon"></i>
-                                    <span>Maintenance</span>
-                                </a>
-                            </li>
                         @endif
-                        
+
                         @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('trips.*') && ! request()->routeIs('trips.my')) active @endif" href="{{ route('trips.index') }}">
@@ -937,22 +901,7 @@
                                 </a>
                             </li>
                         @endif
-                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
-                            <li class="nav-item">
-                                <button class="nav-link w-100 text-start" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget" aria-controls="chatWidget">
-                                    <i class="bi bi-chat-dots nav-icon"></i>
-                                    <span>Chat</span>
-                                </button>
-                            </li>
-                        @endif
-                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
-                            <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('incidents.*')) active @endif" href="{{ route('incidents.index') }}">
-                                    <i class="bi bi-exclamation-triangle nav-icon"></i>
-                                    <span>Incidents</span>
-                                </a>
-                            </li>
-                        @endif
+
                         @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('trips.my')) active @endif" href="{{ route('trips.my') }}">
@@ -961,6 +910,34 @@
                                 </a>
                             </li>
                         @endif
+
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('logbooks.*')) active @endif" href="{{ route('logbooks.index') }}">
+                                    <i class="bi bi-journal-text nav-icon"></i>
+                                    <span>Logbooks</span>
+                                </a>
+                            </li>
+                        @endif
+
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('incidents.*')) active @endif" href="{{ route('incidents.index') }}">
+                                    <i class="bi bi-exclamation-triangle nav-icon"></i>
+                                    <span>Incidents</span>
+                                </a>
+                            </li>
+                        @endif
+
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('maintenances.*')) active @endif" href="{{ route('maintenances.index') }}">
+                                    <i class="bi bi-tools nav-icon"></i>
+                                    <span>Maintenance</span>
+                                </a>
+                            </li>
+                        @endif
+
                         @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('reports.my-requests*')) active @endif" href="{{ route('reports.my-requests') }}">
@@ -969,6 +946,7 @@
                                 </a>
                             </li>
                         @endif
+
                         @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
                             <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('reports.fleet')) active @endif" href="{{ route('reports.fleet') }}">
@@ -983,6 +961,7 @@
                                 </a>
                             </li>
                         @endif
+
                         @if (auth()->user()?->role === \App\Models\User::ROLE_BRANCH_HEAD)
                             <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('reports.branch*')) active @endif" href="{{ route('reports.branch') }}">
@@ -991,11 +970,46 @@
                                 </a>
                             </li>
                         @endif
-                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('logbooks.*')) active @endif" href="{{ route('logbooks.index') }}">
-                                    <i class="bi bi-journal-text nav-icon"></i>
-                                    <span>Logbooks</span>
+                                <button class="nav-link w-100 text-start" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget" aria-controls="chatWidget">
+                                    <i class="bi bi-chat-dots nav-icon"></i>
+                                    <span>Chat</span>
+                                </button>
+                            </li>
+                        @endif
+
+                        @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('admin.chats.*')) active @endif" href="{{ route('admin.chats.index') }}">
+                                    <i class="bi bi-chat-square-dots nav-icon"></i>
+                                    <span>Chat Management</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('admin.maintenance-settings.*')) active @endif" href="{{ route('admin.maintenance-settings.edit') }}">
+                                    <i class="bi bi-sliders nav-icon"></i>
+                                    <span>Maintenance Settings</span>
+                                </a>
+                            </li>
+                            <li class="nav-item mt-3"></li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('admin.health')) active @endif" href="{{ route('admin.health') }}">
+                                    <i class="bi bi-activity nav-icon"></i>
+                                    <span>System Health</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('system.backups*')) active @endif" href="{{ route('system.backups') }}">
+                                    <i class="bi bi-database-check nav-icon"></i>
+                                    <span>Database Backups</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('system.logs*')) active @endif" href="{{ route('system.logs') }}">
+                                    <i class="bi bi-file-text nav-icon"></i>
+                                    <span>System Logs</span>
                                 </a>
                             </li>
                         @endif
