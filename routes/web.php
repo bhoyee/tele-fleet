@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserManualController;
 use App\Http\Controllers\Admin\MaintenanceSettingsController;
 use App\Http\Controllers\Admin\HealthController;
 use App\Http\Controllers\Admin\ChatManagementController;
@@ -128,6 +129,7 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')
     Route::get('chats/{conversation}', [ChatManagementController::class, 'show'])->withTrashed()->name('chats.show');
     Route::patch('chats/{conversation}/close', [ChatManagementController::class, 'close'])->withTrashed()->name('chats.close');
     Route::delete('chats/{conversation}', [ChatManagementController::class, 'destroy'])->withTrashed()->name('chats.destroy');
+    Route::get('user-manual', UserManualController::class)->name('user-manual');
 });
 
 Route::middleware(['auth', 'role:super_admin'])->group(function () {

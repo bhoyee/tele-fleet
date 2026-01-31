@@ -25,7 +25,7 @@ class UpdateIncidentReportRequest extends FormRequest
             'location' => ['nullable', 'string', 'max:255'],
             'severity' => ['required', 'in:minor,major,critical'],
             'attachments' => ['nullable', 'array'],
-            'attachments.*' => ['file', 'max:5120'],
+            'attachments.*' => ['file', 'max:5120', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx'],
         ];
     }
 }

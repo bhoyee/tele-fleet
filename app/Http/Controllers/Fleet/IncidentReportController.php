@@ -64,18 +64,20 @@ class IncidentReportController extends Controller
     {
         $user = $request->user();
 
-        $branches = Branch::orderBy('name')->get();
-        $trips = TripRequest::with(['branch', 'assignedVehicle', 'assignedDriver'])
+        $branches = Branch::orderBy('name');
+        $tripsQuery = TripRequest::with(['branch', 'assignedVehicle', 'assignedDriver'])
             ->orderByDesc('created_at')
-            ->take(50)
-            ->get();
+            ->take(50);
         $vehicles = Vehicle::orderBy('registration_number')->get();
         $drivers = Driver::orderBy('full_name')->get();
 
         if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
-            $branches = $branches->where('id', $user->branch_id);
-            $trips = $trips->where('branch_id', $user->branch_id);
+            $branches->where('id', $user->branch_id);
+            $tripsQuery->where('branch_id', $user->branch_id);
         }
+
+        $branches = $branches->get();
+        $trips = $tripsQuery->get();
 
         return view('incidents.create', compact('branches', 'trips', 'vehicles', 'drivers'));
     }
@@ -86,7 +88,21 @@ class IncidentReportController extends Controller
         $user = $request->user();
 
         $data['reported_by_user_id'] = $user->id;
-        $data['branch_id'] = $data['branch_id'] ?? $user->branch_id;
+        if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+            $data['branch_id'] = $user->branch_id;
+        } else {
+            $data['branch_id'] = $data['branch_id'] ?? $user->branch_id;
+        }
+
+        if (! empty($data['trip_request_id'])) {
+            $trip = TripRequest::find($data['trip_request_id']);
+            if ($trip && $data['branch_id'] && $trip->branch_id !== $data['branch_id']) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['trip_request_id' => 'Selected trip does not belong to your branch.'])
+                    ->withInput();
+            }
+        }
         $data['reference'] = $this->generateReference();
         $data['status'] = IncidentReport::STATUS_OPEN;
         $data['updated_by_user_id'] = $user->id;
@@ -94,7 +110,7 @@ class IncidentReportController extends Controller
         $attachments = [];
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments', []) as $file) {
-                $attachments[] = $file->store('incidents', 'public');
+                $attachments[] = $file->store('incidents', 'local');
             }
         }
         $data['attachments'] = $attachments ?: null;
@@ -138,18 +154,20 @@ class IncidentReportController extends Controller
 
         $user = $request->user();
 
-        $branches = Branch::orderBy('name')->get();
-        $trips = TripRequest::with(['branch', 'assignedVehicle', 'assignedDriver'])
+        $branches = Branch::orderBy('name');
+        $tripsQuery = TripRequest::with(['branch', 'assignedVehicle', 'assignedDriver'])
             ->orderByDesc('created_at')
-            ->take(50)
-            ->get();
+            ->take(50);
         $vehicles = Vehicle::orderBy('registration_number')->get();
         $drivers = Driver::orderBy('full_name')->get();
 
         if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
-            $branches = $branches->where('id', $user->branch_id);
-            $trips = $trips->where('branch_id', $user->branch_id);
+            $branches->where('id', $user->branch_id);
+            $tripsQuery->where('branch_id', $user->branch_id);
         }
+
+        $branches = $branches->get();
+        $trips = $tripsQuery->get();
 
         return view('incidents.edit', compact('incident', 'branches', 'trips', 'vehicles', 'drivers'));
     }
@@ -165,12 +183,26 @@ class IncidentReportController extends Controller
         }
 
         $data = $request->validated();
-        $data['branch_id'] = $data['branch_id'] ?? $incident->branch_id;
+        if (in_array($request->user()?->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+            $data['branch_id'] = $incident->branch_id;
+        } else {
+            $data['branch_id'] = $data['branch_id'] ?? $incident->branch_id;
+        }
+
+        if (! empty($data['trip_request_id'])) {
+            $trip = TripRequest::find($data['trip_request_id']);
+            if ($trip && $data['branch_id'] && $trip->branch_id !== $data['branch_id']) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['trip_request_id' => 'Selected trip does not belong to this branch.'])
+                    ->withInput();
+            }
+        }
 
         $attachments = $incident->attachments ?? [];
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments', []) as $file) {
-                $attachments[] = $file->store('incidents', 'public');
+                $attachments[] = $file->store('incidents', 'local');
             }
         }
         $data['attachments'] = $attachments ?: null;
@@ -299,6 +331,7 @@ class IncidentReportController extends Controller
         $incidentModel = IncidentReport::onlyTrashed()->findOrFail($incident);
         if (! empty($incidentModel->attachments)) {
             foreach ($incidentModel->attachments as $attachment) {
+                Storage::disk('local')->delete($attachment);
                 Storage::disk('public')->delete($attachment);
             }
         }
@@ -360,26 +393,48 @@ class IncidentReportController extends Controller
 
     public function downloadAttachment(IncidentReport $incident, string $filename)
     {
+        $this->authorizeIncidentView($incident, request()->user());
         $path = collect($incident->attachments ?? [])
             ->first(fn ($item) => basename($item) === $filename);
 
-        if (! $path || ! Storage::disk('public')->exists($path)) {
+        if (! $path) {
             abort(404);
         }
 
-        return Storage::disk('public')->download($path);
+        $disk = null;
+        if (Storage::disk('local')->exists($path)) {
+            $disk = 'local';
+        } elseif (Storage::disk('public')->exists($path)) {
+            $disk = 'public';
+        }
+        if (! $disk) {
+            abort(404);
+        }
+
+        return Storage::disk($disk)->download($path);
     }
 
     public function previewAttachment(IncidentReport $incident, string $filename)
     {
+        $this->authorizeIncidentView($incident, request()->user());
         $path = collect($incident->attachments ?? [])
             ->first(fn ($item) => basename($item) === $filename);
 
-        if (! $path || ! Storage::disk('public')->exists($path)) {
+        if (! $path) {
             abort(404);
         }
 
-        return Storage::disk('public')->response($path, $filename, [
+        $disk = null;
+        if (Storage::disk('local')->exists($path)) {
+            $disk = 'local';
+        } elseif (Storage::disk('public')->exists($path)) {
+            $disk = 'public';
+        }
+        if (! $disk) {
+            abort(404);
+        }
+
+        return Storage::disk($disk)->response($path, $filename, [
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);
     }
