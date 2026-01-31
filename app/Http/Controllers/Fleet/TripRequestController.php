@@ -159,7 +159,11 @@ class TripRequestController extends Controller
         $user = $request->user();
         $data = $request->validated();
 
-        $branchId = $user->branch_id ?? $data['branch_id'] ?? null;
+        if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+            $branchId = $user->branch_id;
+        } else {
+            $branchId = $data['branch_id'] ?? $user->branch_id ?? null;
+        }
         if (! $branchId) {
             return redirect()
                 ->back()
@@ -479,7 +483,12 @@ class TripRequestController extends Controller
                 ->with('error', 'Completed trips cannot be edited.');
         }
 
-        $branches = Branch::orderBy('name')->get();
+        $user = request()->user();
+        if (in_array($user?->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+            $branches = Branch::where('id', $user->branch_id)->get();
+        } else {
+            $branches = Branch::orderBy('name')->get();
+        }
 
         return view('trips.edit', compact('tripRequest', 'branches'));
     }
@@ -501,6 +510,9 @@ class TripRequestController extends Controller
         }
 
         $data = $request->validated();
+        if (in_array($request->user()?->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+            $data['branch_id'] = $tripRequest->branch_id;
+        }
 
         $tripRequest->update(array_merge($data, [
             'trip_time' => $data['trip_time'] ?? null,

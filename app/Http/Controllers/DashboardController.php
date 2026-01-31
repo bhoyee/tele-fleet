@@ -12,14 +12,15 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
         $user = $request->user();
-        $metrics = $this->buildMetrics($user);
-        $upcomingTrips = $this->buildUpcomingTrips($user);
+        $metrics = $this->cachedMetrics($user);
+        $upcomingTrips = $this->cachedUpcomingTrips($user);
         $calendarBounds = $this->calendarBounds();
 
         return view('dashboard', [
@@ -32,28 +33,28 @@ class DashboardController extends Controller
 
     public function metrics(Request $request): \Illuminate\Http\JsonResponse
     {
-        $metrics = $this->buildMetrics($request->user());
+        $metrics = $this->cachedMetrics($request->user());
 
         return response()->json($metrics);
     }
 
     public function calendar(Request $request): JsonResponse
     {
-        $data = $this->buildCalendar($request->user(), $request);
+        $data = $this->cachedCalendar($request->user(), $request);
 
         return response()->json($data);
     }
 
     public function tripStatus(Request $request): JsonResponse
     {
-        $data = $this->buildTripStatus($request->user());
+        $data = $this->cachedTripStatus($request->user());
 
         return response()->json($data);
     }
 
     public function upcomingTrips(Request $request): JsonResponse
     {
-        $trips = $this->buildUpcomingTrips($request->user());
+        $trips = $this->cachedUpcomingTrips($request->user());
 
         $payload = $trips->map(function (TripRequest $trip): array {
             $formattedTime = 'N/A';
@@ -84,6 +85,41 @@ class DashboardController extends Controller
         return response()->json([
             'data' => $payload,
         ]);
+    }
+
+    private function cachedMetrics(User $user): array
+    {
+        $key = sprintf('telefleet.dashboard.metrics.%s.%s', $user->role, $user->id);
+        return Cache::remember($key, now()->addSeconds(30), function () use ($user) {
+            return $this->buildMetrics($user);
+        });
+    }
+
+    private function cachedUpcomingTrips(User $user)
+    {
+        $key = sprintf('telefleet.dashboard.upcoming.%s.%s', $user->role, $user->id);
+        return Cache::remember($key, now()->addSeconds(30), function () use ($user) {
+            return $this->buildUpcomingTrips($user);
+        });
+    }
+
+    private function cachedTripStatus(User $user): array
+    {
+        $key = sprintf('telefleet.dashboard.tripstatus.%s.%s', $user->role, $user->id);
+        return Cache::remember($key, now()->addSeconds(30), function () use ($user) {
+            return $this->buildTripStatus($user);
+        });
+    }
+
+    private function cachedCalendar(User $user, Request $request): array
+    {
+        $year = (int) $request->query('year', Carbon::now()->year);
+        $month = (int) $request->query('month', Carbon::now()->month);
+        $key = sprintf('telefleet.dashboard.calendar.%s.%s.%d.%d', $user->role, $user->id, $year, $month);
+
+        return Cache::remember($key, now()->addSeconds(30), function () use ($user, $request) {
+            return $this->buildCalendar($user, $request);
+        });
     }
 
     private function buildMetrics(User $user): array
