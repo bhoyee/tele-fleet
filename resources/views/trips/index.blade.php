@@ -411,6 +411,7 @@
 
                 const currentUser = @json($currentUserData);
                 const showArchived = @json($showArchived ?? false);
+                const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
                 const dataUrl = "{{ route('trips.data') }}" + (showArchived ? "?archived=1" : "");
                 const editUrlTemplate = "{{ route('trips.edit', ['tripRequest' => '__ID__']) }}";
                 const showUrlTemplate = "{{ route('trips.show', ['tripRequest' => '__ID__']) }}";
@@ -595,6 +596,9 @@
                 };
 
                 const initTripsEcho = () => {
+                    if (!realtimeEnabled) {
+                        return null;
+                    }
                     if (window.TripEcho && typeof window.TripEcho.private === 'function') {
                         return window.TripEcho;
                     }
@@ -627,6 +631,10 @@
                 };
 
                 const subscribeTripChannels = () => {
+                    if (!realtimeEnabled) {
+                        startPollingFallback();
+                        return;
+                    }
                     const echo = initTripsEcho();
                     if (!echo || typeof echo.private !== 'function') {
                         startPollingFallback();

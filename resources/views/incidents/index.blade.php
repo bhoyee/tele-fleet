@@ -278,6 +278,7 @@
 
                 const currentUser = @json($currentUserData);
                 const showArchived = @json($showArchived ?? false);
+                const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
                 const dataUrl = "{{ route('incidents.data') }}" + (showArchived ? "?archived=1" : "");
                 const showUrlTemplate = "{{ route('incidents.show', ['incident' => '__ID__']) }}";
                 const editUrlTemplate = "{{ route('incidents.edit', ['incident' => '__ID__']) }}";
@@ -413,6 +414,9 @@
                 };
 
                 const initIncidentsEcho = () => {
+                    if (!realtimeEnabled) {
+                        return null;
+                    }
                     if (window.IncidentEcho && typeof window.IncidentEcho.private === 'function') {
                         return window.IncidentEcho;
                     }
@@ -445,6 +449,10 @@
                 };
 
                 const subscribeIncidentChannels = () => {
+                    if (!realtimeEnabled) {
+                        startPollingFallback();
+                        return;
+                    }
                     const echo = initIncidentsEcho();
                     if (!echo || typeof echo.private !== 'function') {
                         startPollingFallback();

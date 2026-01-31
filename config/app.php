@@ -56,6 +56,8 @@ return [
 
     'support_email' => env('SUPPORT_EMAIL'),
 
+    'realtime_enabled' => env('REALTIME_ENABLED', true),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

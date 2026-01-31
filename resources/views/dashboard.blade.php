@@ -1846,7 +1846,11 @@
                 }
             };
 
+            const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
             const initDashboardRealtime = () => {
+                if (!realtimeEnabled) {
+                    return;
+                }
                 const echo = window.ChatEcho ?? window.Echo;
                 if (!echo || typeof echo.private !== 'function') {
                     return;

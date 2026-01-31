@@ -849,10 +849,12 @@
             <!-- Sidebar -->
             <aside class="sidebar">
                 <div class="sidebar-brand">
-                    <h2>
-                        <i class="bi bi-truck me-2"></i>
-                        Tele-Fleet
-                    </h2>
+                    <a href="{{ url('/') }}" class="text-decoration-none">
+                        <h2 class="mb-0">
+                            <i class="bi bi-truck me-2"></i>
+                            Tele-Fleet
+                        </h2>
+                    </a>
                 </div>
                 
                 <nav class="sidebar-nav">
@@ -1476,6 +1478,7 @@
                 hidePageProgress();
             });
 
+            const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
             const refreshNotificationCount = () => {
                 fetch('{{ route("notifications.count") }}', { cache: 'no-store' })
                     .then(response => response.json())
@@ -1540,6 +1543,9 @@
                 const isRequesterRole = {{ in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true) ? 'true' : 'false' }};
 
                 const initEcho = () => {
+                    if (!realtimeEnabled) {
+                        return null;
+                    }
                     if (window.ChatEcho && typeof window.ChatEcho.private === 'function') {
                         return window.ChatEcho;
                     }
@@ -1573,6 +1579,9 @@
                 };
 
                 const listenUserChannel = () => {
+                    if (!realtimeEnabled) {
+                        return;
+                    }
                     const echo = initEcho();
                     if (!echo || typeof echo.private !== 'function') {
                         return;

@@ -171,6 +171,7 @@
                 }
 
                 const showArchived = @json($showArchived ?? false);
+                const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
                 const dataUrl = "{{ route('vehicles.data') }}" + (showArchived ? "?archived=1" : "");
                 const showUrlTemplate = "{{ route('vehicles.show', ['vehicle' => '__ID__']) }}";
                 const editUrlTemplate = "{{ route('vehicles.edit', ['vehicle' => '__ID__']) }}";
@@ -285,6 +286,9 @@
                 };
 
                 const initVehiclesEcho = () => {
+                    if (!realtimeEnabled) {
+                        return null;
+                    }
                     const echo = window.ChatEcho ?? window.Echo;
                     if (!echo || typeof echo.private !== 'function') {
                         return null;
@@ -293,6 +297,10 @@
                 };
 
                 const subscribeVehiclesChannel = () => {
+                    if (!realtimeEnabled) {
+                        startPollingFallback();
+                        return;
+                    }
                     const echo = initVehiclesEcho();
                     if (!echo) {
                         startPollingFallback();

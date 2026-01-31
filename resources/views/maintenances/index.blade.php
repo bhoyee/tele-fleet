@@ -136,6 +136,7 @@
                     return;
                 }
 
+                const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
                 const dataUrl = "{{ route('maintenances.data', ['status' => $statusFilter]) }}";
                 const showUrlTemplate = "{{ route('maintenances.show', ['maintenance' => '__ID__']) }}";
                 const editUrlTemplate = "{{ route('maintenances.edit', ['maintenance' => '__ID__']) }}";
@@ -231,6 +232,9 @@
                 };
 
                 const initMaintenancesEcho = () => {
+                    if (!realtimeEnabled) {
+                        return null;
+                    }
                     const echo = window.ChatEcho ?? window.Echo;
                     if (!echo || typeof echo.private !== 'function') {
                         return null;
@@ -239,6 +243,10 @@
                 };
 
                 const subscribeMaintenancesChannel = () => {
+                    if (!realtimeEnabled) {
+                        startPollingFallback();
+                        return;
+                    }
                     const echo = initMaintenancesEcho();
                     if (!echo) {
                         startPollingFallback();

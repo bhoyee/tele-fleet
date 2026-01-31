@@ -160,6 +160,7 @@
                 }
 
                 const showArchived = @json($showArchived ?? false);
+                const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
                 const currentUserRole = "{{ auth()->user()?->role }}";
                 const dataUrl = "{{ route('drivers.data') }}" + (showArchived ? "?archived=1" : "");
                 const showUrlTemplate = "{{ route('drivers.show', ['driver' => '__ID__']) }}";
@@ -269,6 +270,9 @@
                 };
 
                 const initDriversEcho = () => {
+                    if (!realtimeEnabled) {
+                        return null;
+                    }
                     const echo = window.ChatEcho ?? window.Echo;
                     if (!echo || typeof echo.private !== 'function') {
                         return null;
@@ -277,6 +281,10 @@
                 };
 
                 const subscribeDriversChannel = () => {
+                    if (!realtimeEnabled) {
+                        startPollingFallback();
+                        return;
+                    }
                     const echo = initDriversEcho();
                     if (!echo) {
                         startPollingFallback();
