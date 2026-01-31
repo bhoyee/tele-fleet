@@ -41,14 +41,16 @@
                                 <td class="text-end">
                                     <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-secondary">View</a>
                                     <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-danger"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteUserModal"
-                                            data-delete-action="{{ route('admin.users.destroy', $user) }}"
-                                            data-delete-name="{{ $user->name }}">
-                                        Delete
-                                    </button>
+                                    @if ($user->id !== auth()->id())
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteUserModal"
+                                                data-delete-action="{{ route('admin.users.destroy', $user) }}"
+                                                data-delete-name="{{ $user->name }}">
+                                            Delete
+                                        </button>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

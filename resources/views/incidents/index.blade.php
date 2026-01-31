@@ -39,7 +39,17 @@
                         @foreach ($incidents as $incident)
                             <tr>
                                 <td>{{ $incident->reference }}</td>
-                                <td class="text-capitalize">{{ $incident->severity }}</td>
+                                @php
+                                    $severityClass = match ($incident->severity) {
+                                        'minor' => 'warning',
+                                        'major' => 'danger',
+                                        'critical' => 'dark',
+                                        default => 'secondary',
+                                    };
+                                @endphp
+                                <td>
+                                    <span class="badge bg-{{ $severityClass }}">{{ ucfirst($incident->severity) }}</span>
+                                </td>
                                 <td>
                                     <span class="badge bg-{{ $incident->status === 'resolved' ? 'success' : ($incident->status === 'under_review' ? 'warning text-dark' : ($incident->status === 'cancelled' ? 'secondary' : 'info')) }}">
                                         {{ str_replace('_', ' ', ucfirst($incident->status)) }}
@@ -363,7 +373,11 @@
                         return `
                             <tr>
                                 <td>${escapeHtml(incident.reference)}</td>
-                                <td class="text-capitalize">${escapeHtml(incident.severity)}</td>
+                                <td>
+                                    <span class="badge bg-${incident.severity === 'critical' ? 'dark' : (incident.severity === 'major' ? 'danger' : 'warning')}">
+                                        ${escapeHtml(incident.severity)}
+                                    </span>
+                                </td>
                                 <td>
                                     <span class="badge bg-${statusBadge(incident.status)}">
                                         ${escapeHtml(String(incident.status || '').replace('_', ' '))}

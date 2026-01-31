@@ -52,7 +52,7 @@
                                                 data-bs-target="#archiveDriverModal"
                                                 data-action="{{ route('drivers.destroy', $driver) }}"
                                                 data-name="{{ $driver->full_name }}">
-                                            {{ auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN ? 'Delete' : 'Archive' }}
+                                            Delete
                                         </button>
                                     @elseif (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
                                         <a href="{{ route('drivers.show', $driver->id) }}" class="btn btn-sm btn-outline-primary">View</a>
@@ -217,7 +217,7 @@
                                     data-bs-target="#archiveDriverModal"
                                     data-action="${deleteUrlTemplate.replace('__ID__', driver.id)}"
                                     data-name="${escapeHtml(driver.full_name)}">
-                                ${currentUserRole === 'super_admin' ? 'Delete' : 'Archive'}
+                                Delete
                             </button>
                         `;
 

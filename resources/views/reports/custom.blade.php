@@ -95,8 +95,26 @@
                     <tbody>
                         @foreach ($rows as $row)
                             <tr>
-                                @foreach ($row as $cell)
-                                    <td>{{ $cell }}</td>
+                                @foreach ($row as $index => $cell)
+                                    @if ($report_type === 'trips' && ($columns[$index] ?? '') === 'Status')
+                                        @php
+                                            $statusValue = strtolower((string) $cell);
+                                            $statusClass = match ($statusValue) {
+                                                'completed' => 'success',
+                                                'assigned' => 'primary',
+                                                'approved' => 'info',
+                                                'rejected' => 'danger',
+                                                'pending' => 'warning',
+                                                'cancelled' => 'secondary',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <td>
+                                            <span class="badge bg-{{ $statusClass }}">{{ $cell }}</span>
+                                        </td>
+                                    @else
+                                        <td>{{ $cell }}</td>
+                                    @endif
                                 @endforeach
                             </tr>
                         @endforeach

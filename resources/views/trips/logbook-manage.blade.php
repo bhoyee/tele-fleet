@@ -10,7 +10,7 @@
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary @if (! $showArchived) active @endif" href="{{ route('logbooks.manage') }}">Active</a>
             @if ($isSuperAdmin)
-                <a class="btn btn-outline-secondary @if ($showArchived) active @endif" href="{{ route('logbooks.manage', ['archived' => 1]) }}">Archived</a>
+                <a class="btn btn-outline-secondary @if ($showArchived) active @endif" href="{{ route('logbooks.manage', ['archived' => 1]) }}">Deleted</a>
             @endif
         </div>
     </div>
@@ -67,7 +67,7 @@
                                                 data-bs-target="#archiveLogbookModal"
                                                 data-delete-action="{{ route('logbooks.archive', $log->id) }}"
                                                 data-delete-label="{{ $trip?->request_number ?? 'Logbook' }}">
-                                            Archive
+                                            Delete
                                         </button>
                                     @elseif ($isSuperAdmin)
                                         <button type="button"
@@ -100,18 +100,18 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Archive Logbook</h5>
+                    <h5 class="modal-title">Delete Logbook</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-0">Archive logbook for <strong id="archiveLogbookLabel"></strong>? This will hide the logbook from active lists.</p>
+                    <p class="mb-0">Delete logbook for <strong id="archiveLogbookLabel"></strong>? This will remove it from active lists.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <form method="POST" id="archiveLogbookForm">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-danger">Archive</button>
+                        <button type="submit" class="btn btn-danger">Delete</button>
                     </form>
                 </div>
             </div>

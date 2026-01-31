@@ -554,7 +554,18 @@
                                         <td class="text-truncate" style="max-width: 100px;">{{ $trip->branch?->name ?? 'N/A' }}</td>
                                         <td class="text-truncate" style="max-width: 100px;">{{ $trip->requestedBy?->name ?? 'N/A' }}</td>
                                         <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
-                                        <td><span class="badge bg-secondary">{{ ucfirst($trip->status) }}</span></td>
+                                        @php
+                                            $tripStatusClass = match ($trip->status) {
+                                                'completed' => 'success',
+                                                'assigned' => 'primary',
+                                                'approved' => 'info',
+                                                'rejected' => 'danger',
+                                                'pending' => 'warning',
+                                                'cancelled' => 'secondary',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <td><span class="badge bg-{{ $tripStatusClass }}">{{ ucfirst($trip->status) }}</span></td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -622,8 +633,22 @@
                                         <td class="text-truncate" style="max-width: 100px;">{{ $vehicle->registration_number }}</td>
                                         <td class="text-truncate" style="max-width: 80px;">{{ $vehicle->make }}</td>
                                         <td class="text-truncate" style="max-width: 80px;">{{ $vehicle->model }}</td>
-                                        <td><span class="badge bg-secondary">{{ ucfirst(str_replace('_', ' ', $vehicle->report_status)) }}</span></td>
-                                        <td><span class="badge bg-light text-dark">{{ ucfirst($vehicle->maintenance_state ?? 'ok') }}</span></td>
+                                        @php
+                                            $vehicleStatusClass = match ($vehicle->report_status) {
+                                                'available' => 'success',
+                                                'in_use' => 'primary',
+                                                'maintenance' => 'warning',
+                                                'offline' => 'secondary',
+                                                default => 'secondary',
+                                            };
+                                            $maintenanceStateClass = match ($vehicle->maintenance_state) {
+                                                'overdue' => 'danger',
+                                                'due' => 'warning',
+                                                default => 'success',
+                                            };
+                                        @endphp
+                                        <td><span class="badge bg-{{ $vehicleStatusClass }}">{{ ucfirst(str_replace('_', ' ', $vehicle->report_status)) }}</span></td>
+                                        <td><span class="badge bg-{{ $maintenanceStateClass }}">{{ ucfirst($vehicle->maintenance_state ?? 'ok') }}</span></td>
                                         <td>{{ number_format($vehicle->current_mileage ?? 0) }}</td>
                                     </tr>
                                 @endforeach
@@ -679,7 +704,16 @@
                                 @foreach ($tables['drivers'] as $driverRow)
                                     <tr>
                                         <td class="text-truncate" style="max-width: 120px;">{{ $driverRow['driver']?->full_name ?? 'N/A' }}</td>
-                                        <td><span class="badge bg-secondary">{{ ucfirst($driverRow['driver']?->status ?? 'N/A') }}</span></td>
+                                        @php
+                                            $driverStatus = $driverRow['driver']?->status ?? 'unknown';
+                                            $driverStatusClass = match ($driverStatus) {
+                                                'active' => 'success',
+                                                'inactive' => 'secondary',
+                                                'suspended' => 'danger',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <td><span class="badge bg-{{ $driverStatusClass }}">{{ ucfirst($driverStatus) }}</span></td>
                                         <td>{{ $driverRow['driver']?->license_expiry?->format('M d, Y') ?? 'N/A' }}</td>
                                         <td>{{ $driverRow['trips_count'] }}</td>
                                     </tr>
@@ -746,8 +780,25 @@
                                     <tr>
                                         <td class="text-truncate" style="max-width: 100px;">{{ $incident->reference }}</td>
                                         <td class="text-truncate" style="max-width: 100px;">{{ $incident->branch?->name ?? 'N/A' }}</td>
-                                        <td>{{ ucfirst($incident->severity) }}</td>
-                                        <td><span class="badge bg-secondary">{{ ucfirst(str_replace('_', ' ', $incident->status)) }}</span></td>
+                                        @php
+                                            $incidentSeverityClass = match ($incident->severity) {
+                                                'minor' => 'warning',
+                                                'major' => 'danger',
+                                                'critical' => 'dark',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <td><span class="badge bg-{{ $incidentSeverityClass }}">{{ ucfirst($incident->severity) }}</span></td>
+                                        @php
+                                            $incidentStatusClass = match ($incident->status) {
+                                                'open' => 'warning',
+                                                'under_review' => 'info',
+                                                'resolved' => 'success',
+                                                'cancelled' => 'secondary',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <td><span class="badge bg-{{ $incidentStatusClass }}">{{ ucfirst(str_replace('_', ' ', $incident->status)) }}</span></td>
                                         <td>{{ $incident->incident_date?->format('M d, Y') }}</td>
                                     </tr>
                                 @endforeach
@@ -805,7 +856,16 @@
                                 @foreach ($tables['maintenances'] as $maintenance)
                                     <tr>
                                         <td class="text-truncate" style="max-width: 100px;">{{ $maintenance->vehicle?->registration_number ?? 'N/A' }}</td>
-                                        <td><span class="badge bg-secondary">{{ ucfirst(str_replace('_', ' ', $maintenance->status)) }}</span></td>
+                                        @php
+                                            $maintenanceStatusClass = match ($maintenance->status) {
+                                                'scheduled' => 'warning',
+                                                'in_progress' => 'primary',
+                                                'completed' => 'success',
+                                                'cancelled' => 'secondary',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <td><span class="badge bg-{{ $maintenanceStatusClass }}">{{ ucfirst(str_replace('_', ' ', $maintenance->status)) }}</span></td>
                                         <td>{{ $maintenance->scheduled_for?->format('M d, Y') }}</td>
                                         <td>{{ $maintenance->started_at?->format('M d, Y H:i') ?? 'N/A' }}</td>
                                         <td>{{ $maintenance->completed_at?->format('M d, Y H:i') ?? 'N/A' }}</td>
