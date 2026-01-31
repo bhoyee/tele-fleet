@@ -106,12 +106,22 @@ class SystemToolsController extends Controller
 
         $selected = $request->query('file') ?? ($files->first()['name'] ?? null);
         $logPath = $selected ? ($logDir . DIRECTORY_SEPARATOR . basename($selected)) : null;
-        $entries = $logPath ? $this->tailFile($logPath, 200) : collect();
+        $rawEntries = $logPath ? $this->tailFile($logPath, 200) : collect();
+        [$entries, $summary] = $this->parseLogEntries($rawEntries);
+        $entries = $this->applyLogFilters($entries, $request);
+        $summary = $this->buildSummary($entries);
 
         return view('admin.system.logs', [
             'files' => $files,
             'selected' => $selected,
             'entries' => $entries,
+            'summary' => $summary,
+            'filters' => [
+                'level' => $request->query('level'),
+                'from' => $request->query('from'),
+                'to' => $request->query('to'),
+                'q' => $request->query('q'),
+            ],
         ]);
     }
 
@@ -120,6 +130,31 @@ class SystemToolsController extends Controller
         $path = 'logs/' . basename($filename);
         if (! Storage::disk('local')->exists($path)) {
             abort(404);
+        }
+
+        if (request()->query('format') === 'csv') {
+            $lines = $this->tailFile(Storage::disk('local')->path($path), 1000);
+            [$entries] = $this->parseLogEntries($lines);
+
+            return response()->streamDownload(function () use ($entries): void {
+                $handle = fopen('php://output', 'wb');
+                fputcsv($handle, ['timestamp', 'env', 'level', 'message', 'context']);
+                foreach ($entries as $entry) {
+                    if (! is_array($entry)) {
+                        continue;
+                    }
+                    fputcsv($handle, [
+                        $entry['timestamp'] ?? '',
+                        $entry['env'] ?? '',
+                        $entry['level'] ?? '',
+                        $entry['message'] ?? '',
+                        $entry['context'] ? json_encode($entry['context']) : '',
+                    ]);
+                }
+                fclose($handle);
+            }, basename($filename, '.log') . '.csv', [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
         }
 
         return Storage::disk('local')->download($path);
@@ -372,5 +407,121 @@ class SystemToolsController extends Controller
         }
 
         return collect(array_reverse($buffer));
+    }
+
+    private function parseLogEntries(Collection $entries): array
+    {
+        $parsed = $entries->map(function (string $line): array {
+            $pattern = '/^\[(?<timestamp>[^\]]+)\]\s(?<env>[a-zA-Z0-9_-]+)\.(?<level>[A-Z]+):\s(?<message>.*)$/';
+            if (! preg_match($pattern, $line, $matches)) {
+                return [
+                    'raw' => $line,
+                    'timestamp' => null,
+                    'env' => null,
+                    'level' => 'info',
+                    'message' => $line,
+                    'context' => null,
+                ];
+            }
+
+            $message = trim($matches['message'] ?? '');
+            $context = null;
+
+            $contextStart = strrpos($message, ' {');
+            if ($contextStart !== false && str_ends_with($message, '}')) {
+                $candidate = substr($message, $contextStart + 1);
+                $decoded = json_decode($candidate, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $context = $decoded;
+                    $message = trim(substr($message, 0, $contextStart));
+                }
+            }
+
+            return [
+                'raw' => $line,
+                'timestamp' => $matches['timestamp'] ?? null,
+                'env' => $matches['env'] ?? null,
+                'level' => strtolower($matches['level'] ?? 'info'),
+                'message' => $message,
+                'context' => $context,
+            ];
+        });
+
+        $levelCounts = $parsed
+            ->groupBy('level')
+            ->map(fn (Collection $group) => $group->count())
+            ->toArray();
+
+        $topMessages = $parsed
+            ->filter(fn (array $entry) => ! empty($entry['message']))
+            ->groupBy('message')
+            ->map(fn (Collection $group) => $group->count())
+            ->sortDesc()
+            ->take(5)
+            ->toArray();
+
+        return [$parsed, $this->buildSummary($parsed)];
+    }
+
+    private function buildSummary(Collection $entries): array
+    {
+        $levelCounts = $entries
+            ->groupBy('level')
+            ->map(fn (Collection $group) => $group->count())
+            ->toArray();
+
+        $topMessages = $entries
+            ->filter(fn (array $entry) => ! empty($entry['message']))
+            ->groupBy('message')
+            ->map(fn (Collection $group) => $group->count())
+            ->sortDesc()
+            ->take(5)
+            ->toArray();
+
+        return [
+            'counts' => $levelCounts,
+            'top_messages' => $topMessages,
+        ];
+    }
+
+    private function applyLogFilters(Collection $entries, Request $request): Collection
+    {
+        $level = $request->query('level');
+        $from = $request->query('from');
+        $to = $request->query('to');
+        $query = trim((string) $request->query('q', ''));
+
+        return $entries->filter(function (array $entry) use ($level, $from, $to, $query): bool {
+            if ($level && ($entry['level'] ?? '') !== strtolower($level)) {
+                return false;
+            }
+
+            if ($from || $to) {
+                $timestamp = $entry['timestamp'] ?? null;
+                if (! $timestamp) {
+                    return false;
+                }
+                try {
+                    $time = \Illuminate\Support\Carbon::parse($timestamp);
+                } catch (\Throwable) {
+                    return false;
+                }
+                if ($from && $time->lt(\Illuminate\Support\Carbon::parse($from)->startOfDay())) {
+                    return false;
+                }
+                if ($to && $time->gt(\Illuminate\Support\Carbon::parse($to)->endOfDay())) {
+                    return false;
+                }
+            }
+
+            if ($query !== '') {
+                $haystack = strtolower(($entry['message'] ?? '') . ' ' . json_encode($entry['context'] ?? []));
+                if (! str_contains($haystack, strtolower($query))) {
+                    return false;
+                }
+            }
+
+            return true;
+        })->values();
     }
 }

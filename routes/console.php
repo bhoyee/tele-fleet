@@ -15,6 +15,8 @@ Schedule::command('telefleet:notify-unassigned-trips')->everyFifteenMinutes();
 Schedule::command('telefleet:check-maintenance-mileage')->hourly();
 Schedule::command('telefleet:check-driver-license-expiry')->dailyAt('08:00');
 Schedule::command('telefleet:backup-database')->dailyAt(env('BACKUP_SCHEDULE_TIME', '02:00'));
+Schedule::command('telefleet:check-system-health')->everyFiveMinutes();
+Schedule::command('telefleet:clean-logs --days=14')->dailyAt('01:30');
 Schedule::call(function (): void {
     Cache::put('telefleet.scheduler_heartbeat', now()->format('M d, Y H:i:s'), now()->addMinutes(10));
 })->everyMinute();
