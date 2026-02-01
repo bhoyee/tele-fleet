@@ -24,9 +24,13 @@
                 @php
                     $notificationType = class_basename($notification->type ?? '');
                     $isChat = in_array($notificationType, ['ChatMessageNotification', 'ChatRequestNotification'], true);
+                    $notificationData = is_array($notification->data ?? null) ? $notification->data : [];
                     $title = $isChat
                         ? 'Chat Update'
-                        : ($notification->data['request_number'] ?? 'Trip Update');
+                        : ($notificationData['request_number'] ?? 'Trip Update');
+                    $ticketLabel = ! empty($notificationData['ticket_id'])
+                        ? 'TCK-' . str_pad($notificationData['ticket_id'], 5, '0', STR_PAD_LEFT)
+                        : null;
                     $message = match ($notificationType) {
                         'TripRequestCreated' => 'New trip request submitted.',
                         'TripRequestApproved' => 'Trip request approved.',
@@ -37,9 +41,11 @@
                         'TripAssignmentConflict' => 'Trip assignment needs attention.',
                         'TripCompletionReminderNotification' => 'Trip completion reminder sent.',
                         'OverdueTripNotification' => 'Trip marked overdue.',
-                        default => $notification->data['status']
-                            ? ('Status: ' . ucfirst($notification->data['status']))
-                            : ($notification->data['purpose'] ?? 'Trip update received.'),
+                        'SupportTicketCreated' => 'New support ticket submitted.',
+                        'SupportTicketReply' => 'New reply on support ticket.',
+                        default => ($notificationData['status'] ?? null)
+                            ? ('Status: ' . ucfirst($notificationData['status']))
+                            : ($notificationData['purpose'] ?? 'Trip update received.'),
                     };
                 @endphp
                 <div class="d-flex justify-content-between align-items-start border-bottom py-3">
@@ -50,7 +56,12 @@
                                 <span class="badge bg-primary ms-2">New</span>
                             @endif
                         </div>
-                        <div class="text-muted small">{{ $message }}</div>
+                        <div class="text-muted small">
+                            {{ $message }}
+                            @if ($ticketLabel)
+                                <div>{{ $ticketLabel }}</div>
+                            @endif
+                        </div>
                         <div class="text-muted small">Received {{ $notification->created_at->diffForHumans() }}</div>
                     </div>
                     <div class="text-end">
