@@ -6,6 +6,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View as ViewFacade;
 
 class NotificationController extends Controller
 {
@@ -89,6 +90,30 @@ class NotificationController extends Controller
                 ->unreadNotifications()
                 ->whereNotIn('type', $excludedTypes)
                 ->count(),
+        ]);
+    }
+
+    public function latest(Request $request)
+    {
+        $excludedTypes = [\App\Notifications\ChatMessageNotification::class];
+        $user = $request->user();
+        $unreadCount = $user
+            ->unreadNotifications()
+            ->whereNotIn('type', $excludedTypes)
+            ->count();
+
+        $latestNotifications = $user
+            ->notifications()
+            ->whereNotIn('type', $excludedTypes)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $html = ViewFacade::make('notifications._dropdown_list', compact('latestNotifications'))->render();
+
+        return response()->json([
+            'count' => $unreadCount,
+            'html' => $html,
         ]);
     }
 }

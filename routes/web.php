@@ -16,6 +16,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SupportTicketController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -119,6 +120,21 @@ Route::middleware('auth')->group(function () {
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read_all');
     Route::delete('/notifications/cleanup', [NotificationController::class, 'cleanupDuplicates'])->name('notifications.cleanup');
     Route::get('/notifications/count', [NotificationController::class, 'count'])->name('notifications.count');
+    Route::get('/notifications/latest', [NotificationController::class, 'latest'])->name('notifications.latest');
+});
+
+Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
+    Route::get('helpdesk', [SupportTicketController::class, 'index'])->name('helpdesk.index');
+    Route::get('helpdesk/create', [SupportTicketController::class, 'create'])->name('helpdesk.create');
+    Route::post('helpdesk', [SupportTicketController::class, 'store'])->name('helpdesk.store');
+    Route::get('helpdesk/{ticket}', [SupportTicketController::class, 'show'])->name('helpdesk.show');
+    Route::patch('helpdesk/{ticket}', [SupportTicketController::class, 'update'])->name('helpdesk.update');
+    Route::post('helpdesk/{ticket}/messages', [SupportTicketController::class, 'storeMessage'])->name('helpdesk.messages.store');
+    Route::get('helpdesk/{ticket}/attachments/{attachment}', [SupportTicketController::class, 'downloadAttachment'])->name('helpdesk.attachments.download');
+});
+
+Route::middleware(['auth', 'role:super_admin'])->group(function () {
+    Route::delete('helpdesk/{ticket}', [SupportTicketController::class, 'destroy'])->name('helpdesk.destroy');
 });
 
 Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')->group(function () {

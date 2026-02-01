@@ -974,12 +974,22 @@
                             </li>
                         @endif
 
-                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+
+                        @if (config('app.realtime_enabled') && in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
                                 <button class="nav-link w-100 text-start" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget" aria-controls="chatWidget">
                                     <i class="bi bi-chat-dots nav-icon"></i>
                                     <span>Chat</span>
                                 </button>
+                            </li>
+                        @endif
+
+                        @if (! config('app.realtime_enabled') && in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                            <li class="nav-item">
+                                <a class="nav-link @if (request()->routeIs('helpdesk.*')) active @endif" href="{{ route('helpdesk.index') }}">
+                                    <i class="bi bi-life-preserver nav-icon"></i>
+                                    <span>Help Desk</span>
+                                </a>
                             </li>
                         @endif
 
@@ -1084,85 +1094,8 @@
                                         </form>
                                     @endif
                                 </div>
-                                <div class="notification-list">
-                                    @forelse ($latestNotifications as $notification)
-                                        <div class="px-3 py-2 border-bottom">
-                                        @php
-                                            $notificationData = is_array($notification->data ?? null) ? $notification->data : [];
-                                            $notificationType = class_basename($notification->type ?? '');
-                                            $chatTypes = ['ChatRequestNotification', 'ChatClosedNotification', 'ChatMessageNotification'];
-                                            $isChat = in_array($notificationType, $chatTypes, true);
-                                            $isSystemHealth = $notificationType === 'SystemHealthAlert';
-                                            $tripLabel = $notificationData['request_number']
-                                                ?? (! empty($notificationData['trip_request_id'])
-                                                    ? ('Trip #'.$notificationData['trip_request_id'])
-                                                    : null);
-                                            $tripTitle = $tripLabel ? "{$tripLabel} Update" : 'Trip Update';
-                                            $title = match ($notificationType) {
-                                                'ChatRequestNotification' => 'Chat Request',
-                                                'ChatClosedNotification' => 'Chat Closed',
-                                                'ChatMessageNotification' => 'Chat Message',
-                                                'SystemHealthAlert' => $notificationData['title'] ?? 'System Health',
-                                                default => $tripTitle,
-                                            };
-
-                                            $message = match ($notificationType) {
-                                                'ChatRequestNotification' => 'New chat request received.',
-                                                'ChatClosedNotification' => 'Chat has been closed.',
-                                                'ChatMessageNotification' => 'New chat message received.',
-                                                'SystemHealthAlert' => $notificationData['message'] ?? 'System health alert.',
-                                                'TripRequestCreated' => 'New trip request submitted.',
-                                                'TripRequestApproved' => 'Trip request approved.',
-                                                'TripRequestAssigned' => 'Trip assigned to driver/vehicle.',
-                                                'TripRequestRejected' => 'Trip request rejected.',
-                                                'TripRequestCancelled' => 'Trip request cancelled.',
-                                                'TripAssignmentPending' => 'Trip awaiting assignment.',
-                                                'TripAssignmentConflict' => 'Trip assignment needs attention.',
-                                                'TripCompletionReminderNotification' => 'Trip completion reminder sent.',
-                                                'OverdueTripNotification' => 'Trip marked overdue.',
-                                                default => ! empty($notificationData['status'])
-                                                    ? ('Status: ' . ucfirst($notificationData['status']))
-                                                    : ($notificationData['purpose'] ?? 'Trip update received.'),
-                                            };
-
-                                            if (! $isChat && $tripLabel) {
-                                                $message = "{$tripLabel} • {$message}";
-                                            }
-
-                                            $viewUrl = ! empty($notificationData['trip_request_id'])
-                                                ? route('trips.show', $notificationData['trip_request_id'])
-                                                : ($isSystemHealth
-                                                    ? route('admin.health')
-                                                    : ($isChat && ! empty($notificationData['conversation_id'])
-                                                        ? null
-                                                        : null));
-                                        @endphp
-                                            <div class="d-flex justify-content-between">
-                                                <div class="fw-semibold small">
-                                                    {{ $title }}
-                                                    <span class="badge bg-primary ms-1">New</span>
-                                                </div>
-                                                <small class="text-muted">{{ $notification->created_at->diffForHumans() }}</small>
-                                            </div>
-                                            <div class="text-muted small">
-                                                {{ $message }}
-                                            </div>
-                                            <div class="d-flex gap-2 mt-2">
-                                                <form method="POST" action="{{ route('notifications.read', $notification->id) }}">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button class="btn btn-outline-primary btn-sm" type="submit">Mark read</button>
-                                                </form>
-                                                @if ($viewUrl)
-                                                    <a class="btn btn-light btn-sm" href="{{ $viewUrl }}">View</a>
-                                                @elseif ($isChat && ! empty($notification->data['conversation_id']))
-                                                    <button class="btn btn-light btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget">Open chat</button>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @empty
-                                        <div class="px-3 py-4 text-center text-muted">No unread notifications.</div>
-                                    @endforelse
+                                <div class="notification-list" id="notificationDropdownList">
+                                    @include('notifications._dropdown_list', ['latestNotifications' => $latestNotifications])
                                 </div>
                                 <div class="px-3 py-2 text-center border-top">
                                     <a class="text-decoration-none fw-semibold text-primary" href="{{ route('notifications.index') }}">View all notifications</a>
@@ -1240,89 +1173,91 @@
             </div>
         </div>
 
-        <button class="btn btn-primary chat-widget-button" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget" aria-controls="chatWidget">
-            <i class="bi bi-chat-dots"></i>
-            <span class="d-none d-sm-inline">Chat</span>
-            <span class="chat-widget-badge" id="chatWidgetBadge"></span>
-        </button>
+        @if (config('app.realtime_enabled'))
+            <button class="btn btn-primary chat-widget-button" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget" aria-controls="chatWidget">
+                <i class="bi bi-chat-dots"></i>
+                <span class="d-none d-sm-inline">Chat</span>
+                <span class="chat-widget-badge" id="chatWidgetBadge"></span>
+            </button>
 
-        <div class="offcanvas offcanvas-end chat-offcanvas" tabindex="-1" id="chatWidget" aria-labelledby="chatWidgetLabel">
-            <div class="offcanvas-header border-bottom">
-                <div>
-                    <h5 class="mb-0" id="chatWidgetLabel">Chat Support</h5>
-                    <small class="text-muted">Realtime assistance</small>
-                </div>
-                <div class="d-flex align-items-center gap-2 ms-auto">
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-                </div>
-            </div>
-            <div class="offcanvas-body">
-                <div class="chat-widget-body">
-                    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
-                        <div class="chat-widget-section" id="chatSupportSection">
-                            <div class="fw-semibold mb-2">Start support chat</div>
-                            <div id="chatSupportBot">
-                                <div class="small text-muted mb-2">What do you need help with?</div>
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-primary" type="button" data-issue="{{ \App\Models\ChatConversation::ISSUE_ADMIN }}">
-                                        Administrative (Trips/Reports)
-                                    </button>
-                                    <button class="btn btn-outline-primary" type="button" data-issue="{{ \App\Models\ChatConversation::ISSUE_TECH }}">
-                                        Technical Support
-                                    </button>
-                                </div>
-                                <button class="btn btn-primary w-100 mt-3" type="button" id="chatSupportStart" disabled>Start chat</button>
-                                <input type="hidden" id="chatSupportIssue" value="">
-                                <div class="small text-muted mt-2">We connect you to the right team after review.</div>
-                            </div>
-                            <div id="chatSupportFeedback" class="mt-2"></div>
-                        </div>
-                    @endif
-
-                    <div class="chat-widget-section" id="chatWidgetConversationsSection">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-semibold">Conversations</span>
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="btn-group btn-group-sm" role="group" aria-label="Chat view">
-                                    <button class="btn btn-outline-secondary active" type="button" id="chatWidgetActiveTab">Active</button>
-                                    <button class="btn btn-outline-secondary" type="button" id="chatWidgetHistoryTab">History</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="chatWidgetPending" class="mb-3"></div>
-                        <div class="chat-widget-list" id="chatWidgetList">
-                            <div class="text-muted small">No conversations loaded yet.</div>
-                        </div>
+            <div class="offcanvas offcanvas-end chat-offcanvas" tabindex="-1" id="chatWidget" aria-labelledby="chatWidgetLabel">
+                <div class="offcanvas-header border-bottom">
+                    <div>
+                        <h5 class="mb-0" id="chatWidgetLabel">Chat Support</h5>
+                        <small class="text-muted">Realtime assistance</small>
                     </div>
-
-                    <div class="chat-widget-thread" id="chatWidgetThread">
-                        <div class="chat-widget-thread-header d-flex justify-content-between align-items-start gap-2">
-                            <div>
-                                <div class="fw-semibold" id="chatWidgetThreadTitle">Select a conversation</div>
-                                <div class="text-muted small" id="chatWidgetThreadStatus">Waiting to load</div>
-                            </div>
-                            @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
-                                <button class="btn btn-outline-danger btn-sm" type="button" id="chatWidgetClose" disabled>Close</button>
-                            @endif
-                        </div>
-                        <div class="chat-widget-messages" id="chatWidgetMessages">
-                            <div class="chat-widget-placeholder">Choose a conversation to start messaging.</div>
-                        </div>
-                        <div class="chat-widget-input" id="chatWidgetInput">
-                            <input class="form-control" type="text" id="chatWidgetMessageInput" placeholder="Type your message..." disabled>
-                            <button class="btn btn-primary" type="button" id="chatWidgetSend" disabled>Send</button>
-                        </div>
-                        <div class="p-3 border-top bg-light d-none" id="chatWidgetAcceptActions">
-                            <div class="small text-muted mb-2">This chat is pending. Accept to start messaging.</div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-success w-100" type="button" id="chatWidgetAccept">Accept</button>
-                                <button class="btn btn-outline-danger w-100" type="button" id="chatWidgetDecline">Decline</button>
-                            </div>
-                        </div>
+                    <div class="d-flex align-items-center gap-2 ms-auto">
+                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                     </div>
                 </div>
+                <div class="offcanvas-body">
+                    <div class="chat-widget-body">
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                            <div class="chat-widget-section" id="chatSupportSection">
+                                <div class="fw-semibold mb-2">Start support chat</div>
+                                <div id="chatSupportBot">
+                                    <div class="small text-muted mb-2">What do you need help with?</div>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-primary" type="button" data-issue="{{ \App\Models\ChatConversation::ISSUE_ADMIN }}">
+                                            Administrative (Trips/Reports)
+                                        </button>
+                                        <button class="btn btn-outline-primary" type="button" data-issue="{{ \App\Models\ChatConversation::ISSUE_TECH }}">
+                                            Technical Support
+                                        </button>
+                                    </div>
+                                    <button class="btn btn-primary w-100 mt-3" type="button" id="chatSupportStart" disabled>Start chat</button>
+                                    <input type="hidden" id="chatSupportIssue" value="">
+                                    <div class="small text-muted mt-2">We connect you to the right team after review.</div>
+                                </div>
+                                <div id="chatSupportFeedback" class="mt-2"></div>
+                            </div>
+                        @endif
+
+                        <div class="chat-widget-section" id="chatWidgetConversationsSection">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-semibold">Conversations</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Chat view">
+                                        <button class="btn btn-outline-secondary active" type="button" id="chatWidgetActiveTab">Active</button>
+                                        <button class="btn btn-outline-secondary" type="button" id="chatWidgetHistoryTab">History</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="chatWidgetPending" class="mb-3"></div>
+                            <div class="chat-widget-list" id="chatWidgetList">
+                                <div class="text-muted small">No conversations loaded yet.</div>
+                            </div>
+                        </div>
+
+                        <div class="chat-widget-thread" id="chatWidgetThread">
+                            <div class="chat-widget-thread-header d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div class="fw-semibold" id="chatWidgetThreadTitle">Select a conversation</div>
+                                    <div class="text-muted small" id="chatWidgetThreadStatus">Waiting to load</div>
+                                </div>
+                                @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                                    <button class="btn btn-outline-danger btn-sm" type="button" id="chatWidgetClose" disabled>Close</button>
+                                @endif
+                            </div>
+                            <div class="chat-widget-messages" id="chatWidgetMessages">
+                                <div class="chat-widget-placeholder">Choose a conversation to start messaging.</div>
+                            </div>
+                            <div class="chat-widget-input" id="chatWidgetInput">
+                                <input class="form-control" type="text" id="chatWidgetMessageInput" placeholder="Type your message..." disabled>
+                                <button class="btn btn-primary" type="button" id="chatWidgetSend" disabled>Send</button>
+                            </div>
+                            <div class="p-3 border-top bg-light d-none" id="chatWidgetAcceptActions">
+                                <div class="small text-muted mb-2">This chat is pending. Accept to start messaging.</div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success w-100" type="button" id="chatWidgetAccept">Accept</button>
+                                    <button class="btn btn-outline-danger w-100" type="button" id="chatWidgetDecline">Decline</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        @endif
 
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
@@ -1497,9 +1432,35 @@
                     .catch(() => {});
             };
 
+            const refreshNotificationDropdown = () => {
+                fetch('{{ route("notifications.latest") }}', { cache: 'no-store' })
+                    .then(response => response.json())
+                    .then(data => {
+                        const badge = document.querySelector('.notification-badge');
+                        if (badge) {
+                            if (data.count > 0) {
+                                badge.textContent = data.count;
+                                badge.style.display = 'flex';
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        }
+                        const list = document.getElementById('notificationDropdownList');
+                        if (list && typeof data.html === 'string') {
+                            list.innerHTML = data.html;
+                        }
+                    })
+                    .catch(() => {});
+            };
+
             // Auto-refresh notifications every 15 seconds
-            refreshNotificationCount();
-            setInterval(refreshNotificationCount, 15000);
+            if (realtimeEnabled) {
+                refreshNotificationCount();
+                setInterval(refreshNotificationCount, 15000);
+            } else {
+                refreshNotificationDropdown();
+                setInterval(refreshNotificationDropdown, 30000);
+            }
 
             const chatWidget = document.getElementById('chatWidget');
             if (chatWidget) {
@@ -2206,3 +2167,5 @@
         @stack('scripts')
     </body>
 </html>
+
+
