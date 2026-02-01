@@ -93,7 +93,7 @@
 ## 1. Introduction
 Tele-Fleet manages trips, vehicles, drivers, incidents, maintenance, and reporting in a single system. This manual explains the end-to-end workflow by role and describes how real-time updates, approvals, and reporting work.
 
-![Tele-Fleet overview](/doc-imgs/intro.png)
+![Tele-Fleet overview](../public/doc-imgs/intro.png)
 
 ---
 
@@ -112,7 +112,7 @@ Access rules are enforced at module and record level. Branch users only see thei
 2. Enter your credentials.
 3. You will be redirected to your role-specific dashboard.
 
-![Login screen](/doc-imgs/login.png)
+![Login screen](../public/doc-imgs/login.png)
 
 ### 3.1 Forgot Password
 1. Click **Forgot your password?** on the login page.
@@ -120,7 +120,7 @@ Access rules are enforced at module and record level. Branch users only see thei
 3. Check your email for the reset link (and your spam/junk folder if you do not see it) and follow the instructions.
 4. Set a new password and log in again.
 
-![Forgot password screen](/doc-imgs/forgot.png)
+![Forgot password screen](../public/doc-imgs/forgot.png)
 
 If your session expires, you will be redirected to login and asked to authenticate again.
 
@@ -157,7 +157,7 @@ Each role sees a tailored dashboard with live metrics, charts, calendars, and ta
 - **Charts**: Trip status tracker (current month)
 - **Tables**: Upcoming trips (their own requests)
   
-![Branch admin dashboardscreen](/doc-imgs/branch-admin-dash.png)
+![Branch admin dashboardscreen](../public/doc-imgs/branch-admin-dash.png)
 
 ### 5.2 Branch Head
 - **Cards**: Branch completion metrics and totals for the month
@@ -165,7 +165,7 @@ Each role sees a tailored dashboard with live metrics, charts, calendars, and ta
 - **Charts**: Trip status tracker (current month)
 - **Tables**: Upcoming trips for branch (admin + head)
 
-![Branch head dashboardscreen](/doc-imgs/branch-head-dash.png)
+![Branch head dashboardscreen](../public/doc-imgs/branch-head-dash.png)
 
 ### 5.3 Fleet Manager
 - **Cards**: Fleet status (available, in-use, maintenance), driver on duty, incidents, maintenance due
@@ -173,7 +173,7 @@ Each role sees a tailored dashboard with live metrics, charts, calendars, and ta
 - **Charts**: Fleet status overview (vehicles, drivers, incidents, trip mix)
 - **Tables**: Pending trips and operational queues
 
-![Branch head dashboardscreen](/doc-imgs/fleet-manager-dash.png)
+![Branch head dashboardscreen](../public/doc-imgs/fleet-manager-dash.png)
 
 ### 5.4 Super Admin
 - **All Fleet Manager features**, plus:
@@ -182,7 +182,7 @@ Each role sees a tailored dashboard with live metrics, charts, calendars, and ta
 
 All dashboards use real-time updates when available and silently fall back to polling when required.
 
-![Branch head dashboardscreen](/doc-imgs/super-admin-dash.png)
+![Branch head dashboardscreen](../public/doc-imgs/super-admin-dash.png)
 
 ---
 
@@ -192,7 +192,7 @@ All dashboards use real-time updates when available and silently fall back to po
 2. Enter: purpose, destination, trip date/time, passengers, and estimated trip days.
 3. Submit the request.
 
-![Create a Trip screen](/doc-imgs/trip-request.png)
+![Create a Trip screen](../public/doc-imgs/trip-request.png)
 
 ### 6.2 Track a Trip
 - Status values: **Pending**, **Approved**, **Assigned**, **Completed**, **Rejected**, **Cancelled**.
@@ -204,7 +204,7 @@ Cancel is allowed when:
 - The trip is **Pending** (always), or
 - The trip date/time is in the future (not completed)
 
-![Track Trip screen](/doc-imgs/track-trip.png)
+![Track Trip screen](../public/doc-imgs/track-trip.png)
 
 ### 6.4 Manage Trips (Fleet Manager/Super Admin)
 - **Edit/Update**: Open a trip and click **Edit** to update details.
@@ -224,7 +224,7 @@ Cancel is allowed when:
 - If vehicles or drivers are not yet available, you can approve the trip first and assign later.
 - Approved trips without assignment trigger reminders before the trip time.
 
-![Trip Approval screen](/doc-imgs/trip-approval.png)
+![Trip Approval screen](../public/doc-imgs/trip-approval.png)
 
 ---
 
@@ -234,14 +234,14 @@ Trips are monitored against their date/time and **Estimated Trip Days**:
 - **Overdue** indicates the trip is further beyond that completion window.
 - Due/Overdue status appears in tables and can highlight urgent items.
 
-![Trip Status screen](/doc-imgs/trip-status.png)
+![Trip Status screen](../public/doc-imgs/trip-status.png)
 
 ---
 
 ## 9. Logbooks
 Logbooks capture trip completion details and are managed by Fleet Manager and Super Admin.
 
-![Logbooks screen](/doc-imgs/logbooks.png)
+![Logbooks screen](../public/doc-imgs/logbooks.png)
 
 ### 9.1 Accessing Logbooks
 - Go to **Logbooks** in the sidebar.
@@ -252,7 +252,7 @@ Logbooks capture trip completion details and are managed by Fleet Manager and Su
 1. Open a completed or assigned trip and click **Logbook**.
 2. Enter trip completion details and submit.
 
-![Create Logbooks screen](/doc-imgs/create-logbook.png)
+![Create Logbooks screen](../public/doc-imgs/create-logbook.png)
 
 ### 9.3 Managing Logbooks
 - **Edit**: Fleet Manager can edit active logbooks.
@@ -260,7 +260,7 @@ Logbooks capture trip completion details and are managed by Fleet Manager and Su
 - **Restore**: Super Admin can restore archived logbooks.
 - **Permanent Delete**: Super Admin can permanently delete archived logbooks when required.
 
-![Manage Logbooks screen](/doc-imgs/manage-logbook.png)
+![Manage Logbooks screen](../public/doc-imgs/manage-logbook.png)
 ---
 
 ## 10. Incidents
@@ -269,13 +269,13 @@ Logbooks capture trip completion details and are managed by Fleet Manager and Su
 2. Select related trip (auto-fills vehicle/driver when applicable).
 3. Fill in severity, description, date/time, and upload attachments.
 
-![incident screen](/doc-imgs/new-incident.png)
+![incident screen](../public/doc-imgs/new-incident.png)
 
 ### 10.2 Status Workflow
 - Open → Under Review → Resolved
 - Cancelled for withdrawn incidents
 
-![incident status screen](/doc-imgs/incident-status.png)
+![incident status screen](../public/doc-imgs/incident-status.png)
 
 ### 10.3 Manage Incidents (CRUD)
 - **Create**: Incidents > New Incident.
@@ -286,7 +286,7 @@ Logbooks capture trip completion details and are managed by Fleet Manager and Su
 - **Restore**: Super Admin can restore soft-deleted incidents.
 - **Permanent Delete**: Super Admin can permanently delete soft-deleted incidents.
 
-![Manage incident screen](/doc-imgs/incident.png)
+![Manage incident screen](../public/doc-imgs/incident.png)
 
 ### 10.4 Visibility
 - Branch users see incidents from their branch only.
@@ -305,20 +305,20 @@ Fleet roles manage vehicle records end‑to‑end.
 - Go to **Vehicles** in the sidebar (Fleet Manager / Super Admin).
 - Use the search, filters, or status badges to quickly locate a vehicle.
 
-![Manage Vehicle screen](/doc-imgs/vehicles.png)
+![Manage Vehicle screen](../public/doc-imgs/vehicles.png)
 
 ### 11.2 Create a New Vehicle
 - Click **New Vehicle**.
 - Fill registration, make/model, current mileage, last maintenance mileage, and status.
 - Save to add the vehicle to the fleet list.
 
-![New Vehicle screen](/doc-imgs/new-vehicle.png)
+![New Vehicle screen](../public/doc-imgs/new-vehicle.png)
 
 ### 11.3 View Vehicle Details
 - In the Vehicles table, click **View**.
 - The details page shows full vehicle profile, current status, maintenance state, analytics, and active trips.
 
-![View Vehicle Details screen](/doc-imgs/view-vehicle.png)
+![View Vehicle Details screen](../public/doc-imgs/view-vehicle.png)
 
 
 ### 11.4 Edit or Update a Vehicle
@@ -326,7 +326,7 @@ Fleet roles manage vehicle records end‑to‑end.
 - Update any fields (mileage, maintenance details, status).
 - Save changes.
 
-![Edit Vehicle Details screen](/doc-imgs/edit-vehicle.png)
+![Edit Vehicle Details screen](../public/doc-imgs/edit-vehicle.png)
 
 ### 11.5 Delete / Restore (Soft & Hard Delete)
 - **Fleet Manager**: Delete performs a **soft delete** (archive). The vehicle is removed from active lists.
@@ -341,7 +341,7 @@ Fleet roles manage vehicle records end‑to‑end.
   - Badges appear in the status column to highlight these states.
 
 
-![Manage Vehicle screen](/doc-imgs/vehicles.png)
+![Manage Vehicle screen](../public/doc-imgs/vehicles.png)
 ---
 
 ## 12. Drivers
@@ -351,28 +351,28 @@ Fleet roles manage driver records end‑to‑end.
 - Go to **Drivers** in the sidebar (Fleet Manager / Super Admin).
 - Use search and status filters to find a specific driver quickly.
 
-![Manage Driver screen](/doc-imgs/driver.png)
+![Manage Driver screen](../public/doc-imgs/driver.png)
 ### 12.2 Create a New Driver
 - Click **New Driver**.
 - Enter driver name, license details, phone, and status.
 - Save to add the driver to the roster.
 
 
-![New Driver screen](/doc-imgs/new-driver.png)
+![New Driver screen](../public/doc-imgs/new-driver.png)
 
 
 ### 12.3 View Driver Details
 - In the Drivers table, click **View**.
 - The details page shows full driver profile, license expiry, analytics, and active trips.
 
-![View Driver Detailsscreen](/doc-imgs/view-driver.png)
+![View Driver Detailsscreen](../public/doc-imgs/view-driver.png)
 
 ### 12.4 Edit or Update a Driver
 - Click **Edit** on the table or from the details page.
 - Update license expiry, status, or contact information.
 - Save changes.
 
-![Edit Driver Details screen](/doc-imgs/edit-driver.png)
+![Edit Driver Details screen](../public/doc-imgs/edit-driver.png)
 
 ### 12.5 Delete / Restore (Soft & Hard Delete)
 - **Fleet Manager**: Delete performs a **soft delete** (archive).
@@ -391,14 +391,14 @@ Fleet roles can schedule, track, and close vehicle maintenance.
 1. Go to **Maintenance** in the sidebar.
 2. Use the search and filters to find specific vehicles or records.
 
-![Access maintenance screen](/doc-imgs/maintenances.png)
+![Access maintenance screen](../public/doc-imgs/maintenances.png)
 
 ### 13.2 Schedule Maintenance
 1. Click **Schedule Maintenance**.
 2. Select the vehicle and enter the maintenance details.
 3. Save to create the schedule.
 
-![Schedule maintenance screen](/doc-imgs/schedule-maintenance.png)
+![Schedule maintenance screen](../public/doc-imgs/schedule-maintenance.png)
 
 When maintenance is **In Progress**, the vehicle status is automatically set to **Maintenance** and becomes unavailable for trip assignment.
 
@@ -408,11 +408,11 @@ When maintenance is **In Progress**, the vehicle status is automatically set to 
 
 ### 13.4 View, Edit, Update
 - **View**: Click on view button from the maintenance list to open a maintenance record to see full details and history.
-- ![view maintenance screen](/doc-imgs/view-maintenance.png)
+- ![view maintenance screen](../public/doc-imgs/view-maintenance.png)
 - 
 - **Edit/Update**: Only active records can be updated (status, dates, notes, cost).
 
-![edit maintenance screen](/doc-imgs/edit-maintenance.png)
+![edit maintenance screen](../public/doc-imgs/edit-maintenance.png)
 
 ### 13.5 Delete / Restore (Soft & Hard Delete)
 - **Fleet Manager**: Delete performs a **soft delete** (removes from active lists).
@@ -428,7 +428,7 @@ When maintenance is **In Progress**, the vehicle status is automatically set to 
 - Filter by **Due** or **Overdue** to prioritize urgent vehicles.
 - Export maintenance data to **CSV** or **PDF** for reporting.
 
-![Access maintenance screen](/doc-imgs/maintenances.png)
+![Access maintenance screen](../public/doc-imgs/maintenances.png)
 
 ---
 
@@ -441,7 +441,7 @@ When maintenance is **In Progress**, the vehicle status is automatically set to 
    - **Table** shows detailed trip history (request number, date, status).
 4. Use **Export CSV** or **Export PDF** to download the report.
 
-![my report screen](/doc-imgs/my-report.png)
+![my report screen](../public/doc-imgs/my-report.png)
 
 ### 14.2 Branch Report (Branch Head)
 1. Go to **Branch Report** in the sidebar.
@@ -451,7 +451,7 @@ When maintenance is **In Progress**, the vehicle status is automatically set to 
    - **Table** lists branch-level trips and activity.
 4. Use **Export CSV** or **Export PDF** to download a branch report labeled with the branch name.
 
-![branch report screen](/doc-imgs/branch-report.png)
+![branch report screen](../public/doc-imgs/branch-report.png)
 
 ### 14.3 Fleet Reports (Fleet Manager/Super Admin)
 1. Go to **Fleet Reports** in the sidebar.
@@ -466,7 +466,7 @@ When maintenance is **In Progress**, the vehicle status is automatically set to 
    - **Maintenance**: Maintenance status cards and maintenance schedule history.
 5. Use **Export CSV** or **Export PDF** to download the full report for the selected range.
 
-![fleet report screen](/doc-imgs/fleet-report.png)
+![fleet report screen](../public/doc-imgs/fleet-report.png)
 
 ### 14.4 Custom Reports
 1. Go to **Custom Reports** in the sidebar.
@@ -476,7 +476,7 @@ When maintenance is **In Progress**, the vehicle status is automatically set to 
 5. Review the table results for the selected filters.
 6. Use **Export CSV** or **Export PDF** to download the report.
 
-![custom report screen](/doc-imgs/custom-report.png)
+![custom report screen](../public/doc-imgs/custom-report.png)
 
 ---
 
@@ -521,7 +521,7 @@ Chat is a support channel between **Branch Admin/Branch Head** and the **Fleet M
 ## 17. System Tools (Super Admin)
 ### 17.1 System Health
 
-![System Health report screen](/doc-imgs/system-health.png)
+![System Health report screen](../public/doc-imgs/system-health.png)
 
 - The **System Health** page shows live operational checks so Super Admins can verify the app is running normally.
 - Cards include:
@@ -550,7 +550,7 @@ Chat is a support channel between **Branch Admin/Branch Head** and the **Fleet M
 - The **System Logs** page helps Super Admins review recent system activity and errors.
 
 
-![System log report screen](/doc-imgs/log.png)
+![System log report screen](../public/doc-imgs/log.png)
 
 **How to use**
 1. Open **System Logs** from the sidebar.
