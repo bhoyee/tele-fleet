@@ -1846,9 +1846,9 @@
                 }
             };
 
-            const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
+            const dashboardRealtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
             const initDashboardRealtime = () => {
-                if (!realtimeEnabled) {
+                if (!dashboardRealtimeEnabled) {
                     return;
                 }
                 const echo = window.ChatEcho ?? window.Echo;
@@ -1863,9 +1863,8 @@
                     });
             };
 
-            // Initialize dashboard if branch charts should be shown
-            if (showBranchCharts) {
-                document.addEventListener('DOMContentLoaded', function() {
+            const initDashboard = () => {
+                if (showBranchCharts) {
                     initFleetGauges();
                     initDashboardRealtime();
                     // Calendar controls
@@ -1873,7 +1872,7 @@
                     const yearSelect = document.getElementById('calendarYearSelect');
                     const prevBtn = document.getElementById('calendarPrev');
                     const nextBtn = document.getElementById('calendarNext');
-                    
+
                     // Month/year selector changes
                     if (monthSelect) {
                         monthSelect.addEventListener('change', () => {
@@ -1881,14 +1880,14 @@
                             updateCalendar();
                         });
                     }
-                    
+
                     if (yearSelect) {
                         yearSelect.addEventListener('change', () => {
                             selectedYear = Number(yearSelect.value);
                             updateCalendar();
                         });
                     }
-                    
+
                     // Calendar navigation buttons
                     if (prevBtn) {
                         prevBtn.addEventListener('click', () => {
@@ -1903,7 +1902,7 @@
                             updateCalendar();
                         });
                     }
-                    
+
                     if (nextBtn) {
                         nextBtn.addEventListener('click', () => {
                             let newMonth = selectedMonth + 1;
@@ -1917,25 +1916,27 @@
                             updateCalendar();
                         });
                     }
-                    
+
                     // Initialize data
                     updateCalendar();
                     updateTripStatus();
                     updateUpcomingTrips();
-                    
+
                     // Auto-refresh
                     setInterval(updateMetrics, 30000);
                     setInterval(updateCalendar, 60000);
                     setInterval(updateTripStatus, 60000);
                     setInterval(updateUpcomingTrips, 60000);
-                });
-            }
-
-            document.addEventListener('DOMContentLoaded', function() {
-                if (!showBranchCharts) {
+                } else {
                     initDashboardRealtime();
                 }
-            });
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initDashboard);
+            } else {
+                initDashboard();
+            }
 
             // Make chart responsive on window resize
             window.addEventListener('resize', function() {

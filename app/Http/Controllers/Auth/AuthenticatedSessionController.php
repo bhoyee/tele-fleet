@@ -29,7 +29,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $intended = $request->session()->pull('url.intended');
-        if ($intended && str_contains($intended, '/notifications/count')) {
+        if ($intended && (str_contains($intended, '/notifications/count') || str_contains($intended, '/notifications/latest'))) {
             $intended = null;
         }
 
