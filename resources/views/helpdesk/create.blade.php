@@ -1,17 +1,47 @@
 <x-admin-layout>
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <style>
+        @media (max-width: 767px) {
+            .helpdesk-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .helpdesk-actions {
+                width: 100%;
+            }
+
+            .helpdesk-actions .btn {
+                width: 100%;
+            }
+
+            .helpdesk-form .row > [class*='col-'] {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+
+            .helpdesk-submit {
+                width: 100%;
+                justify-content: stretch;
+            }
+
+            .helpdesk-submit .btn {
+                width: 100%;
+            }
+        }
+    </style>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2 helpdesk-header">
         <div>
             <h1 class="h3 mb-1">New Support Ticket</h1>
             <p class="text-muted mb-0">Provide details so we can assist quickly.</p>
         </div>
-        <div>
+        <div class="helpdesk-actions">
             <a class="btn btn-outline-secondary" href="{{ route('helpdesk.index') }}">Back to Tickets</a>
         </div>
     </div>
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
-            <form method="POST" action="{{ route('helpdesk.store') }}" enctype="multipart/form-data" id="helpdeskCreateForm">
+            <form method="POST" action="{{ route('helpdesk.store') }}" enctype="multipart/form-data" id="helpdeskCreateForm" class="helpdesk-form">
                 @csrf
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -48,7 +78,7 @@
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end mt-4">
+                <div class="d-flex justify-content-end mt-4 helpdesk-submit">
                     <button class="btn btn-primary" type="submit" id="helpdeskSubmitBtn">Submit Ticket</button>
                 </div>
             </form>

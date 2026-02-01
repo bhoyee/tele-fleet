@@ -13,6 +13,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
         <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+        <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
 
         <style>
             :root {
@@ -186,6 +187,7 @@
                 padding: 0;
                 display: flex;
                 flex-direction: column;
+                min-width: 0;
             }
 
             /* Topbar */
@@ -353,21 +355,66 @@
 
             /* Mobile Responsiveness */
             @media (max-width: 992px) {
+                .app-shell {
+                    display: block !important;
+                }
+
                 .sidebar {
-                    transform: translateX(-100%);
+                    transform: translateX(-100%) !important;
                 }
                 
                 .sidebar.active {
-                    transform: translateX(0);
+                    transform: translateX(0) !important;
                 }
                 
                 .main-content {
-                    margin-left: 0;
+                    margin-left: 0 !important;
+                    width: 100%;
                 }
                 
                 .topbar .navbar-toggler {
                     display: block;
                 }
+            }
+
+            .is-mobile .sidebar {
+                transform: translateX(-100%) !important;
+            }
+
+            .is-mobile .sidebar.active {
+                transform: translateX(0) !important;
+            }
+
+            .is-mobile .main-content {
+                margin-left: 0 !important;
+                width: 100%;
+            }
+
+            .is-mobile .app-shell {
+                display: block !important;
+            }
+
+            body.is-mobile,
+            body.is-mobile .main-content,
+            body.is-mobile .content-wrapper {
+                width: 100vw;
+                max-width: 100vw;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            body.is-mobile .content-wrapper {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            body.is-mobile .sidebar {
+                width: 0 !important;
+                overflow: hidden;
+            }
+
+            body.is-mobile .sidebar.active {
+                width: var(--sidebar-width);
             }
 
             @media (max-width: 768px) {
@@ -386,6 +433,14 @@
                     justify-content: flex-end;
                     width: 100%;
                     gap: 0.5rem !important;
+                }
+
+                .topbar .navbar-toggler {
+                    display: block !important;
+                }
+
+                #sidebarToggle {
+                    display: inline-flex !important;
                 }
 
                 .content-wrapper {
@@ -428,6 +483,64 @@
                 margin: 0 auto;
                 width: 100%;
                 flex: 1;
+            }
+
+            @media (max-width: 1200px) {
+                .app-shell {
+                    display: block !important;
+                }
+
+                .main-content {
+                    margin-left: 0 !important;
+                    width: 100%;
+                }
+
+                .sidebar {
+                    transform: translateX(-100%) !important;
+                }
+
+                .sidebar.active {
+                    transform: translateX(0) !important;
+                }
+
+                .content-wrapper {
+                    max-width: 100%;
+                    padding: 1.5rem;
+                }
+            }
+
+            @media (hover: none) and (pointer: coarse) {
+                .app-shell {
+                    display: block !important;
+                }
+
+                .main-content {
+                    margin-left: 0 !important;
+                    width: 100%;
+                }
+
+                .sidebar {
+                    transform: translateX(-100%) !important;
+                }
+
+                .sidebar.active {
+                    transform: translateX(0) !important;
+                }
+            }
+
+            @media (max-width: 768px) {
+                .content-wrapper {
+                    padding: 1rem;
+                }
+
+                .card-header,
+                .card-body {
+                    padding: 1rem;
+                }
+
+                .stat-card .stat-value {
+                    font-size: 1.5rem;
+                }
             }
 
             /* Page Header */
@@ -842,7 +955,7 @@
     </head>
     <body>
         <div class="page-progress" id="pageProgress" aria-hidden="true"></div>
-        <div class="app-shell d-flex">
+        <div class="app-shell">
             <!-- Sidebar Overlay for Mobile -->
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
@@ -1262,6 +1375,8 @@
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+        <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+        <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.4.0/dist/web/pusher.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
@@ -1270,6 +1385,42 @@
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
             const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+
+            const closeSidebar = () => {
+                if (!sidebar) {
+                    return;
+                }
+                sidebar.classList.remove('active');
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.remove('active');
+                }
+            };
+
+            const isMobileUserAgent = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+            const isTouchDevice = () => (navigator.maxTouchPoints || 0) > 0;
+
+            const syncMobileClass = () => {
+                if (window.innerWidth <= 992 || isMobileUserAgent() || isTouchDevice()) {
+                    document.body.classList.add('is-mobile');
+                    document.documentElement.style.setProperty('--sidebar-width', '0px');
+                    if (mainContent) {
+                        mainContent.style.marginLeft = '0px';
+                    }
+                    closeSidebar();
+                } else {
+                    document.body.classList.remove('is-mobile');
+                    document.documentElement.style.setProperty('--sidebar-width', '260px');
+                    if (mainContent) {
+                        mainContent.style.marginLeft = '';
+                    }
+                }
+            };
+
+            syncMobileClass();
+            window.addEventListener('resize', syncMobileClass);
+            window.addEventListener('pageshow', syncMobileClass);
+            document.addEventListener('DOMContentLoaded', syncMobileClass);
             
             if (sidebarToggle) {
                 sidebarToggle.addEventListener('click', function() {
@@ -1281,21 +1432,32 @@
             // Close sidebar when clicking overlay
             if (sidebarOverlay) {
                 sidebarOverlay.addEventListener('click', function() {
-                    sidebar.classList.remove('active');
-                    sidebarOverlay.classList.remove('active');
+                    closeSidebar();
                 });
             }
 
             // Close sidebar when clicking outside on mobile
             document.addEventListener('click', function(event) {
-                if (window.innerWidth < 992 && 
+                if (window.innerWidth <= 992 && 
                     !sidebar.contains(event.target) && 
                     !sidebarToggle.contains(event.target) &&
                     sidebar.classList.contains('active')) {
-                    sidebar.classList.remove('active');
-                    sidebarOverlay.classList.remove('active');
+                    closeSidebar();
                 }
             });
+
+            // Close sidebar after navigation on mobile
+            if (sidebar) {
+                sidebar.addEventListener('click', (event) => {
+                    const target = event.target.closest('a.nav-link, a, button');
+                    if (!target) {
+                        return;
+                    }
+                    if (window.innerWidth <= 992) {
+                        closeSidebar();
+                    }
+                });
+            }
 
             // Add smooth transitions for cards
             document.addEventListener('DOMContentLoaded', function() {
@@ -1321,6 +1483,7 @@
                         searching: true,
                         paging: true,
                         info: true,
+                        responsive: true,
                     });
                 }
 

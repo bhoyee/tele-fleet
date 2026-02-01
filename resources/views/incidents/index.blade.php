@@ -1,4 +1,26 @@
 <x-admin-layout>
+    <style>
+        .incident-action-icons {
+            display: none;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .incident-action-icons .btn {
+            padding: 0.35rem 0.5rem;
+        }
+
+        @media (max-width: 767px) {
+            .incident-action-buttons {
+                display: none !important;
+            }
+
+            .incident-action-icons {
+                display: inline-flex !important;
+            }
+        }
+    </style>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Incident Reports</h1>
@@ -25,9 +47,10 @@
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table align-middle datatable" id="incidentReportsTable">
+                <table class="table align-middle datatable dt-responsive dtr-inline" id="incidentReportsTable">
                     <thead class="table-light">
                         <tr>
+                            <th class="dtr-control" data-priority="1"></th>
                             <th>Reference</th>
                             <th>Severity</th>
                             <th>Status</th>
@@ -38,6 +61,7 @@
                     <tbody>
                         @foreach ($incidents as $incident)
                             <tr>
+                                <td class="dtr-control"></td>
                                 <td>{{ $incident->reference }}</td>
                                 @php
                                     $severityClass = match ($incident->severity) {
@@ -57,43 +81,93 @@
                                 </td>
                                 <td>{{ $incident->incident_date?->format('M d, Y') }}</td>
                                 <td class="text-end">
-                                    <a href="{{ route('incidents.show', $incident) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
-                                    @if ($incident->status === \App\Models\IncidentReport::STATUS_OPEN && !($showArchived ?? false))
-                                        <a href="{{ route('incidents.edit', $incident) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-warning"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#cancelIncidentModal"
-                                                data-cancel-action="{{ route('incidents.cancel', $incident) }}"
-                                                data-cancel-label="{{ $incident->reference }}">
-                                            Cancel
-                                        </button>
-                                    @endif
-                                    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true) && !($showArchived ?? false))
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteIncidentModal"
-                                                data-delete-action="{{ route('incidents.destroy', $incident) }}"
-                                                data-delete-label="{{ $incident->reference }}">
-                                            Delete
-                                        </button>
-                                    @endif
-                                    @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                                        <form method="POST" action="{{ route('incidents.restore', $incident->id) }}" class="d-inline">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
-                                        </form>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#forceDeleteIncidentModal"
-                                                data-delete-action="{{ route('incidents.force', $incident->id) }}"
-                                                data-delete-label="{{ $incident->reference }}">
-                                            Delete Permanently
-                                        </button>
-                                    @endif
+                                    <div class="incident-action-buttons d-inline-flex gap-1 flex-wrap justify-content-end">
+                                        <a href="{{ route('incidents.show', $incident) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
+                                        @if ($incident->status === \App\Models\IncidentReport::STATUS_OPEN && !($showArchived ?? false))
+                                            <a href="{{ route('incidents.edit', $incident) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-warning"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#cancelIncidentModal"
+                                                    data-cancel-action="{{ route('incidents.cancel', $incident) }}"
+                                                    data-cancel-label="{{ $incident->reference }}">
+                                                Cancel
+                                            </button>
+                                        @endif
+                                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true) && !($showArchived ?? false))
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteIncidentModal"
+                                                    data-delete-action="{{ route('incidents.destroy', $incident) }}"
+                                                    data-delete-label="{{ $incident->reference }}">
+                                                Delete
+                                            </button>
+                                        @endif
+                                        @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                                            <form method="POST" action="{{ route('incidents.restore', $incident->id) }}" class="d-inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                                            </form>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#forceDeleteIncidentModal"
+                                                    data-delete-action="{{ route('incidents.force', $incident->id) }}"
+                                                    data-delete-label="{{ $incident->reference }}">
+                                                Delete Permanently
+                                            </button>
+                                        @endif
+                                    </div>
+                                    <div class="incident-action-icons">
+                                        <a href="{{ route('incidents.show', $incident) }}" class="btn btn-outline-primary" data-loading title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        @if ($incident->status === \App\Models\IncidentReport::STATUS_OPEN && !($showArchived ?? false))
+                                            <a href="{{ route('incidents.edit', $incident) }}" class="btn btn-outline-secondary" data-loading title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button"
+                                                    class="btn btn-outline-warning"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#cancelIncidentModal"
+                                                    data-cancel-action="{{ route('incidents.cancel', $incident) }}"
+                                                    data-cancel-label="{{ $incident->reference }}"
+                                                    title="Cancel">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        @endif
+                                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true) && !($showArchived ?? false))
+                                            <button type="button"
+                                                    class="btn btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteIncidentModal"
+                                                    data-delete-action="{{ route('incidents.destroy', $incident) }}"
+                                                    data-delete-label="{{ $incident->reference }}"
+                                                    title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        @endif
+                                        @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                                            <form method="POST" action="{{ route('incidents.restore', $incident->id) }}" class="d-inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-outline-success" data-loading title="Restore">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            </form>
+                                            <button type="button"
+                                                    class="btn btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#forceDeleteIncidentModal"
+                                                    data-delete-action="{{ route('incidents.force', $incident->id) }}"
+                                                    data-delete-label="{{ $incident->reference }}"
+                                                    title="Delete permanently">
+                                                <i class="bi bi-x-octagon"></i>
+                                            </button>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -371,8 +445,56 @@
                               `
                             : '';
 
+                        const viewIcon = `<a href="${showUrlTemplate.replace('__ID__', incident.id)}" class="btn btn-outline-primary" data-loading title="View"><i class="bi bi-eye"></i></a>`;
+                        const editIcon = canEdit(incident)
+                            ? `<a href="${editUrlTemplate.replace('__ID__', incident.id)}" class="btn btn-outline-secondary" data-loading title="Edit"><i class="bi bi-pencil"></i></a>`
+                            : '';
+                        const cancelIcon = canEdit(incident)
+                            ? `<button type="button"
+                                    class="btn btn-outline-warning"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#cancelIncidentModal"
+                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', incident.id)}"
+                                    data-cancel-label="${escapeHtml(incident.reference)}"
+                                    title="Cancel">
+                                <i class="bi bi-x-circle"></i>
+                               </button>`
+                            : '';
+                        const deleteIcon = canDelete(incident)
+                            ? `<button type="button"
+                                    class="btn btn-outline-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteIncidentModal"
+                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', incident.id)}"
+                                    data-delete-label="${escapeHtml(incident.reference)}"
+                                    title="Delete">
+                                <i class="bi bi-trash"></i>
+                               </button>`
+                            : '';
+                        const restoreIcon = showArchived && currentUser.role === 'super_admin'
+                            ? `
+                                <form method="POST" action="${restoreUrlTemplate.replace('__ID__', incident.id)}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="_method" value="PATCH">
+                                    <button type="submit" class="btn btn-outline-success" data-loading title="Restore">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                </form>
+                                <button type="button"
+                                        class="btn btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#forceDeleteIncidentModal"
+                                        data-delete-action="${forceDeleteUrlTemplate.replace('__ID__', incident.id)}"
+                                        data-delete-label="${escapeHtml(incident.reference)}"
+                                        title="Delete permanently">
+                                    <i class="bi bi-x-octagon"></i>
+                                </button>
+                              `
+                            : '';
+
                         return `
                             <tr>
+                                <td class="dtr-control"></td>
                                 <td>${escapeHtml(incident.reference)}</td>
                                 <td>
                                     <span class="badge bg-${incident.severity === 'critical' ? 'dark' : (incident.severity === 'major' ? 'danger' : 'warning')}">
@@ -385,7 +507,10 @@
                                     </span>
                                 </td>
                                 <td>${escapeHtml(incident.incident_date)}</td>
-                                <td class="text-end">${viewHtml} ${editHtml} ${cancelHtml} ${deleteHtml} ${restoreHtml}</td>
+                                <td class="text-end">
+                                    <div class="incident-action-buttons d-inline-flex gap-1 flex-wrap justify-content-end">${viewHtml} ${editHtml} ${cancelHtml} ${deleteHtml} ${restoreHtml}</div>
+                                    <div class="incident-action-icons">${viewIcon} ${editIcon} ${cancelIcon} ${deleteIcon} ${restoreIcon}</div>
+                                </td>
                             </tr>
                         `;
                     }).join('');
@@ -398,6 +523,18 @@
                             searching: true,
                             paging: true,
                             info: true,
+                            responsive: {
+                                details: {
+                                    type: 'column',
+                                    target: 0,
+                                },
+                            },
+                            columnDefs: [
+                                { orderable: false, className: 'dtr-control', targets: 0 },
+                                { responsivePriority: 1, targets: 1 },
+                                { responsivePriority: 2, targets: 2 },
+                                { responsivePriority: 100, targets: -1 },
+                            ],
                         });
                     }
                 };

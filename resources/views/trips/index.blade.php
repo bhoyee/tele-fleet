@@ -1,10 +1,125 @@
 <x-admin-layout>
+    <style>
+        .trip-actions {
+            flex-wrap: wrap;
+        }
+
+        .trip-analytics .stat-card {
+            min-height: 0;
+        }
+
+        #tripRequestsTable {
+            width: 100%;
+        }
+
+        #tripRequestsTable th,
+        #tripRequestsTable td {
+            white-space: normal;
+        }
+
+        #tripRequestsTable .dtr-control {
+            width: 2.25rem;
+        }
+
+        .trip-action-icons {
+            display: none;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .trip-action-icons .btn {
+            padding: 0.35rem 0.5rem;
+        }
+
+        .dataTables_wrapper .row {
+            align-items: center;
+        }
+
+        @media (max-width: 767px) {
+            .trip-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .trip-actions {
+                width: 100%;
+            }
+
+            .trip-actions .btn {
+                flex: 1 1 auto;
+            }
+
+            .trip-analytics .stat-value {
+                font-size: 1.5rem;
+            }
+
+            #tripRequestsTable {
+                font-size: 0.9rem;
+                min-width: 0;
+            }
+
+            #tripRequestsTable th,
+            #tripRequestsTable td {
+                padding: 0.75rem;
+                white-space: normal;
+            }
+
+            .trip-table-wrap {
+                overflow-x: visible;
+            }
+
+            .dataTables_wrapper .dataTables_length,
+            .dataTables_wrapper .dataTables_filter,
+            .dataTables_wrapper .dataTables_info,
+            .dataTables_wrapper .dataTables_paginate {
+                width: 100%;
+                text-align: left;
+                padding: 0.75rem 1rem;
+            }
+
+            .dataTables_wrapper .dataTables_filter {
+                margin-top: 0.5rem;
+            }
+
+            .dataTables_wrapper .dataTables_paginate {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                justify-content: flex-start;
+            }
+
+            .dataTables_wrapper .dataTables_length,
+            .dataTables_wrapper .dataTables_filter {
+                float: none;
+            }
+
+            .dataTables_wrapper .dataTables_filter input {
+                width: 100%;
+            }
+
+            .dataTables_wrapper .dataTables_paginate .pagination {
+                flex-wrap: wrap;
+                gap: 0.35rem;
+            }
+
+            .trip-action-buttons {
+                display: none !important;
+            }
+
+            .trip-action-icons {
+                display: inline-flex !important;
+            }
+
+        }
+    </style>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Trip Requests</h1>
             <p class="text-muted mb-0">Track requests, approvals, and assignments.</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 trip-actions">
             @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
                 @if (!($showArchived ?? false))
                     <a href="{{ route('trips.index', ['archived' => 1]) }}" class="btn btn-outline-secondary">Show Archived</a>
@@ -19,7 +134,7 @@
     </div>
 
     @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN && $analytics)
-        <div class="card shadow-sm border-0 mb-4">
+        <div class="card shadow-sm border-0 mb-4 trip-analytics">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <span>Trip Analytics ({{ $analytics['range_label'] }})</span>
@@ -83,16 +198,17 @@
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table align-middle datatable" id="tripRequestsTable">
+            <div class="table-responsive trip-table-wrap">
+                <table class="table align-middle datatable dt-responsive dtr-inline" id="tripRequestsTable">
                     <thead class="table-light">
                         <tr>
-                            <th>Request #</th>
-                            <th>Purpose</th>
-                            <th>Trip Date</th>
-                            <th>Status</th>
-                            <th>Assignment</th>
-                            <th class="text-end">Actions</th>
+                            <th class="dtr-control" data-priority="1"></th>
+                            <th data-priority="1">Request #</th>
+                            <th data-priority="6">Purpose</th>
+                            <th data-priority="7">Trip Date</th>
+                            <th data-priority="2">Status</th>
+                            <th data-priority="5">Assignment</th>
+                            <th class="text-end action-col" data-priority="10">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -121,20 +237,21 @@
                                 $canCancel = $tripStatus === 'pending' || ($tripStatus !== 'completed' && now()->lt($tripMoment));
                             @endphp
                             <tr>
-                                <td>{{ $trip->request_number }}</td>
+                                <td class="dtr-control" data-label=""></td>
+                                <td data-label="Request #">{{ $trip->request_number }}</td>
                                 @php
                                     $shouldBlurPurpose = $user
                                         && $user->role === \App\Models\User::ROLE_BRANCH_ADMIN
                                         && $trip->requested_by_user_id !== $user->id;
                                 @endphp
-                                <td>
+                                <td data-label="Purpose">
                                     @if ($shouldBlurPurpose)
                                         <span class="text-muted">Restricted</span>
                                     @else
                                         {{ $trip->purpose }}
                                     @endif
                                 </td>
-                                <td>
+                                <td data-label="Trip Date">
                                     <div>{{ $trip->trip_date?->format('M d, Y') }}</div>
                                     @php
                                         $tripTime = $trip->trip_time;
@@ -148,7 +265,7 @@
                                     @endphp
                                     <small class="text-muted">{{ $tripTime ?: 'N/A' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <span class="badge bg-{{ $trip->status === 'approved' ? 'success' : ($trip->status === 'rejected' ? 'danger' : ($trip->status === 'assigned' ? 'primary' : ($trip->status === 'completed' ? 'dark' : 'secondary'))) }}">
                                         {{ ucfirst($trip->status) }}
                                     </span>
@@ -164,7 +281,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td>
+                                <td data-label="Assignment">
                                     @if ($trip->assigned_vehicle_id && $trip->assigned_driver_id)
                                         <span class="badge bg-primary">Assigned</span>
                                     @else
@@ -174,48 +291,102 @@
                                         <span class="badge bg-warning text-dark ms-2">Reassign</span>
                                     @endif
                                 </td>
-                                <td class="text-end">
-                                    @if ($canEdit && !($showArchived ?? false))
-                                        <a href="{{ route('trips.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
-                                    @endif
-                                    @if (! ($user?->role === \App\Models\User::ROLE_BRANCH_ADMIN && $trip->requested_by_user_id !== $user->id))
-                                        <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
-                                    @endif
-                                    @if ($canManage && !($showArchived ?? false))
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteTripModal"
-                                                data-delete-action="{{ route('trips.destroy', $trip) }}"
-                                                data-delete-label="{{ $trip->request_number }}">
-                                            Delete
-                                        </button>
-                                    @endif
-                                    @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                                        <form method="POST" action="{{ route('trips.restore', $trip->id) }}" class="d-inline">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
-                                        </form>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#forceDeleteTripModal"
-                                                data-delete-action="{{ route('trips.force', $trip->id) }}"
-                                                data-delete-label="{{ $trip->request_number }}">
-                                            Delete Permanently
-                                        </button>
-                                    @endif
-                                    @if ($canManage && $canCancel && !($showArchived ?? false))
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-warning"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#cancelTripModal"
-                                                data-cancel-action="{{ route('trips.cancel', $trip) }}"
-                                                data-cancel-label="{{ $trip->request_number }}">
-                                            Cancel
-                                        </button>
-                                    @endif
+                                <td class="text-end action-col" data-label="Actions">
+                                    <div class="trip-action-buttons d-inline-flex gap-1 flex-wrap justify-content-end">
+                                        @if ($canEdit && !($showArchived ?? false))
+                                            <a href="{{ route('trips.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
+                                        @endif
+                                        @if (! ($user?->role === \App\Models\User::ROLE_BRANCH_ADMIN && $trip->requested_by_user_id !== $user->id))
+                                            <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
+                                        @endif
+                                        @if ($canManage && !($showArchived ?? false))
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteTripModal"
+                                                    data-delete-action="{{ route('trips.destroy', $trip) }}"
+                                                    data-delete-label="{{ $trip->request_number }}">
+                                                Delete
+                                            </button>
+                                        @endif
+                                        @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                                            <form method="POST" action="{{ route('trips.restore', $trip->id) }}" class="d-inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                                            </form>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#forceDeleteTripModal"
+                                                    data-delete-action="{{ route('trips.force', $trip->id) }}"
+                                                    data-delete-label="{{ $trip->request_number }}">
+                                                Delete Permanently
+                                            </button>
+                                        @endif
+                                        @if ($canManage && $canCancel && !($showArchived ?? false))
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-warning"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#cancelTripModal"
+                                                    data-cancel-action="{{ route('trips.cancel', $trip) }}"
+                                                    data-cancel-label="{{ $trip->request_number }}">
+                                                Cancel
+                                            </button>
+                                        @endif
+                                    </div>
+                                    <div class="trip-action-icons">
+                                        @if ($canEdit && !($showArchived ?? false))
+                                            <a href="{{ route('trips.edit', $trip) }}" class="btn btn-outline-secondary" data-loading title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        @endif
+                                        @if (! ($user?->role === \App\Models\User::ROLE_BRANCH_ADMIN && $trip->requested_by_user_id !== $user->id))
+                                            <a href="{{ route('trips.show', $trip) }}" class="btn btn-outline-primary" data-loading title="View">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        @endif
+                                        @if ($canManage && !($showArchived ?? false))
+                                            <button type="button"
+                                                    class="btn btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteTripModal"
+                                                    data-delete-action="{{ route('trips.destroy', $trip) }}"
+                                                    data-delete-label="{{ $trip->request_number }}"
+                                                    title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        @endif
+                                        @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                                            <form method="POST" action="{{ route('trips.restore', $trip->id) }}" class="d-inline">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-outline-success" data-loading title="Restore">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            </form>
+                                            <button type="button"
+                                                    class="btn btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#forceDeleteTripModal"
+                                                    data-delete-action="{{ route('trips.force', $trip->id) }}"
+                                                    data-delete-label="{{ $trip->request_number }}"
+                                                    title="Delete permanently">
+                                                <i class="bi bi-x-octagon"></i>
+                                            </button>
+                                        @endif
+                                        @if ($canManage && $canCancel && !($showArchived ?? false))
+                                            <button type="button"
+                                                    class="btn btn-outline-warning"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#cancelTripModal"
+                                                    data-cancel-action="{{ route('trips.cancel', $trip) }}"
+                                                    data-cancel-label="{{ $trip->request_number }}"
+                                                    title="Cancel">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -230,20 +401,22 @@
             <div class="card-header">Trip History (Completed, Cancelled, Rejected)</div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table align-middle datatable">
+                    <table class="table align-middle datatable dt-responsive dtr-inline trip-history-table">
                         <thead class="table-light">
                             <tr>
-                                <th>Request #</th>
-                                <th>Requester</th>
-                                <th>Branch</th>
-                                <th>Trip Date</th>
-                                <th>Status</th>
-                                <th class="text-end">Action</th>
+                                <th class="dtr-control" data-priority="1"></th>
+                                <th data-priority="1">Request #</th>
+                                <th data-priority="6">Requester</th>
+                                <th data-priority="7">Branch</th>
+                                <th data-priority="8">Trip Date</th>
+                                <th data-priority="2">Status</th>
+                                <th class="text-end action-col" data-priority="10">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($historyTrips ?? [] as $trip)
                                 <tr>
+                                    <td class="dtr-control" data-label=""></td>
                                     <td>{{ $trip->request_number }}</td>
                                     <td>{{ $trip->requestedBy?->name ?? 'N/A' }}</td>
                                     <td>{{ $trip->branch?->name ?? 'N/A' }}</td>
@@ -253,7 +426,7 @@
                                             {{ ucfirst($trip->status) }}
                                         </span>
                                     </td>
-                                    <td class="text-end">
+                                    <td class="text-end action-col">
                                         <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
                                     </td>
                                 </tr>
@@ -546,20 +719,73 @@
                         const dueBadge = (['super_admin', 'fleet_manager'].includes(currentUser.role) && trip.due_status)
                             ? `<span class="badge bg-${trip.due_status === 'overdue' ? 'danger' : 'warning'} ms-1">${escapeHtml(trip.due_status.charAt(0).toUpperCase() + trip.due_status.slice(1))}</span>`
                             : '';
+                        const editIcon = canEditTrip(trip) && !showArchived
+                            ? `<a href="${editUrlTemplate.replace('__ID__', trip.id)}" class="btn btn-outline-secondary" data-loading title="Edit"><i class="bi bi-pencil"></i></a>`
+                            : '';
+                        const viewIcon = canViewTrip(trip)
+                            ? `<a href="${showUrlTemplate.replace('__ID__', trip.id)}" class="btn btn-outline-primary" data-loading title="View"><i class="bi bi-eye"></i></a>`
+                            : '';
+                        const deleteIcon = canManageTrip(trip) && !showArchived
+                            ? `<button type="button"
+                                    class="btn btn-outline-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteTripModal"
+                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', trip.id)}"
+                                    data-delete-label="${escapeHtml(trip.request_number)}"
+                                    title="Delete">
+                                <i class="bi bi-trash"></i>
+                               </button>`
+                            : '';
+                        const restoreIcon = showArchived && currentUser.role === 'super_admin'
+                            ? `
+                                <form method="POST" action="${restoreUrlTemplate.replace('__ID__', trip.id)}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="_method" value="PATCH">
+                                    <button type="submit" class="btn btn-outline-success" data-loading title="Restore">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                </form>
+                                <button type="button"
+                                        class="btn btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#forceDeleteTripModal"
+                                        data-delete-action="${forceDeleteUrlTemplate.replace('__ID__', trip.id)}"
+                                        data-delete-label="${escapeHtml(trip.request_number)}"
+                                        title="Delete permanently">
+                                    <i class="bi bi-x-octagon"></i>
+                                </button>
+                              `
+                            : '';
+                        const cancelIcon = canManageTrip(trip) && canCancelTrip(trip) && !showArchived
+                            ? `<button type="button"
+                                    class="btn btn-outline-warning"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#cancelTripModal"
+                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', trip.id)}"
+                                    data-cancel-label="${escapeHtml(trip.request_number)}"
+                                    title="Cancel">
+                                <i class="bi bi-x-circle"></i>
+                               </button>`
+                            : '';
+
                         return `
                             <tr>
-                                <td>${escapeHtml(trip.request_number)}</td>
-                                <td>${purposeHtml}</td>
-                                <td>
+                                <td class="dtr-control" data-label=""></td>
+                                <td data-label="Request #">${escapeHtml(trip.request_number)}</td>
+                                <td data-label="Purpose">${purposeHtml}</td>
+                                <td data-label="Trip Date">
                                     <div>${escapeHtml(trip.trip_date)}</div>
                                     <small class="text-muted">${escapeHtml(trip.trip_time)}</small>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <span class="badge bg-${statusClass(trip.status)}">${escapeHtml(statusLabel)}</span>
                                     ${dueBadge}
                                 </td>
-                                <td>${assignedHtml}</td>
-                                <td class="text-end">${editHtml} ${viewHtml} ${deleteHtml} ${cancelHtml} ${restoreHtml}</td>
+                                <td data-label="Assignment">${assignedHtml}</td>
+                                <td class="text-end" data-label="Actions">
+                                    <div class="trip-action-buttons d-inline-flex gap-1 flex-wrap justify-content-end">${editHtml} ${viewHtml} ${deleteHtml} ${cancelHtml} ${restoreHtml}</div>
+                                    <div class="trip-action-icons">${editIcon} ${viewIcon} ${deleteIcon} ${cancelIcon} ${restoreIcon}</div>
+                                </td>
                             </tr>
                         `;
                     }).join('');
@@ -572,6 +798,18 @@
                             searching: true,
                             paging: true,
                             info: true,
+                            responsive: {
+                                details: {
+                                    type: 'column',
+                                    target: 0,
+                                },
+                            },
+                            columnDefs: [
+                                { orderable: false, className: 'dtr-control', targets: 0 },
+                                { responsivePriority: 1, targets: 1 },
+                                { responsivePriority: 2, targets: 4 },
+                                { responsivePriority: 100, targets: -1 },
+                            ],
                         });
                     }
                 };
@@ -672,6 +910,30 @@
 
                 refreshTable();
                 subscribeTripChannels();
+
+                const historyTable = document.querySelector('.trip-history-table');
+                if (historyTable && window.jQuery && window.jQuery.fn.dataTable && !window.jQuery.fn.dataTable.isDataTable(historyTable)) {
+                    window.jQuery(historyTable).DataTable({
+                        pageLength: 10,
+                        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+                        order: [],
+                        searching: true,
+                        paging: true,
+                        info: true,
+                        responsive: {
+                            details: {
+                                type: 'column',
+                                target: 0,
+                            },
+                        },
+                        columnDefs: [
+                            { orderable: false, className: 'dtr-control', targets: 0 },
+                            { responsivePriority: 1, targets: 1 },
+                            { responsivePriority: 2, targets: 5 },
+                            { responsivePriority: 100, targets: -1 },
+                        ],
+                    });
+                }
             });
 
             document.addEventListener('click', (event) => {
@@ -693,3 +955,6 @@
         </script>
     @endpush
 </x-admin-layout>
+        .trip-table-wrap {
+            overflow-x: visible;
+        }

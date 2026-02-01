@@ -1,4 +1,26 @@
 <x-admin-layout>
+    <style>
+        .trip-action-icons {
+            display: none;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .trip-action-icons .btn {
+            padding: 0.35rem 0.5rem;
+        }
+
+        @media (max-width: 767px) {
+            .trip-action-buttons {
+                display: none !important;
+            }
+
+            .trip-action-icons {
+                display: inline-flex !important;
+            }
+        }
+    </style>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">My Trip Requests</h1>
@@ -14,9 +36,9 @@
                     <thead class="table-light">
                         <tr>
                             <th>Request #</th>
+                            <th>Status</th>
                             <th>Destination</th>
                             <th>Trip Date</th>
-                            <th>Status</th>
                             <th class="text-end">Action</th>
                         </tr>
                     </thead>
@@ -24,21 +46,6 @@
                     @foreach ($trips as $trip)
                             <tr>
                                 <td>{{ $trip->request_number }}</td>
-                                <td>{{ $trip->destination }}</td>
-                                <td>
-                                    <div>{{ $trip->trip_date?->format('M d, Y') }}</div>
-                                    @php
-                                        $tripTime = $trip->trip_time;
-                                        if ($tripTime) {
-                                            try {
-                                                $tripTime = \Illuminate\Support\Carbon::parse($tripTime)->format('g:i A');
-                                            } catch (\Exception $e) {
-                                                $tripTime = \Illuminate\Support\Carbon::parse($trip->trip_time)->format('g:i A');
-                                            }
-                                        }
-                                    @endphp
-                                    <small class="text-muted">{{ $tripTime ?: 'N/A' }}</small>
-                                </td>
                                 <td>
                                     @php
                                         $displayStatus = $trip->status;
@@ -58,19 +65,55 @@
                                         {{ ucfirst($displayStatus) }}
                                     </span>
                                 </td>
+                                <td>{{ $trip->destination }}</td>
+                                <td>
+                                    <div>{{ $trip->trip_date?->format('M d, Y') }}</div>
+                                    @php
+                                        $tripTime = $trip->trip_time;
+                                        if ($tripTime) {
+                                            try {
+                                                $tripTime = \Illuminate\Support\Carbon::parse($tripTime)->format('g:i A');
+                                            } catch (\Exception $e) {
+                                                $tripTime = \Illuminate\Support\Carbon::parse($trip->trip_time)->format('g:i A');
+                                            }
+                                        }
+                                    @endphp
+                                    <small class="text-muted">{{ $tripTime ?: 'N/A' }}</small>
+                                </td>
                                 <td class="text-end">
-                                    @if ($trip->status === 'pending')
-                                        <a href="{{ route('trips.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
-                                    @endif
-                                    <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-danger"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteTripModal"
-                                            data-delete-action="{{ route('trips.destroy', $trip) }}"
-                                            data-delete-label="{{ $trip->request_number }}">
-                                        Delete
-                                    </button>
+                                    <div class="trip-action-buttons d-inline-flex gap-1 flex-wrap justify-content-end">
+                                        @if ($trip->status === 'pending')
+                                            <a href="{{ route('trips.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
+                                        @endif
+                                        <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteTripModal"
+                                                data-delete-action="{{ route('trips.destroy', $trip) }}"
+                                                data-delete-label="{{ $trip->request_number }}">
+                                            Delete
+                                        </button>
+                                    </div>
+                                    <div class="trip-action-icons">
+                                        @if ($trip->status === 'pending')
+                                            <a href="{{ route('trips.edit', $trip) }}" class="btn btn-outline-secondary" data-loading title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        @endif
+                                        <a href="{{ route('trips.show', $trip) }}" class="btn btn-outline-primary" data-loading title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <button type="button"
+                                                class="btn btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteTripModal"
+                                                data-delete-action="{{ route('trips.destroy', $trip) }}"
+                                                data-delete-label="{{ $trip->request_number }}"
+                                                title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
