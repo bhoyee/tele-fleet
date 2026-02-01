@@ -3,8 +3,8 @@
 Tele-Fleet is a single-company fleet management system for Nigeria-based operations with multiple branches. It delivers a working demo with role-based workflows, professional UI, and real-time features (notifications + chat).
 
 Documentation:
-- Technical Manual: docs/technical-manual.md
-- User Manual: docs/user-manual.md
+- Technical Manual: [docs/technical-manual.md](docs/technical-manual.md)
+- User Manual: [docs/user-manual.md](docs/user-manual.md)
 
 ## Highlights
 - Role-based dashboards and access control (Super Admin, Fleet Manager, Branch Head, Branch Admin).
@@ -89,6 +89,69 @@ If realtime chat does not connect, ensure:
 - Port 8081 is listening.
 - `php.exe` is allowed in Windows Firewall (Private).
 - Only one Reverb process is running.
+
+## Background Services
+These are the services you should keep running in production (or locally for full features):
+
+### Required (core app)
+- **Web server / PHP**: your main app (Nginx/Apache + PHP-FPM or `php artisan serve` in dev)
+- **Database**: MySQL/MariaDB
+
+### Recommended (production features)
+- **Scheduler** (for reminders, health checks, auto-cleanups):
+  ```bash
+  php artisan schedule:work
+  ```
+  (Production: use a cron job that runs `php artisan schedule:run` every minute.)
+
+- **Queue worker** (emails, notifications, background jobs):
+  ```bash
+  php artisan queue:work
+  ```
+
+### Optional (realtime features)
+- **Reverb** (websocket chat + realtime updates):
+  ```bash
+  php artisan reverb:start --debug
+  ```
+  If you don’t want realtime on a server, set `REALTIME_ENABLED=false` and the app will fall back to polling + Help Desk.
+
+## Deployment Options
+
+### 1) Shared Hosting (lowest cost)
+Works fine for the core app, but **no websockets** and limited background workers.
+
+**How it behaves:**
+- Set `REALTIME_ENABLED=false` in `.env`.
+- Chat is hidden; **Help Desk** is enabled instead.
+- Dashboard uses polling to refresh charts, calendars, and metrics.
+- Scheduler/queue may be limited depending on host; some shared hosts allow cron jobs.
+
+**Typical setup:**
+- Upload project files
+- Point document root to `/public`
+- Set `.env` values
+- Run migrations from SSH or a one-time deploy script
+- Add cron job (if available):
+  ```
+  * * * * * /usr/bin/php /path/to/artisan schedule:run >> /dev/null 2>&1
+  ```
+
+### 2) VPS (DigitalOcean, etc.)
+Best control and full features.
+
+You can run:
+- Reverb (websocket)
+- Queue worker
+- Scheduler
+- Full SMTP
+- Storage/backup jobs
+
+### 3) PaaS (Railway/Render/Heroku-style)
+Fast deploy for MVPs.
+- Might require add-ons for database + storage.
+- Websockets support varies by platform.
+- Costs can grow with usage.
 
 ## Notifications
 - In-app notifications show in the top bar.
