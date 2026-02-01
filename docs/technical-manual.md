@@ -18,12 +18,13 @@
 8. Storage and File Handling
 9. Notifications and Mail
 10. Real-Time Features
-11. Security and Access Control
-12. Maintenance Module
-13. Reporting Module
-14. Backup and System Logs
-15. Troubleshooting
-16. Change Management
+11. Deployment Options
+12. Security and Access Control
+13. Maintenance Module
+14. Reporting Module
+15. Backup and System Logs
+16. Troubleshooting
+17. Change Management
 
 ## 1. Overview
 Tele-Fleet is a single-company fleet management system supporting multiple branches. It provides trip requests, assignments, maintenance tracking, incidents, reporting, and real-time collaboration. This manual covers deployment, configuration, and operational practices for v1.0.0.
@@ -118,7 +119,28 @@ Tele-Fleet relies on background services for reminders and checks.
 - Client uses Laravel Echo + Pusher protocol.
 - If Reverb is unavailable, the UI falls back to silent polling.
 
-## 11. Security and Access Control
+## 11. Deployment Options
+
+### 11.1 Shared Hosting (lowest cost)
+Recommended for MVP/testing. Websockets are typically unavailable.
+- Set `REALTIME_ENABLED=false`
+- Chat is hidden and Help Desk is enabled
+- Dashboard uses polling for charts, calendar, and metrics
+- If cron is supported, run:
+  - `* * * * * /usr/bin/php /path/to/artisan schedule:run >> /dev/null 2>&1`
+
+### 11.2 VPS (full control)
+Recommended for production scale and realtime.
+- Run Reverb + queue worker + scheduler
+- Full SMTP and backups supported
+- Use Supervisor/Systemd to keep workers alive
+
+### 11.3 PaaS (Railway/Render/Heroku-style)
+Fast to deploy but platform limits may apply.
+- Use managed database add-ons
+- Verify websocket support and storage limits
+
+## 12. Security and Access Control
 - Role-based access enforced via middleware.
 - Roles:
   - Super Admin
@@ -127,13 +149,13 @@ Tele-Fleet relies on background services for reminders and checks.
   - Branch Admin
 - Sensitive operations (delete/restore) restricted to Super Admin.
 
-## 12. Maintenance Module
+## 13. Maintenance Module
 - Maintenance schedule is tracked in `vehicle_maintenances`.
 - Vehicle maintenance status is derived from schedule and mileage checks.
 - Due/Overdue thresholds are based on mileage target (default 5000 km).
 - When maintenance is in progress, vehicle status is forced to `maintenance`.
 
-## 13. Reporting Module
+## 14. Reporting Module
 Available reports:
 - My Requests (per user)
 - Branch Report (Branch Head)
@@ -143,7 +165,7 @@ Available reports:
 Exports:
 - CSV and PDF supported.
 
-## 14. Backup and System Logs
+## 15. Backup and System Logs
 ### Database Backups
 - Stored under `storage/app/backups/db/`
 - Created via the Database Backups page or `telefleet:backup-database`
@@ -156,14 +178,14 @@ Exports:
 - Tele-Fleet audit log: `telefleet-YYYY-MM-DD.log` (daily)
 - Logs are read-only in the UI and can be downloaded
 
-## 15. Troubleshooting
+## 16. Troubleshooting
 Common issues:
 - Reverb connection errors: confirm `REVERB_*` values and port firewall
 - Mail errors: verify sender domain, SPF/DKIM, and SMTP credentials
 - 419 Page Expired: ensure session driver + APP_URL are consistent
 - DataTables warnings: ensure column counts match
 
-## 16. Change Management
+## 17. Change Management
 - Use feature branches and pull requests.
 - Keep migrations backward compatible.
 - Update manuals with every release.
