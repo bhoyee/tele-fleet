@@ -107,12 +107,16 @@
         </div>
     </div>
 
+    @php
+        $isBranchReadonly = in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true);
+    @endphp
+
     @push('scripts')
         <script>
             const tripSelect = document.getElementById('trip_request_id');
             const vehicleSelect = document.getElementById('vehicle_id');
             const driverSelect = document.getElementById('driver_id');
-            const isBranchReadonly = @json(in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true));
+            const isBranchReadonly = @json($isBranchReadonly);
 
             const resetSelect = (select, placeholder) => {
                 if (!select) {
