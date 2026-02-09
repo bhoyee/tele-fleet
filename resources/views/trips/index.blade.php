@@ -266,7 +266,7 @@
                                     <small class="text-muted">{{ $tripTime ?: 'N/A' }}</small>
                                 </td>
                                 <td data-label="Status">
-                                    <span class="badge bg-{{ $trip->status === 'approved' ? 'success' : ($trip->status === 'rejected' ? 'danger' : ($trip->status === 'assigned' ? 'primary' : ($trip->status === 'completed' ? 'dark' : 'secondary'))) }}">
+                                    <span class="badge bg-{{ $trip->status === 'approved' ? 'success' : ($trip->status === 'rejected' ? 'danger' : ($trip->status === 'assigned' ? 'primary' : ($trip->status === 'completed' ? 'dark' : ($trip->status === 'pending' ? 'warning text-dark' : 'secondary')))) }}">
                                         {{ ucfirst($trip->status) }}
                                     </span>
                                     @php
@@ -631,6 +631,8 @@
 
                 const statusClass = (status) => {
                     switch ((status || '').toLowerCase()) {
+                        case 'pending':
+                            return 'warning';
                         case 'approved':
                             return 'success';
                         case 'rejected':
@@ -778,7 +780,7 @@
                                     <small class="text-muted">${escapeHtml(trip.trip_time)}</small>
                                 </td>
                                 <td data-label="Status">
-                                    <span class="badge bg-${statusClass(trip.status)}">${escapeHtml(statusLabel)}</span>
+                                    <span class="badge bg-${statusClass(trip.status)}${String(trip.status || '').toLowerCase() === 'pending' ? ' text-dark' : ''}">${escapeHtml(statusLabel)}</span>
                                     ${dueBadge}
                                 </td>
                                 <td data-label="Assignment">${assignedHtml}</td>
