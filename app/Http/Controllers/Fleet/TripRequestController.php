@@ -972,9 +972,46 @@ class TripRequestController extends Controller
             return false;
         }
 
-        $tripMoment = $tripRequest->trip_time
-            ? Carbon::createFromFormat('Y-m-d H:i', $tripRequest->trip_date->format('Y-m-d') . ' ' . $tripRequest->trip_time)
-            : $tripRequest->trip_date->copy()->startOfDay();
+        $tripMoment = $tripRequest->trip_date->copy()->startOfDay();
+
+        if ($tripRequest->trip_time) {
+            $date = $tripRequest->trip_date->format('Y-m-d');
+            $time = trim((string) $tripRequest->trip_time);
+
+            if (str_contains($time, '.')) {
+                $time = explode('.', $time, 2)[0];
+            }
+
+            $candidate = $date.' '.$time;
+            $formats = [
+                'Y-m-d H:i',
+                'Y-m-d H:i:s',
+                'Y-m-d g:i A',
+                'Y-m-d g:iA',
+            ];
+
+            $parsedMoment = null;
+            foreach ($formats as $format) {
+                try {
+                    $parsedMoment = Carbon::createFromFormat($format, $candidate);
+                    break;
+                } catch (\Carbon\Exceptions\InvalidFormatException $exception) {
+                    // Try next format.
+                }
+            }
+
+            if (! $parsedMoment) {
+                try {
+                    $parsedMoment = Carbon::parse($candidate);
+                } catch (\Throwable $exception) {
+                    $parsedMoment = null;
+                }
+            }
+
+            if ($parsedMoment) {
+                $tripMoment = $parsedMoment;
+            }
+        }
 
         $status = strtolower((string) $tripRequest->status);
         if ($status === 'pending') {
