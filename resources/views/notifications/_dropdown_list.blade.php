@@ -5,6 +5,11 @@
         $chatTypes = ['ChatRequestNotification', 'ChatClosedNotification', 'ChatMessageNotification'];
         $isChat = in_array($notificationType, $chatTypes, true);
         $isSystemHealth = $notificationType === 'SystemHealthAlert';
+        $incidentLabel = $notificationData['reference']
+            ?? (! empty($notificationData['incident_id'])
+                ? ('Incident #'.$notificationData['incident_id'])
+                : null);
+        $incidentTitle = $incidentLabel ? "{$incidentLabel} Update" : 'Incident Update';
         $tripLabel = $notificationData['request_number']
             ?? (! empty($notificationData['trip_request_id'])
                 ? ('Trip #'.$notificationData['trip_request_id'])
@@ -19,6 +24,9 @@
             'ChatClosedNotification' => 'Chat Closed',
             'ChatMessageNotification' => 'Chat Message',
             'SystemHealthAlert' => $notificationData['title'] ?? 'System Health',
+            'IncidentReported' => $incidentTitle,
+            'IncidentUpdated' => $incidentTitle,
+            'IncidentStatusUpdated' => $incidentTitle,
             'SupportTicketCreated' => $ticketTitle,
             'SupportTicketReply' => $ticketTitle,
             default => $tripTitle,
@@ -29,6 +37,11 @@
             'ChatClosedNotification' => 'Chat has been closed.',
             'ChatMessageNotification' => 'New chat message received.',
             'SystemHealthAlert' => $notificationData['message'] ?? 'System health alert.',
+            'IncidentReported' => 'New incident reported.',
+            'IncidentUpdated' => 'Incident updated.',
+            'IncidentStatusUpdated' => ! empty($notificationData['status'])
+                ? ('Status: ' . ucfirst($notificationData['status']))
+                : 'Incident status updated.',
             'TripRequestCreated' => 'New trip request submitted.',
             'TripRequestApproved' => 'Trip request approved.',
             'TripRequestAssigned' => 'Trip assigned to driver/vehicle.',
@@ -47,11 +60,13 @@
 
         $viewUrl = ! empty($notificationData['trip_request_id'])
             ? route('trips.show', $notificationData['trip_request_id'])
-            : (! empty($notificationData['ticket_id'])
-                ? route('helpdesk.show', $notificationData['ticket_id'])
-                : ($isChat && ! empty($notificationData['conversation_id'])
-                    ? null
-                    : null));
+            : (! empty($notificationData['incident_id'])
+                ? route('incidents.show', $notificationData['incident_id'])
+                : (! empty($notificationData['ticket_id'])
+                    ? route('helpdesk.show', $notificationData['ticket_id'])
+                    : ($isChat && ! empty($notificationData['conversation_id'])
+                        ? null
+                        : null)));
     @endphp
     <div class="px-3 py-2 border-bottom">
         <div class="d-flex justify-content-between">

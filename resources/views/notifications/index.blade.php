@@ -23,15 +23,36 @@
             @forelse ($notifications as $notification)
                 @php
                     $notificationType = class_basename($notification->type ?? '');
-                    $isChat = in_array($notificationType, ['ChatMessageNotification', 'ChatRequestNotification'], true);
+                    $isChat = in_array($notificationType, ['ChatMessageNotification', 'ChatRequestNotification', 'ChatClosedNotification'], true);
                     $notificationData = is_array($notification->data ?? null) ? $notification->data : [];
-                    $title = $isChat
-                        ? 'Chat Update'
-                        : ($notificationData['request_number'] ?? 'Trip Update');
+                    $tripLabel = $notificationData['request_number']
+                        ?? (! empty($notificationData['trip_request_id'])
+                            ? ('Trip #'.$notificationData['trip_request_id'])
+                            : null);
+                    $tripTitle = $tripLabel ? "{$tripLabel} Update" : 'Trip Update';
+                    $incidentLabel = $notificationData['reference']
+                        ?? (! empty($notificationData['incident_id'])
+                            ? ('Incident #'.$notificationData['incident_id'])
+                            : null);
+                    $incidentTitle = $incidentLabel ? "{$incidentLabel} Update" : 'Incident Update';
                     $ticketLabel = ! empty($notificationData['ticket_id'])
                         ? 'TCK-' . str_pad($notificationData['ticket_id'], 5, '0', STR_PAD_LEFT)
                         : null;
+                    $ticketTitle = $ticketLabel ? "{$ticketLabel} Update" : 'Ticket Update';
+                    $title = match ($notificationType) {
+                        'ChatRequestNotification' => 'Chat Request',
+                        'ChatClosedNotification' => 'Chat Closed',
+                        'ChatMessageNotification' => 'Chat Message',
+                        'SystemHealthAlert' => $notificationData['title'] ?? 'System Health',
+                        'IncidentReported' => $incidentTitle,
+                        'IncidentUpdated' => $incidentTitle,
+                        'IncidentStatusUpdated' => $incidentTitle,
+                        'SupportTicketCreated' => $ticketTitle,
+                        'SupportTicketReply' => $ticketTitle,
+                        default => $tripTitle,
+                    };
                     $message = match ($notificationType) {
+                        'SystemHealthAlert' => $notificationData['message'] ?? 'System health alert.',
                         'TripRequestCreated' => 'New trip request submitted.',
                         'TripRequestApproved' => 'Trip request approved.',
                         'TripRequestAssigned' => 'Trip assigned to driver/vehicle.',
@@ -41,6 +62,11 @@
                         'TripAssignmentConflict' => 'Trip assignment needs attention.',
                         'TripCompletionReminderNotification' => 'Trip completion reminder sent.',
                         'OverdueTripNotification' => 'Trip marked overdue.',
+                        'IncidentReported' => 'New incident reported.',
+                        'IncidentUpdated' => 'Incident updated.',
+                        'IncidentStatusUpdated' => ! empty($notificationData['status'])
+                            ? ('Status: ' . ucfirst($notificationData['status']))
+                            : 'Incident status updated.',
                         'SupportTicketCreated' => 'New support ticket submitted.',
                         'SupportTicketReply' => 'New reply on support ticket.',
                         default => ($notificationData['status'] ?? null)
