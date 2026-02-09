@@ -919,10 +919,10 @@
                     <span class="metric-icon"><i class="bi bi-journal-text"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Branch</span>
                 </div>
-                <div class="metric-label">Trip Requests</div>
+                <div class="metric-label">Trips Scheduled</div>
                 <div class="metric-value" data-metric="branchTripRequests">{{ $branchTripRequests }}</div>
                 <div class="metric-footnote">
-                    <i class="bi bi-calendar-month"></i> This month
+                    <i class="bi bi-calendar-month"></i> Scheduled this month
                 </div>
             </div>
             @endif

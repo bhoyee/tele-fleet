@@ -172,12 +172,16 @@ class DashboardController extends Controller
         }
 
         if ($role === User::ROLE_BRANCH_HEAD && $branchId) {
+            $monthStart = $now->copy()->startOfMonth();
+            $monthEnd = $now->copy()->endOfMonth();
+
+            // Trips happening this month (by trip_date). Exclude cancelled trips.
             $branchTripRequests = TripRequest::where('branch_id', $branchId)
-                ->whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
+                ->whereNotNull('trip_date')
+                ->whereBetween('trip_date', [$monthStart, $monthEnd])
+                ->where('status', '!=', 'cancelled')
                 ->count();
 
-            $monthStart = Carbon::now()->startOfMonth();
-            $monthEnd = Carbon::now()->endOfMonth();
             $branchCompletedTrips = TripRequest::where('branch_id', $branchId)
                 ->whereBetween('trip_date', [$monthStart, $monthEnd])
                 ->where('status', 'completed')
