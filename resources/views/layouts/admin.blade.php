@@ -35,7 +35,7 @@
                 --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
-            html {
+            html.tele-scrollbar-stable {
                 scrollbar-gutter: stable;
             }
 
@@ -1412,6 +1412,28 @@
             const isMobileUserAgent = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
             const isTouchDevice = () => (navigator.maxTouchPoints || 0) > 0;
             const isMobileViewport = () => viewportWidth() <= 992 || isMobileUserAgent() || isTouchDevice();
+
+            // Only reserve scrollbar gutter while a modal is open (prevents layout "shake" without
+            // permanently reserving space on every page).
+            let openModalCount = 0;
+            const syncScrollbarGutter = () => {
+                if (openModalCount > 0) {
+                    document.documentElement.classList.add('tele-scrollbar-stable');
+                } else {
+                    document.documentElement.classList.remove('tele-scrollbar-stable');
+                }
+            };
+
+            document.addEventListener('show.bs.modal', () => {
+                openModalCount += 1;
+                syncScrollbarGutter();
+            }, true);
+
+            document.addEventListener('hidden.bs.modal', () => {
+                openModalCount = Math.max(0, openModalCount - 1);
+                syncScrollbarGutter();
+                syncMobileClass();
+            }, true);
 
             const syncMobileClass = () => {
                 // Avoid oscillation when Bootstrap modals toggle scrollbars/padding.

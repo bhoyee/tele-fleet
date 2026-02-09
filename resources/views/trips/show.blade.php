@@ -1,4 +1,4 @@
-<x-admin-layout>
+﻿<x-admin-layout>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Trip {{ $tripRequest->request_number }}</h1>
@@ -271,32 +271,31 @@
                     @if ($tripRequest->assignments?->isNotEmpty())
                         <hr class="my-4">
                         <h6 class="fw-semibold mb-3">Assignment History</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0">
-                                <thead class="table-light">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>When</th>
+                                    <th>Changed By</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($tripRequest->assignments as $assignment)
                                     <tr>
-                                        <th>When</th>
-                                        <th>Changed By</th>
-                                        <th class="text-end">Action</th>
+                                        <td class="text-muted small">{{ $assignment->created_at?->format('M d, Y H:i') ?? '—' }}</td>
+                                        <td>{{ $assignment->changedBy?->name ?? '—' }}</td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#assignmentHistoryModal-{{ $assignment->id }}">
+                                                View
+                                            </button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($tripRequest->assignments as $assignment)
-                                        <tr>
-                                            <td class="text-muted small">{{ $assignment->created_at?->format('M d, Y H:i') ?? '—' }}</td>
-                                            <td>{{ $assignment->changedBy?->name ?? '—' }}</td>
-                                            <td class="text-end">
-                                                <button type="button" class="btn btn-sm btn-outline-primary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#assignmentHistoryModal-{{ $assignment->id }}">
-                                                    View
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                @endforeach
+                            </tbody>
+                        </table>
+
 
                         @foreach ($tripRequest->assignments as $assignment)
                             <div class="modal fade" id="assignmentHistoryModal-{{ $assignment->id }}" tabindex="-1" aria-hidden="true">
@@ -392,3 +391,4 @@
         @endpush
     @endif
 </x-admin-layout>
+
