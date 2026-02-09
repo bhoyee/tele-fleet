@@ -100,7 +100,7 @@ class IncidentReportController extends Controller
         }
 
         if (! empty($data['trip_request_id'])) {
-            $trip = TripRequest::find($data['trip_request_id']);
+            $trip = TripRequest::with(['assignedVehicle', 'assignedDriver'])->find($data['trip_request_id']);
             if ($trip && $data['branch_id'] && $trip->branch_id !== $data['branch_id']) {
                 return redirect()
                     ->back()
@@ -114,6 +114,10 @@ class IncidentReportController extends Controller
                     ->withErrors(['trip_request_id' => 'You can only select trips you requested.'])
                     ->withInput();
             }
+
+            // Always derive vehicle/driver from the selected trip (read-only for branch roles).
+            $data['vehicle_id'] = $trip?->assigned_vehicle_id;
+            $data['driver_id'] = $trip?->assigned_driver_id;
         }
         $data['reference'] = $this->generateReference();
         $data['status'] = IncidentReport::STATUS_OPEN;

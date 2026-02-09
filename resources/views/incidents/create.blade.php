@@ -112,6 +112,7 @@
             const tripSelect = document.getElementById('trip_request_id');
             const vehicleSelect = document.getElementById('vehicle_id');
             const driverSelect = document.getElementById('driver_id');
+            const isBranchReadonly = @json(in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true));
 
             const resetSelect = (select, placeholder) => {
                 if (!select) {
@@ -130,7 +131,9 @@
                 const driverId = selected?.getAttribute('data-driver-id');
 
                 if (vehicleId) {
-                    vehicleSelect.disabled = false;
+                    if (!isBranchReadonly) {
+                        vehicleSelect.disabled = false;
+                    }
                     if (vehicleSelect.options.length) {
                         vehicleSelect.options[0].text = 'Assigned vehicle';
                     }
@@ -140,7 +143,9 @@
                 }
 
                 if (driverId) {
-                    driverSelect.disabled = false;
+                    if (!isBranchReadonly) {
+                        driverSelect.disabled = false;
+                    }
                     if (driverSelect.options.length) {
                         driverSelect.options[0].text = 'Assigned driver';
                     }
