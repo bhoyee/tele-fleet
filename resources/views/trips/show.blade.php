@@ -272,33 +272,6 @@
                         <hr class="my-4">
                         <h6 class="fw-semibold mb-3">Assignment History</h6>
                         <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0 d-none">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>When</th>
-                                        <th>Changed By</th>
-                                        <th class="text-end">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($tripRequest->assignments as $assignment)
-                                        <tr>
-                                            <td class="text-muted small">{{ $assignment->created_at?->format('M d, Y H:i') ?? 'â€”' }}</td>
-                                            <td>{{ $assignment->changedBy?->name ?? 'â€”' }}</td>
-                                            <td class="small">
-                                                <div>V: {{ $assignment->fromVehicle?->registration_number ?? 'â€”' }}</div>
-                                                <div>D: {{ $assignment->fromDriver?->full_name ?? 'â€”' }}</div>
-                                            </td>
-                                            <td class="small">
-                                                <div>V: {{ $assignment->toVehicle?->registration_number ?? 'â€”' }}</div>
-                                                <div>D: {{ $assignment->toDriver?->full_name ?? 'â€”' }}</div>
-                                            </td>
-                                            <td class="small">{{ $assignment->reason ?? 'â€”' }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-
                             <table class="table table-sm align-middle mb-0">
                                 <thead class="table-light">
                                     <tr>
@@ -311,13 +284,13 @@
                                     @foreach ($tripRequest->assignments as $assignment)
                                         @php
                                             $assignmentPayload = [
-                                                'when' => $assignment->created_at?->format('M d, Y H:i') ?? 'â€”',
-                                                'changed_by' => $assignment->changedBy?->name ?? 'â€”',
-                                                'from_vehicle' => $assignment->fromVehicle?->registration_number ?? 'â€”',
-                                                'from_driver' => $assignment->fromDriver?->full_name ?? 'â€”',
-                                                'to_vehicle' => $assignment->toVehicle?->registration_number ?? 'â€”',
-                                                'to_driver' => $assignment->toDriver?->full_name ?? 'â€”',
-                                                'reason' => $assignment->reason ?? 'â€”',
+                                                'when' => $assignment->created_at?->format('M d, Y H:i') ?? '—',
+                                                'changed_by' => $assignment->changedBy?->name ?? '—',
+                                                'from_vehicle' => $assignment->fromVehicle?->registration_number ?? '—',
+                                                'from_driver' => $assignment->fromDriver?->full_name ?? '—',
+                                                'to_vehicle' => $assignment->toVehicle?->registration_number ?? '—',
+                                                'to_driver' => $assignment->toDriver?->full_name ?? '—',
+                                                'reason' => $assignment->reason ?? '—',
                                             ];
                                         @endphp
                                         <tr>
@@ -328,7 +301,7 @@
                                                         class="btn btn-sm btn-outline-primary"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#assignmentHistoryModal"
-                                                        data-assignment='@json($assignmentPayload)'>
+                                                        data-assignment="{{ e(json_encode($assignmentPayload)) }}">
                                                     View
                                                 </button>
                                             </td>
@@ -349,28 +322,28 @@
                                         <div class="row g-3">
                                             <div class="col-md-6">
                                                 <div class="text-muted small">When</div>
-                                                <div class="fw-semibold" id="assignmentModalWhen">â€”</div>
+                                                <div class="fw-semibold" id="assignmentModalWhen">—</div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="text-muted small">Changed By</div>
-                                                <div class="fw-semibold" id="assignmentModalChangedBy">â€”</div>
+                                                <div class="fw-semibold" id="assignmentModalChangedBy">—</div>
                                             </div>
                                             <div class="col-12">
                                                 <div class="text-muted small">Reason</div>
-                                                <div class="fw-semibold" id="assignmentModalReason">â€”</div>
+                                                <div class="fw-semibold" id="assignmentModalReason">—</div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="text-muted small mb-1">From</div>
                                                 <div class="border rounded p-3 bg-light">
-                                                    <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold" id="assignmentModalFromVehicle">â€”</span></div>
-                                                    <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold" id="assignmentModalFromDriver">â€”</span></div>
+                                                    <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold" id="assignmentModalFromVehicle">—</span></div>
+                                                    <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold" id="assignmentModalFromDriver">—</span></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="text-muted small mb-1">To</div>
                                                 <div class="border rounded p-3 bg-light">
-                                                    <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold" id="assignmentModalToVehicle">â€”</span></div>
-                                                    <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold" id="assignmentModalToDriver">â€”</span></div>
+                                                    <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold" id="assignmentModalToVehicle">—</span></div>
+                                                    <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold" id="assignmentModalToDriver">—</span></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -402,7 +375,7 @@
                                         const setText = (id, value) => {
                                             const el = document.getElementById(id);
                                             if (!el) return;
-                                            el.textContent = (value ?? 'â€”') || 'â€”';
+                                            el.textContent = (value ?? '—') || '—';
                                         };
 
                                         setText('assignmentModalWhen', payload.when);
