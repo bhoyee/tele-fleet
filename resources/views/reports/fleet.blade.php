@@ -151,6 +151,14 @@
             min-width: 600px; /* Ensure table doesn't collapse too much */
             font-size: 0.875rem;
         }
+
+        .fleet-report-table .dataTables_wrapper {
+            width: 100%;
+        }
+
+        .fleet-report-table table.dataTable {
+            width: 100% !important;
+        }
         
         @media (min-width: 768px) {
             .fleet-report-table .table {
@@ -971,10 +979,31 @@
                     tab.addEventListener('shown.bs.tab', () => {
                         setTimeout(() => {
                             if (window.jQuery && $.fn.dataTable) {
-                                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+                                const tables = $.fn.dataTable.tables({ visible: true, api: true });
+                                tables.columns.adjust();
+                                if (tables.responsive && typeof tables.responsive.recalc === 'function') {
+                                    tables.responsive.recalc();
+                                }
+                                tables.draw(false);
+                                tables.each(function () {
+                                    try {
+                                        $(this.table().node()).css('width', '100%');
+                                    } catch (e) {
+                                        // ignore
+                                    }
+                                });
                             }
                         }, 100);
                     });
+                });
+
+                window.addEventListener('resize', () => {
+                    if (!window.jQuery || !$.fn.dataTable) return;
+                    const tables = $.fn.dataTable.tables({ visible: true, api: true });
+                    tables.columns.adjust();
+                    if (tables.responsive && typeof tables.responsive.recalc === 'function') {
+                        tables.responsive.recalc();
+                    }
                 });
             });
         </script>
