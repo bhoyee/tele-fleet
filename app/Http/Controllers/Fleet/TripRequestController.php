@@ -13,6 +13,7 @@ use App\Models\TripRequest;
 use App\Models\TripAssignment;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleMaintenance;
 use App\Events\TripRequestChanged;
 use App\Notifications\TripRequestApproved;
 use App\Notifications\TripRequestAssigned;
@@ -368,10 +369,17 @@ class TripRequestController extends Controller
         $vehicle = Vehicle::findOrFail($request->assigned_vehicle_id);
         $driver = Driver::findOrFail($request->assigned_driver_id);
 
-        if (in_array($vehicle->status, ['maintenance', 'offline'], true)) {
+        if ($vehicle->status !== 'available') {
             return redirect()
                 ->back()
                 ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is not available.'])
+                ->withInput();
+        }
+
+        if ($this->isVehicleBlockedByScheduledMaintenance($vehicle->id)) {
+            return redirect()
+                ->back()
+                ->withErrors(['assigned_vehicle_id' => 'Selected vehicle has scheduled maintenance due and cannot be assigned.'])
                 ->withInput();
         }
 
@@ -941,10 +949,14 @@ class TripRequestController extends Controller
     private function availableVehiclesNow()
     {
         $activeAssignedIds = $this->activeAssignedVehicleIds();
+        $maintenanceBlockedIds = $this->vehiclesBlockedByScheduledMaintenanceIds();
 
         return Vehicle::where('status', 'available')
             ->when($activeAssignedIds->isNotEmpty(), function ($query) use ($activeAssignedIds): void {
                 $query->whereNotIn('id', $activeAssignedIds);
+            })
+            ->when($maintenanceBlockedIds->isNotEmpty(), function ($query) use ($maintenanceBlockedIds): void {
+                $query->whereNotIn('id', $maintenanceBlockedIds);
             })
             ->orderBy('registration_number')
             ->get();
@@ -952,7 +964,34 @@ class TripRequestController extends Controller
 
     private function isVehicleAvailableNow(int $vehicleId): bool
     {
+        if ($this->vehiclesBlockedByScheduledMaintenanceIds()->contains($vehicleId)) {
+            return false;
+        }
+
         return ! $this->activeAssignedVehicleIds()->contains($vehicleId);
+    }
+
+    private function isVehicleBlockedByScheduledMaintenance(int $vehicleId): bool
+    {
+        $today = now()->toDateString();
+
+        return VehicleMaintenance::query()
+            ->where('vehicle_id', $vehicleId)
+            ->where('status', VehicleMaintenance::STATUS_SCHEDULED)
+            ->whereDate('scheduled_for', '<=', $today)
+            ->exists();
+    }
+
+    private function vehiclesBlockedByScheduledMaintenanceIds()
+    {
+        $today = now()->toDateString();
+
+        return VehicleMaintenance::query()
+            ->where('status', VehicleMaintenance::STATUS_SCHEDULED)
+            ->whereDate('scheduled_for', '<=', $today)
+            ->pluck('vehicle_id')
+            ->filter()
+            ->unique();
     }
 
     private function activeAssignedVehicleIds()
