@@ -26,6 +26,9 @@
                href="{{ route('maintenances.index', ['status' => 'overdue']) }}">
                 Overdue (Mileage)
             </a>
+            <div class="w-100 text-muted small mt-2">
+                Due = at 98% of the mileage target since last maintenance. Overdue = target reached/exceeded. Configure the target in Maintenance Settings.
+            </div>
         </div>
     </div>
 

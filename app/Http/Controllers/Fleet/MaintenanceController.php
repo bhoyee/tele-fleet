@@ -32,6 +32,7 @@ class MaintenanceController extends Controller
             ->orderByDesc('created_at');
 
         if (in_array($statusFilter, ['due', 'overdue'], true)) {
+            $query->where('status', VehicleMaintenance::STATUS_SCHEDULED);
             $query->whereHas('vehicle', function ($vehicleQuery) use ($statusFilter): void {
                 $vehicleQuery->where('maintenance_state', $statusFilter);
             });
@@ -129,6 +130,7 @@ class MaintenanceController extends Controller
             ->orderByDesc('created_at');
 
         if (in_array($statusFilter, ['due', 'overdue'], true)) {
+            $query->where('status', VehicleMaintenance::STATUS_SCHEDULED);
             $query->whereHas('vehicle', function ($vehicleQuery) use ($statusFilter): void {
                 $vehicleQuery->where('maintenance_state', $statusFilter);
             });
@@ -170,6 +172,7 @@ class MaintenanceController extends Controller
             ->orderByDesc('created_at');
 
         if (in_array($statusFilter, ['due', 'overdue'], true)) {
+            $query->where('status', VehicleMaintenance::STATUS_SCHEDULED);
             $query->whereHas('vehicle', function ($vehicleQuery) use ($statusFilter): void {
                 $vehicleQuery->where('maintenance_state', $statusFilter);
             });
@@ -199,6 +202,7 @@ class MaintenanceController extends Controller
             ->orderByDesc('created_at');
 
         if (in_array($statusFilter, ['due', 'overdue'], true)) {
+            $query->where('status', VehicleMaintenance::STATUS_SCHEDULED);
             $query->whereHas('vehicle', function ($vehicleQuery) use ($statusFilter): void {
                 $vehicleQuery->where('maintenance_state', $statusFilter);
             });
