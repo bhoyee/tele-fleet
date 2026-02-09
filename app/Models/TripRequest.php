@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -95,6 +96,11 @@ class TripRequest extends Model
     public function log(): HasOne
     {
         return $this->hasOne(TripLog::class);
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(TripAssignment::class)->orderByDesc('created_at');
     }
 
     public function dueStatus(?\Illuminate\Support\Carbon $now = null): ?string

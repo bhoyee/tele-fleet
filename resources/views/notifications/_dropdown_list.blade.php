@@ -45,6 +45,7 @@
             'TripRequestCreated' => 'New trip request submitted.',
             'TripRequestApproved' => 'Trip request approved.',
             'TripRequestAssigned' => 'Trip assigned to driver/vehicle.',
+            'TripRequestReassigned' => 'Trip reassigned to a new driver/vehicle.',
             'TripRequestRejected' => 'Trip request rejected.',
             'TripRequestCancelled' => 'Trip request cancelled.',
             'TripAssignmentPending' => 'Trip awaiting assignment.',

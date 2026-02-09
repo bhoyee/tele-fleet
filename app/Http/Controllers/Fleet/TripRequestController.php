@@ -10,6 +10,7 @@ use App\Models\Branch;
 use App\Models\Driver;
 use App\Models\TripLog;
 use App\Models\TripRequest;
+use App\Models\TripAssignment;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Events\TripRequestChanged;
@@ -17,6 +18,7 @@ use App\Notifications\TripRequestApproved;
 use App\Notifications\TripRequestAssigned;
 use App\Notifications\TripRequestCreated;
 use App\Notifications\TripRequestCancelled;
+use App\Notifications\TripRequestReassigned;
 use App\Notifications\TripRequestRejected;
 use App\Services\AuditLogService;
 use App\Services\SmsService;
@@ -212,6 +214,11 @@ class TripRequestController extends Controller
             'approvedBy',
             'assignedVehicle',
             'assignedDriver',
+            'assignments.changedBy',
+            'assignments.fromVehicle',
+            'assignments.toVehicle',
+            'assignments.fromDriver',
+            'assignments.toDriver',
             'log.enteredBy',
             'log.editedBy',
             'updatedBy',
@@ -225,6 +232,14 @@ class TripRequestController extends Controller
             $drivers = Driver::where('status', 'active')
                 ->orderBy('full_name')
                 ->get();
+
+            if ($tripRequest->assignedVehicle && ! $vehicles->contains('id', $tripRequest->assignedVehicle->id)) {
+                $vehicles = $vehicles->prepend($tripRequest->assignedVehicle);
+            }
+
+            if ($tripRequest->assignedDriver && ! $drivers->contains('id', $tripRequest->assignedDriver->id)) {
+                $drivers = $drivers->prepend($tripRequest->assignedDriver);
+            }
         }
 
         return view('trips.show', compact('tripRequest', 'vehicles', 'drivers'));
@@ -337,6 +352,19 @@ class TripRequestController extends Controller
 
     public function assign(AssignTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog, SmsService $sms): RedirectResponse
     {
+        $status = strtolower((string) $tripRequest->status);
+        if (in_array($status, ['completed', 'cancelled'], true)) {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'This trip cannot be reassigned.');
+        }
+
+        if (! in_array($status, ['approved', 'assigned'], true)) {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'This trip cannot be assigned in its current status.');
+        }
+
         $vehicle = Vehicle::findOrFail($request->assigned_vehicle_id);
         $driver = Driver::findOrFail($request->assigned_driver_id);
 
@@ -361,6 +389,24 @@ class TripRequestController extends Controller
                 ->withInput();
         }
 
+        $fromVehicleId = $tripRequest->assigned_vehicle_id;
+        $fromDriverId = $tripRequest->assigned_driver_id;
+        $toVehicleId = (int) $request->assigned_vehicle_id;
+        $toDriverId = (int) $request->assigned_driver_id;
+
+        $isReassignment = ($fromVehicleId && (int) $fromVehicleId !== $toVehicleId)
+            || ($fromDriverId && (int) $fromDriverId !== $toDriverId);
+
+        if ($isReassignment) {
+            $reason = (string) $request->input('reason', '');
+            if (trim($reason) === '') {
+                return redirect()
+                    ->back()
+                    ->withErrors(['reason' => 'Reason is required for reassignment.'])
+                    ->withInput();
+            }
+        }
+
         $tripRequest->update([
             'status' => 'assigned',
             'assigned_vehicle_id' => $request->assigned_vehicle_id,
@@ -372,16 +418,37 @@ class TripRequestController extends Controller
             'updated_by_user_id' => request()->user()->id,
         ]);
 
+        if ($isReassignment && $fromVehicleId && (int) $fromVehicleId !== $toVehicleId) {
+            $previousVehicle = Vehicle::find($fromVehicleId);
+            if ($previousVehicle && $previousVehicle->status === 'in_use' && $this->isVehicleAvailableNow($previousVehicle->id)) {
+                $previousVehicle->update(['status' => 'available']);
+            }
+        }
+
+        TripAssignment::create([
+            'trip_request_id' => $tripRequest->id,
+            'from_vehicle_id' => $fromVehicleId,
+            'to_vehicle_id' => $toVehicleId,
+            'from_driver_id' => $fromDriverId,
+            'to_driver_id' => $toDriverId,
+            'changed_by_user_id' => request()->user()->id,
+            'reason' => $isReassignment ? (string) $request->input('reason') : null,
+        ]);
+
         if ($this->tripHasStarted($tripRequest)) {
             $vehicle->update(['status' => 'in_use']);
         }
 
-        $auditLog->log('trip_request.assigned', $tripRequest, [], $tripRequest->toArray());
+        $auditLog->log($isReassignment ? 'trip_request.reassigned' : 'trip_request.assigned', $tripRequest, [], $tripRequest->toArray());
 
         $tripRequest->load(['assignedVehicle', 'assignedDriver', 'requestedBy']);
         $recipients = $this->buildNotificationRecipients($tripRequest, $tripRequest->requestedBy);
         try {
-            Notification::send($recipients, new TripRequestAssigned($tripRequest));
+            if ($isReassignment) {
+                Notification::send($recipients, new TripRequestReassigned($tripRequest, $fromVehicleId, $fromDriverId, (string) $request->input('reason')));
+            } else {
+                Notification::send($recipients, new TripRequestAssigned($tripRequest));
+            }
         } catch (Throwable $exception) {
             Log::warning('Trip request assignment notification failed.', [
                 'trip_request_id' => $tripRequest->id,
@@ -398,11 +465,11 @@ class TripRequestController extends Controller
                 $tripRequest->trip_date?->format('Y-m-d') ?? ''
             ));
         }
-        $this->broadcastTripChange($tripRequest, 'assigned');
+        $this->broadcastTripChange($tripRequest, $isReassignment ? 'reassigned' : 'assigned');
 
         return redirect()
             ->route('trips.show', $tripRequest)
-            ->with('success', 'Vehicle and driver assigned.');
+            ->with('success', $isReassignment ? 'Vehicle and/or driver reassigned.' : 'Vehicle and driver assigned.');
     }
 
     public function logbook(TripRequest $tripRequest): View

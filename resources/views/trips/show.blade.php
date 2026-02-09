@@ -141,7 +141,7 @@
                         </form>
                     @endif
 
-                    @if ($tripRequest->status === 'approved' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                    @if (in_array($tripRequest->status, ['approved', 'assigned'], true) && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
                         <form method="POST" action="{{ route('trips.assign.store', $tripRequest) }}" class="mb-3">
                             @csrf
                             @method('PATCH')
@@ -151,7 +151,7 @@
                                 <select class="form-select" id="assigned_vehicle_id" name="assigned_vehicle_id" required>
                                     <option value="">Select vehicle</option>
                                     @foreach ($vehicles as $vehicle)
-                                        <option value="{{ $vehicle->id }}">
+                                        <option value="{{ $vehicle->id }}" @selected((string) $tripRequest->assigned_vehicle_id === (string) $vehicle->id)>
                                             {{ $vehicle->registration_number }} - {{ $vehicle->make }} {{ $vehicle->model }}
                                         </option>
                                     @endforeach
@@ -164,11 +164,22 @@
                                 <select class="form-select" id="assigned_driver_id" name="assigned_driver_id" required>
                                     <option value="">Select driver</option>
                                     @foreach ($drivers as $driver)
-                                        <option value="{{ $driver->id }}">{{ $driver->full_name }} ({{ $driver->license_number }})</option>
+                                        <option value="{{ $driver->id }}" @selected((string) $tripRequest->assigned_driver_id === (string) $driver->id)>
+                                            {{ $driver->full_name }} ({{ $driver->license_number }})
+                                        </option>
                                     @endforeach
                                 </select>
                                 @error('assigned_driver_id') <div class="text-danger small">{{ $message }}</div> @enderror
                             </div>
+
+                            @if ($tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id)
+                                <div class="mb-3">
+                                    <label class="form-label" for="assignment_reason">Reason for reassignment</label>
+                                    <textarea class="form-control" id="assignment_reason" name="reason" rows="3" required>{{ old('reason') }}</textarea>
+                                    <div class="form-text">Required whenever you change the assigned vehicle or driver.</div>
+                                    @error('reason') <div class="text-danger small">{{ $message }}</div> @enderror
+                                </div>
+                            @endif
 
                             @if ($vehicles->isEmpty() || $drivers->isEmpty())
                                 <div class="alert alert-warning">
@@ -176,7 +187,9 @@
                                 </div>
                             @endif
 
-                            <button class="btn btn-primary w-100" type="submit">Assign Vehicle & Driver</button>
+                            <button class="btn btn-primary w-100" type="submit">
+                                {{ $tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id ? 'Reassign Vehicle & Driver' : 'Assign Vehicle & Driver' }}
+                            </button>
                         </form>
                     @endif
 
@@ -254,6 +267,41 @@
                     <div class="fw-semibold">{{ $tripRequest->assignedVehicle?->registration_number ?? 'N/A' }}</div>
                     <div class="text-muted small mb-1 mt-3">Driver</div>
                     <div class="fw-semibold">{{ $tripRequest->assignedDriver?->full_name ?? 'N/A' }}</div>
+
+                    @if ($tripRequest->assignments?->isNotEmpty())
+                        <hr class="my-4">
+                        <h6 class="fw-semibold mb-3">Assignment History</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>When</th>
+                                        <th>Changed By</th>
+                                        <th>From</th>
+                                        <th>To</th>
+                                        <th>Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($tripRequest->assignments as $assignment)
+                                        <tr>
+                                            <td class="text-muted small">{{ $assignment->created_at?->format('M d, Y H:i') ?? '—' }}</td>
+                                            <td>{{ $assignment->changedBy?->name ?? '—' }}</td>
+                                            <td class="small">
+                                                <div>V: {{ $assignment->fromVehicle?->registration_number ?? '—' }}</div>
+                                                <div>D: {{ $assignment->fromDriver?->full_name ?? '—' }}</div>
+                                            </td>
+                                            <td class="small">
+                                                <div>V: {{ $assignment->toVehicle?->registration_number ?? '—' }}</div>
+                                                <div>D: {{ $assignment->toDriver?->full_name ?? '—' }}</div>
+                                            </td>
+                                            <td class="small">{{ $assignment->reason ?? '—' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
