@@ -167,7 +167,9 @@ class DashboardController extends Controller
 
         if ($role === User::ROLE_BRANCH_ADMIN) {
             $personalTripRequests = TripRequest::where('requested_by_user_id', $user->id)
-                ->whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
+                ->whereNotNull('trip_date')
+                ->whereBetween('trip_date', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
+                ->where('status', '!=', 'cancelled')
                 ->count();
         }
 
