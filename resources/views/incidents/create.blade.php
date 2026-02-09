@@ -129,22 +129,25 @@
                 const vehicleId = selected?.getAttribute('data-vehicle-id');
                 const driverId = selected?.getAttribute('data-driver-id');
 
-                if (!vehicleId || !driverId) {
+                if (vehicleId) {
+                    vehicleSelect.disabled = false;
+                    if (vehicleSelect.options.length) {
+                        vehicleSelect.options[0].text = 'Assigned vehicle';
+                    }
+                    vehicleSelect.value = vehicleId;
+                } else {
                     resetSelect(vehicleSelect, 'No assigned vehicle');
-                    resetSelect(driverSelect, 'No assigned driver');
-                    return;
                 }
 
-                vehicleSelect.disabled = false;
-                driverSelect.disabled = false;
-                if (vehicleSelect.options.length) {
-                    vehicleSelect.options[0].text = 'Assigned vehicle';
+                if (driverId) {
+                    driverSelect.disabled = false;
+                    if (driverSelect.options.length) {
+                        driverSelect.options[0].text = 'Assigned driver';
+                    }
+                    driverSelect.value = driverId;
+                } else {
+                    resetSelect(driverSelect, 'No assigned driver');
                 }
-                if (driverSelect.options.length) {
-                    driverSelect.options[0].text = 'Assigned driver';
-                }
-                vehicleSelect.value = vehicleId;
-                driverSelect.value = driverId;
             };
 
             if (tripSelect) {

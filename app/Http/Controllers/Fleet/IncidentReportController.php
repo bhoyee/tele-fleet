@@ -73,6 +73,11 @@ class IncidentReportController extends Controller
 
         if (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
             $branches->where('id', $user->branch_id);
+        }
+
+        if ($user->role === User::ROLE_BRANCH_ADMIN) {
+            $tripsQuery->where('requested_by_user_id', $user->id);
+        } elseif ($user->role === User::ROLE_BRANCH_HEAD) {
             $tripsQuery->where('branch_id', $user->branch_id);
         }
 
@@ -100,6 +105,13 @@ class IncidentReportController extends Controller
                 return redirect()
                     ->back()
                     ->withErrors(['trip_request_id' => 'Selected trip does not belong to your branch.'])
+                    ->withInput();
+            }
+
+            if ($trip && $user->role === User::ROLE_BRANCH_ADMIN && $trip->requested_by_user_id !== $user->id) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['trip_request_id' => 'You can only select trips you requested.'])
                     ->withInput();
             }
         }
