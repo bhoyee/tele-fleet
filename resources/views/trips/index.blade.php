@@ -422,7 +422,15 @@
                                     <td>{{ $trip->branch?->name ?? 'N/A' }}</td>
                                     <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
                                     <td>
-                                        <span class="badge bg-{{ $trip->status === 'completed' ? 'success' : 'secondary' }}">
+                                        @php
+                                            $historyStatusClass = match ($trip->status) {
+                                                'completed' => 'success',
+                                                'cancelled' => 'secondary',
+                                                'rejected' => 'danger',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <span class="badge bg-{{ $historyStatusClass }}">
                                             {{ ucfirst($trip->status) }}
                                         </span>
                                     </td>
