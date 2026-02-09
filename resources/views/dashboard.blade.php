@@ -1111,7 +1111,7 @@
                     <span class="metric-icon"><i class="bi bi-calendar3"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Trips</span>
                 </div>
-                <div class="metric-label">Trip Requests</div>
+                <div class="metric-label">New Trip Requests</div>
                 <div class="metric-subcards">
                     <div class="metric-subcard">
                         <div class="metric-subvalue" data-metric="tripsToday">{{ $tripsToday ?? 0 }}</div>
@@ -1127,7 +1127,7 @@
                     </div>
                 </div>
                 <div class="metric-footnote">
-                    <i class="bi bi-graph-up"></i> Total requests
+                    <i class="bi bi-graph-up"></i> Based on request submission date
                 </div>
             </div>
             @endif

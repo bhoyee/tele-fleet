@@ -257,12 +257,13 @@ class DashboardController extends Controller
             $tripScope->where('branch_id', $branchId);
         }
 
-        $tripsToday = (clone $tripScope)->whereDate('trip_date', $now->toDateString())->count();
+        // Trip Requests activity: count by submission time (created_at), not scheduled trip_date.
+        $tripsToday = (clone $tripScope)->whereDate('created_at', $now->toDateString())->count();
         $tripsThisWeek = (clone $tripScope)
-            ->whereBetween('trip_date', [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()])
+            ->whereBetween('created_at', [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()])
             ->count();
         $tripsThisMonth = (clone $tripScope)
-            ->whereBetween('trip_date', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
+            ->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
             ->count();
 
         if (in_array($role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER, User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
