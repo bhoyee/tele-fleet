@@ -29,7 +29,7 @@
                         ?? (! empty($notificationData['trip_request_id'])
                             ? ('Trip #'.$notificationData['trip_request_id'])
                             : null);
-                    $tripTitle = $tripLabel ? "{$tripLabel} Update" : 'Trip Update';
+                    $tripTitle = $tripLabel ?: 'Trip Update';
                     $incidentLabel = $notificationData['reference']
                         ?? (! empty($notificationData['incident_id'])
                             ? ('Incident #'.$notificationData['incident_id'])
