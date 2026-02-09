@@ -32,7 +32,7 @@
                 <th>Scheduled</th>
                 <th>Description</th>
                 <th>Cost</th>
-                <th>Odometer</th>
+                <th>Mileage</th>
                 <th>Mileage State</th>
             </tr>
         </thead>

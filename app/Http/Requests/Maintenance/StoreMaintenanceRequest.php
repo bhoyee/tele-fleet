@@ -29,7 +29,7 @@ class StoreMaintenanceRequest extends FormRequest
             'description' => ['required', 'string', 'max:190'],
             'notes' => ['nullable', 'string'],
             'cost' => ['nullable', 'numeric', 'min:0'],
-            'odometer' => ['nullable', 'integer', 'min:0'],
+            'odometer' => ['required', 'integer', 'min:0'],
         ];
     }
 }

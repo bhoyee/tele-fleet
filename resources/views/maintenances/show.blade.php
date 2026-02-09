@@ -65,7 +65,7 @@
                     <h5 class="fw-semibold mb-3">Costs & Metrics</h5>
                     <div class="text-muted small">Cost</div>
                     <div class="fw-semibold">{{ $maintenance->cost !== null ? number_format($maintenance->cost, 2) : '—' }}</div>
-                    <div class="text-muted small mt-3">Odometer</div>
+                    <div class="text-muted small mt-3">Mileage</div>
                     <div class="fw-semibold">{{ $maintenance->odometer !== null ? number_format($maintenance->odometer) . ' km' : '—' }}</div>
                     <div class="text-muted small mt-3">Logged By</div>
                     <div class="fw-semibold">{{ $maintenance->createdBy?->name ?? 'N/A' }}</div>

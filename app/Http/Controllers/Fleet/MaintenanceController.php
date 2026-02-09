@@ -145,7 +145,7 @@ class MaintenanceController extends Controller
 
         return response()->streamDownload(function () use ($maintenances): void {
             $handle = fopen('php://output', 'wb');
-            fputcsv($handle, ['Vehicle', 'Status', 'Scheduled For', 'Description', 'Cost', 'Odometer', 'Maintenance State']);
+            fputcsv($handle, ['Vehicle', 'Status', 'Scheduled For', 'Description', 'Cost', 'Mileage', 'Maintenance State']);
             foreach ($maintenances as $maintenance) {
                 fputcsv($handle, [
                     $maintenance->vehicle?->registration_number ?? 'N/A',

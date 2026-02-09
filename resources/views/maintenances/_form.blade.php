@@ -62,8 +62,8 @@
         @error('cost') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-4">
-        <label class="form-label" for="odometer">Odometer (km)</label>
-        <input class="form-control" id="odometer" type="number" min="0" name="odometer"
+        <label class="form-label" for="odometer">Mileage (km)</label>
+        <input class="form-control" id="odometer" type="number" min="0" name="odometer" placeholder="e.g. 125000" required
                value="{{ old('odometer', $maintenance?->odometer) }}">
         @error('odometer') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
