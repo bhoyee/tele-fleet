@@ -35,6 +35,10 @@
                 --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
+            html {
+                scrollbar-gutter: stable;
+            }
+
             body {
                 font-family: "Manrope", system-ui, -apple-system, sans-serif;
                 background: #f5f9ff;
@@ -687,6 +691,13 @@
                 background: #056CA3;
                 color: white;
                 transform: translateY(-2px);
+            }
+
+            /* Prevent modal "jitter" from hover transforms */
+            .modal .btn:hover,
+            .modal .action-btn:hover,
+            .modal .nav-link:hover {
+                transform: none !important;
             }
 
             /* Search Bar */
