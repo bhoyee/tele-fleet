@@ -183,7 +183,7 @@
             .main-content {
                 margin-left: var(--sidebar-width);
                 min-height: 100vh;
-                transition: var(--transition);
+                transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 padding: 0;
                 display: flex;
                 flex-direction: column;

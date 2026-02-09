@@ -284,13 +284,13 @@
                                     @foreach ($tripRequest->assignments as $assignment)
                                         @php
                                             $assignmentPayload = [
-                                                'when' => $assignment->created_at?->format('M d, Y H:i') ?? '—',
-                                                'changed_by' => $assignment->changedBy?->name ?? '—',
-                                                'from_vehicle' => $assignment->fromVehicle?->registration_number ?? '—',
-                                                'from_driver' => $assignment->fromDriver?->full_name ?? '—',
-                                                'to_vehicle' => $assignment->toVehicle?->registration_number ?? '—',
-                                                'to_driver' => $assignment->toDriver?->full_name ?? '—',
-                                                'reason' => $assignment->reason ?? '—',
+                                                'when' => $assignment->created_at?->format('M d, Y H:i') ?? 'â€”',
+                                                'changed_by' => $assignment->changedBy?->name ?? 'â€”',
+                                                'from_vehicle' => $assignment->fromVehicle?->registration_number ?? 'â€”',
+                                                'from_driver' => $assignment->fromDriver?->full_name ?? 'â€”',
+                                                'to_vehicle' => $assignment->toVehicle?->registration_number ?? 'â€”',
+                                                'to_driver' => $assignment->toDriver?->full_name ?? 'â€”',
+                                                'reason' => $assignment->reason ?? 'â€”',
                                             ];
                                         @endphp
                                         <tr>
@@ -299,9 +299,8 @@
                                             <td class="text-end">
                                                 <button type="button"
                                                         class="btn btn-sm btn-outline-primary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#assignmentHistoryModal"
-                                                        data-assignment="{{ e(json_encode($assignmentPayload)) }}">
+                                                        data-assignment-view
+                                                        data-assignment='@json($assignmentPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)'>
                                                     View
                                                 </button>
                                             </td>
@@ -322,28 +321,28 @@
                                         <div class="row g-3">
                                             <div class="col-md-6">
                                                 <div class="text-muted small">When</div>
-                                                <div class="fw-semibold" id="assignmentModalWhen">—</div>
+                                                <div class="fw-semibold" id="assignmentModalWhen">â€”</div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="text-muted small">Changed By</div>
-                                                <div class="fw-semibold" id="assignmentModalChangedBy">—</div>
+                                                <div class="fw-semibold" id="assignmentModalChangedBy">â€”</div>
                                             </div>
                                             <div class="col-12">
                                                 <div class="text-muted small">Reason</div>
-                                                <div class="fw-semibold" id="assignmentModalReason">—</div>
+                                                <div class="fw-semibold" id="assignmentModalReason">â€”</div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="text-muted small mb-1">From</div>
                                                 <div class="border rounded p-3 bg-light">
-                                                    <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold" id="assignmentModalFromVehicle">—</span></div>
-                                                    <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold" id="assignmentModalFromDriver">—</span></div>
+                                                    <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold" id="assignmentModalFromVehicle">â€”</span></div>
+                                                    <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold" id="assignmentModalFromDriver">â€”</span></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="text-muted small mb-1">To</div>
                                                 <div class="border rounded p-3 bg-light">
-                                                    <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold" id="assignmentModalToVehicle">—</span></div>
-                                                    <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold" id="assignmentModalToDriver">—</span></div>
+                                                    <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold" id="assignmentModalToVehicle">â€”</span></div>
+                                                    <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold" id="assignmentModalToDriver">â€”</span></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -357,35 +356,40 @@
 
                         @push('scripts')
                             <script>
-                                document.addEventListener('DOMContentLoaded', () => {
+                                document.addEventListener('click', (event) => {
+                                    const button = event.target.closest('[data-assignment-view]');
+                                    if (!button) {
+                                        return;
+                                    }
+
                                     const modalEl = document.getElementById('assignmentHistoryModal');
-                                    if (!modalEl) return;
+                                    if (!modalEl || !window.bootstrap?.Modal) {
+                                        return;
+                                    }
 
-                                    modalEl.addEventListener('show.bs.modal', (event) => {
-                                        const trigger = event.relatedTarget;
-                                        if (!trigger) return;
+                                    let payload = null;
+                                    try {
+                                        payload = JSON.parse(button.getAttribute('data-assignment') || '{}');
+                                    } catch (e) {
+                                        payload = {};
+                                    }
 
-                                        let payload = null;
-                                        try {
-                                            payload = JSON.parse(trigger.getAttribute('data-assignment') || '{}');
-                                        } catch (e) {
-                                            payload = {};
-                                        }
+                                    const setText = (id, value) => {
+                                        const el = document.getElementById(id);
+                                        if (!el) return;
+                                        el.textContent = (value ?? 'â€”') || 'â€”';
+                                    };
 
-                                        const setText = (id, value) => {
-                                            const el = document.getElementById(id);
-                                            if (!el) return;
-                                            el.textContent = (value ?? '—') || '—';
-                                        };
+                                    setText('assignmentModalWhen', payload.when);
+                                    setText('assignmentModalChangedBy', payload.changed_by);
+                                    setText('assignmentModalReason', payload.reason);
+                                    setText('assignmentModalFromVehicle', payload.from_vehicle);
+                                    setText('assignmentModalFromDriver', payload.from_driver);
+                                    setText('assignmentModalToVehicle', payload.to_vehicle);
+                                    setText('assignmentModalToDriver', payload.to_driver);
 
-                                        setText('assignmentModalWhen', payload.when);
-                                        setText('assignmentModalChangedBy', payload.changed_by);
-                                        setText('assignmentModalReason', payload.reason);
-                                        setText('assignmentModalFromVehicle', payload.from_vehicle);
-                                        setText('assignmentModalFromDriver', payload.from_driver);
-                                        setText('assignmentModalToVehicle', payload.to_vehicle);
-                                        setText('assignmentModalToDriver', payload.to_driver);
-                                    });
+                                    const instance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                                    instance.show();
                                 });
                             </script>
                         @endpush
@@ -418,7 +422,7 @@
             </div>
         </div>
 
-        @push('scripts')
+                        @push('scripts')
             <script>
                 document.querySelectorAll('[data-delete-action]').forEach((button) => {
                     button.addEventListener('click', () => {
