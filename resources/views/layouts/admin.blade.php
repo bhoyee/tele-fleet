@@ -1408,11 +1408,18 @@
                 }
             };
 
+            const viewportWidth = () => document.documentElement?.clientWidth || window.innerWidth;
             const isMobileUserAgent = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
             const isTouchDevice = () => (navigator.maxTouchPoints || 0) > 0;
+            const isMobileViewport = () => viewportWidth() <= 992 || isMobileUserAgent() || isTouchDevice();
 
             const syncMobileClass = () => {
-                if (window.innerWidth <= 992 || isMobileUserAgent() || isTouchDevice()) {
+                // Avoid oscillation when Bootstrap modals toggle scrollbars/padding.
+                if (document.body.classList.contains('modal-open')) {
+                    return;
+                }
+
+                if (isMobileViewport()) {
                     document.body.classList.add('is-mobile');
                     document.documentElement.style.setProperty('--sidebar-width', '0px');
                     if (mainContent) {
@@ -1449,7 +1456,7 @@
 
             // Close sidebar when clicking outside on mobile
             document.addEventListener('click', function(event) {
-                if (window.innerWidth <= 992 && 
+                if (isMobileViewport() && 
                     !sidebar.contains(event.target) && 
                     !sidebarToggle.contains(event.target) &&
                     sidebar.classList.contains('active')) {
@@ -1464,7 +1471,7 @@
                     if (!target) {
                         return;
                     }
-                    if (window.innerWidth <= 992) {
+                    if (isMobileViewport()) {
                         closeSidebar();
                     }
                 });
