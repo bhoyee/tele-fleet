@@ -234,7 +234,7 @@
                                     $tripMoment = $trip->trip_date->copy()->startOfDay();
                                 }
                                 $tripStatus = strtolower((string) $trip->status);
-                                $canCancel = $tripStatus === 'pending' || ($tripStatus !== 'completed' && now()->lt($tripMoment));
+                                $canCancel = in_array($tripStatus, ['pending', 'approved', 'assigned'], true) && now()->lt($tripMoment);
                             @endphp
                             <tr>
                                 <td class="dtr-control" data-label=""></td>
@@ -650,11 +650,11 @@
 
                 const canCancelTrip = (trip) => {
                     const status = String(trip.status || '').toLowerCase();
-                    if (status === 'pending') return true;
+                    if (!['pending', 'approved', 'assigned'].includes(status)) return false;
                     if (!trip.trip_date_raw) return false;
                     const timeValue = trip.trip_time_raw ? trip.trip_time_raw : '00:00';
                     const tripMoment = new Date(`${trip.trip_date_raw}T${timeValue}`);
-                    return status !== 'completed' && new Date() < tripMoment;
+                    return new Date() < tripMoment;
                 };
 
                 const renderRows = (rows) => {
