@@ -1463,7 +1463,7 @@
             document.addEventListener('DOMContentLoaded', function() {
                 const cards = document.querySelectorAll('.card');
                 cards.forEach(card => {
-                    card.style.transition = 'all 0.3s ease';
+                    card.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
                 });
                 
                 // Auto-hide success alerts after 5 seconds
