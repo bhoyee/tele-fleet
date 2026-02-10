@@ -41,6 +41,7 @@ class TripRequestReassigned extends Notification
         $fromDriver = $this->fromDriver?->full_name ?? 'N/A';
         $toVehicle = $this->tripRequest->assignedVehicle?->registration_number ?? 'N/A';
         $toDriver = $this->tripRequest->assignedDriver?->full_name ?? 'N/A';
+        $toDriverPhone = $this->tripRequest->assignedDriver?->phone ?? 'N/A';
 
         return (new MailMessage)
             ->subject('Trip Reassigned '.$this->tripRequest->request_number)
@@ -49,6 +50,7 @@ class TripRequestReassigned extends Notification
             ->line('Previous Driver: '.$fromDriver)
             ->line('New Vehicle: '.$toVehicle)
             ->line('New Driver: '.$toDriver)
+            ->line('New Driver Phone: '.$toDriverPhone)
             ->line('Reason: '.$this->reason)
             ->action('View Trip Request', route('trips.show', $this->tripRequest));
     }
@@ -68,4 +70,3 @@ class TripRequestReassigned extends Notification
         ];
     }
 }
-

@@ -24,12 +24,14 @@ class TripRequestAssigned extends Notification
     {
         $vehicle = $this->tripRequest->assignedVehicle?->registration_number ?? 'N/A';
         $driver = $this->tripRequest->assignedDriver?->full_name ?? 'N/A';
+        $driverPhone = $this->tripRequest->assignedDriver?->phone ?? 'N/A';
 
         return (new MailMessage)
             ->subject('Trip Assigned '.$this->tripRequest->request_number)
             ->line('Your trip request has been assigned.')
             ->line('Vehicle: '.$vehicle)
             ->line('Driver: '.$driver)
+            ->line('Driver Phone: '.$driverPhone)
             ->action('View Trip Request', route('trips.show', $this->tripRequest));
     }
 
