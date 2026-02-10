@@ -197,7 +197,7 @@ class TripRequestController extends Controller
 
         $recipients = $this->buildNotificationRecipients($tripRequest);
         try {
-            Notification::send($recipients, new TripRequestCreated($tripRequest));
+            Notification::send($recipients, TripRequestCreated::fromTripRequest($tripRequest));
         } catch (Throwable $exception) {
             Log::warning('Trip request create notification failed.', [
                 'trip_request_id' => $tripRequest->id,
