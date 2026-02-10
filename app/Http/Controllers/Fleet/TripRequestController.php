@@ -366,44 +366,71 @@ class TripRequestController extends Controller
                 ->with('error', 'This trip cannot be assigned in its current status.');
         }
 
-        $vehicle = Vehicle::findOrFail($request->assigned_vehicle_id);
-        $driver = Driver::findOrFail($request->assigned_driver_id);
-
-        if ($vehicle->status !== 'available') {
-            return redirect()
-                ->back()
-                ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is not available.'])
-                ->withInput();
-        }
-
-        if ($this->isVehicleBlockedByScheduledMaintenance($vehicle->id)) {
-            return redirect()
-                ->back()
-                ->withErrors(['assigned_vehicle_id' => 'Selected vehicle has scheduled maintenance due and cannot be assigned.'])
-                ->withInput();
-        }
-
-        if ($driver->status !== 'active') {
-            return redirect()
-                ->back()
-                ->withErrors(['assigned_driver_id' => 'Selected driver is not available.'])
-                ->withInput();
-        }
-
-        if (! $this->isVehicleAvailableNow($vehicle->id)) {
-            return redirect()
-                ->back()
-                ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is currently in use.'])
-                ->withInput();
-        }
-
         $fromVehicleId = $tripRequest->assigned_vehicle_id;
         $fromDriverId = $tripRequest->assigned_driver_id;
-        $toVehicleId = (int) $request->assigned_vehicle_id;
-        $toDriverId = (int) $request->assigned_driver_id;
+        $toVehicleId = $request->filled('assigned_vehicle_id')
+            ? (int) $request->assigned_vehicle_id
+            : (int) ($fromVehicleId ?? 0);
+        $toDriverId = $request->filled('assigned_driver_id')
+            ? (int) $request->assigned_driver_id
+            : (int) ($fromDriverId ?? 0);
 
-        $isReassignment = ($fromVehicleId && (int) $fromVehicleId !== $toVehicleId)
-            || ($fromDriverId && (int) $fromDriverId !== $toDriverId);
+        if (! $toVehicleId || ! $toDriverId) {
+            return redirect()
+                ->back()
+                ->withErrors([
+                    'assigned_vehicle_id' => 'Vehicle is required to complete assignment.',
+                    'assigned_driver_id' => 'Driver is required to complete assignment.',
+                ])
+                ->withInput();
+        }
+
+        $isChangingVehicle = ! $fromVehicleId || (int) $fromVehicleId !== $toVehicleId;
+        $isChangingDriver = ! $fromDriverId || (int) $fromDriverId !== $toDriverId;
+
+        if ($isChangingVehicle) {
+            $vehicle = Vehicle::findOrFail($toVehicleId);
+
+            if ($vehicle->status !== 'available') {
+                return redirect()
+                    ->back()
+                    ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is not available.'])
+                    ->withInput();
+            }
+
+            if ($this->isVehicleBlockedByScheduledMaintenance($vehicle->id)) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['assigned_vehicle_id' => 'Selected vehicle has scheduled maintenance due and cannot be assigned.'])
+                    ->withInput();
+            }
+
+            if (! $this->isVehicleAvailableNow($vehicle->id)) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is currently in use.'])
+                    ->withInput();
+            }
+        } else {
+            $vehicle = $fromVehicleId ? Vehicle::find($fromVehicleId) : null;
+        }
+
+        if ($isChangingDriver) {
+            $driver = Driver::findOrFail($toDriverId);
+
+            if ($driver->status !== 'active') {
+                return redirect()
+                    ->back()
+                    ->withErrors(['assigned_driver_id' => 'Selected driver is not available.'])
+                    ->withInput();
+            }
+        } else {
+            $driver = $fromDriverId ? Driver::find($fromDriverId) : null;
+        }
+
+        $hasExistingAssignment = (bool) ($fromVehicleId || $fromDriverId);
+        $isReassignment = $hasExistingAssignment && ($isChangingVehicle || $isChangingDriver);
+        $hasAnyChange = (! $hasExistingAssignment) || $isReassignment;
 
         if ($isReassignment) {
             $reason = (string) $request->input('reason', '');
@@ -415,10 +442,16 @@ class TripRequestController extends Controller
             }
         }
 
+        if (! $hasAnyChange) {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('success', 'No assignment changes were made.');
+        }
+
         $tripRequest->update([
             'status' => 'assigned',
-            'assigned_vehicle_id' => $request->assigned_vehicle_id,
-            'assigned_driver_id' => $request->assigned_driver_id,
+            'assigned_vehicle_id' => $toVehicleId,
+            'assigned_driver_id' => $toDriverId,
             'assigned_at' => now(),
             'requires_reassignment' => false,
             'assignment_conflict_reason' => null,
@@ -444,7 +477,9 @@ class TripRequestController extends Controller
         ]);
 
         if ($this->tripHasStarted($tripRequest)) {
-            $vehicle->update(['status' => 'in_use']);
+            if ($vehicle) {
+                $vehicle->update(['status' => 'in_use']);
+            }
         }
 
         $auditLog->log($isReassignment ? 'trip_request.reassigned' : 'trip_request.assigned', $tripRequest, [], $tripRequest->toArray());

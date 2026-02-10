@@ -148,7 +148,7 @@
 
                             <div class="mb-3">
                                 <label class="form-label" for="assigned_vehicle_id">Vehicle</label>
-                                <select class="form-select" id="assigned_vehicle_id" name="assigned_vehicle_id" required>
+                                <select class="form-select" id="assigned_vehicle_id" name="assigned_vehicle_id" @required(! $tripRequest->assigned_vehicle_id)>
                                     <option value="">Select vehicle</option>
                                     @foreach ($vehicles as $vehicle)
                                         <option value="{{ $vehicle->id }}" @selected((string) $tripRequest->assigned_vehicle_id === (string) $vehicle->id)>
@@ -161,7 +161,7 @@
 
                             <div class="mb-3">
                                 <label class="form-label" for="assigned_driver_id">Driver</label>
-                                <select class="form-select" id="assigned_driver_id" name="assigned_driver_id" required>
+                                <select class="form-select" id="assigned_driver_id" name="assigned_driver_id" @required(! $tripRequest->assigned_driver_id)>
                                     <option value="">Select driver</option>
                                     @foreach ($drivers as $driver)
                                         <option value="{{ $driver->id }}" @selected((string) $tripRequest->assigned_driver_id === (string) $driver->id)>

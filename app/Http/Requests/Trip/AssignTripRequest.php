@@ -16,8 +16,10 @@ class AssignTripRequest extends FormRequest
     {
         /** @var TripRequest|null $tripRequest */
         $tripRequest = $this->route('tripRequest');
-        $requestedVehicleId = (int) $this->input('assigned_vehicle_id');
-        $requestedDriverId = (int) $this->input('assigned_driver_id');
+        $requestedVehicleRaw = $this->input('assigned_vehicle_id');
+        $requestedDriverRaw = $this->input('assigned_driver_id');
+        $requestedVehicleId = is_numeric($requestedVehicleRaw) ? (int) $requestedVehicleRaw : 0;
+        $requestedDriverId = is_numeric($requestedDriverRaw) ? (int) $requestedDriverRaw : 0;
         $currentVehicleId = (int) ($tripRequest?->assigned_vehicle_id ?? 0);
         $currentDriverId = (int) ($tripRequest?->assigned_driver_id ?? 0);
 
@@ -27,9 +29,18 @@ class AssignTripRequest extends FormRequest
             || ($requestedDriverId && $requestedDriverId !== $currentDriverId)
         );
 
+        $vehicleRule = $currentVehicleId
+            ? ['nullable', 'exists:vehicles,id']
+            : ['required', 'exists:vehicles,id'];
+        $driverRule = $currentDriverId
+            ? ['nullable', 'exists:drivers,id']
+            : ['required', 'exists:drivers,id'];
+
         return [
-            'assigned_vehicle_id' => ['required', 'exists:vehicles,id'],
-            'assigned_driver_id' => ['required', 'exists:drivers,id'],
+            // If there is already an assignment, you can submit only the field you want to change.
+            // Missing values will be treated as "keep current" in the controller.
+            'assigned_vehicle_id' => $vehicleRule,
+            'assigned_driver_id' => $driverRule,
             'reason' => [$hasExistingAssignment && $isChangingAssignment ? 'required' : 'nullable', 'string', 'max:1000'],
         ];
     }
