@@ -224,6 +224,21 @@ Cancel is allowed when:
 - If vehicles or drivers are not yet available, you can approve the trip first and assign later.
 - Approved trips without assignment trigger reminders before the trip time.
 
+### 7.1 Reassign Vehicle/Driver (Fleet Manager/Super Admin)
+Sometimes a trip needs a different vehicle or driver after assignment (e.g., vehicle goes into maintenance or driver becomes unavailable).
+
+To reassign:
+1. Go to **Trips** and click **View** on the trip.
+2. Under **Workflow Actions** > **Assign Vehicle/Driver**, select the new vehicle and/or driver.
+3. Enter a **Reason for reassignment** (required) and submit.
+
+Rules:
+- Reassignment is allowed for **Approved** and **Assigned** trips.
+- Reassignment is **not allowed** when a trip is **Completed** or **Cancelled**.
+- The system validates the selected vehicle/driver are available/active (non-assignable resources will not be accepted).
+- Every change is recorded in **Assignment History** so you can audit what changed, when, and by who.
+- The trip requester receives a notification that the assignment was updated.
+
 ![Trip Approval screen](../public/doc-imgs/trip-approval.png)
 
 ---
