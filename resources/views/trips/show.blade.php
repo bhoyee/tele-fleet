@@ -267,6 +267,8 @@
                     <div class="fw-semibold">{{ $tripRequest->assignedVehicle?->registration_number ?? 'N/A' }}</div>
                     <div class="text-muted small mb-1 mt-3">Driver</div>
                     <div class="fw-semibold">{{ $tripRequest->assignedDriver?->full_name ?? 'N/A' }}</div>
+                    <div class="text-muted small mb-1 mt-3">Driver Phone</div>
+                    <div class="fw-semibold">{{ $tripRequest->assignedDriver?->phone ?? 'N/A' }}</div>
 
                     @if ($tripRequest->assignments?->isNotEmpty())
                         <hr class="my-4">
