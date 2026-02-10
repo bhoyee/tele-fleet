@@ -267,43 +267,48 @@
                     <div class="fw-semibold">{{ $tripRequest->assignedVehicle?->registration_number ?? 'N/A' }}</div>
                     <div class="text-muted small mb-1 mt-3">Driver</div>
                     <div class="fw-semibold">{{ $tripRequest->assignedDriver?->full_name ?? 'N/A' }}</div>
-
-                    @if ($tripRequest->assignments?->isNotEmpty())
-                        <hr class="my-4">
-                        <h6 class="fw-semibold mb-3">Assignment History</h6>
-                        <table class="table table-sm align-middle mb-0 w-100">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>When</th>
-                                    <th>Changed By</th>
-                                    <th>Reason</th>
-                                    <th>From</th>
-                                    <th>To</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($tripRequest->assignments as $assignment)
-                                    <tr>
-                                        <td class="text-muted small">{{ $assignment->created_at?->format('M d, Y H:i') ?? '—' }}</td>
-                                        <td>{{ $assignment->changedBy?->name ?? '—' }}</td>
-                                        <td class="small text-break">{{ $assignment->reason ?: '—' }}</td>
-                                        <td class="small text-break">
-                                            <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->fromVehicle?->registration_number ?? '—' }}</span></div>
-                                            <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->fromDriver?->full_name ?? '—' }}</span></div>
-                                        </td>
-                                        <td class="small text-break">
-                                            <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->toVehicle?->registration_number ?? '—' }}</span></div>
-                                            <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->toDriver?->full_name ?? '—' }}</span></div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @endif
                 </div>
             </div>
         </div>
     </div>
+
+    @if ($tripRequest->assignments?->isNotEmpty())
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body">
+                <h5 class="fw-semibold mb-3">Assignment History</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0 w-100">
+                        <thead class="table-light">
+                            <tr>
+                                <th>When</th>
+                                <th>Changed By</th>
+                                <th>Reason</th>
+                                <th>From</th>
+                                <th>To</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($tripRequest->assignments as $assignment)
+                                <tr>
+                                    <td class="text-muted small">{{ $assignment->created_at?->format('M d, Y H:i') ?? '—' }}</td>
+                                    <td>{{ $assignment->changedBy?->name ?? '—' }}</td>
+                                    <td class="small text-break">{{ $assignment->reason ?: '—' }}</td>
+                                    <td class="small text-break">
+                                        <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->fromVehicle?->registration_number ?? '—' }}</span></div>
+                                        <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->fromDriver?->full_name ?? '—' }}</span></div>
+                                    </td>
+                                    <td class="small text-break">
+                                        <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->toVehicle?->registration_number ?? '—' }}</span></div>
+                                        <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->toDriver?->full_name ?? '—' }}</span></div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
 
     @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
         <div class="modal fade" id="deleteTripModal" tabindex="-1" aria-hidden="true">
@@ -328,7 +333,7 @@
             </div>
         </div>
 
-                        @push('scripts')
+        @push('scripts')
             <script>
                 document.querySelectorAll('[data-delete-action]').forEach((button) => {
                     button.addEventListener('click', () => {
