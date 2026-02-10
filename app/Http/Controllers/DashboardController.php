@@ -403,6 +403,7 @@ class DashboardController extends Controller
         $maintenanceVehicles = Vehicle::where('status', 'maintenance')->count();
         $baseAvailable = max(0, $totalVehicles - $maintenanceVehicles);
 
+        $todayKey = $now->toDateString();
         $activeAssignedVehicles = $this->activeAssignedVehicleIds()->count();
 
         $calendarStart = $monthStart->copy()->subDays(7);
@@ -456,9 +457,14 @@ class DashboardController extends Controller
             } elseif ($snapshot && $cursor->isBefore($now->copy()->startOfDay())) {
                 $available = $snapshot->available_vehicles;
             } else {
-                $assignedOnDate = (int) ($assignedByDate->get($dateKey) ?? 0);
-                $windowAssignedCount = isset($windowAssigned[$dateKey]) ? count($windowAssigned[$dateKey]) : 0;
-                $assignedCount = max($assignedOnDate, $windowAssignedCount);
+                if ($dateKey === $todayKey) {
+                    // For "today", show live availability (matches the dashboard card).
+                    $assignedCount = $activeAssignedVehicles;
+                } else {
+                    $assignedOnDate = (int) ($assignedByDate->get($dateKey) ?? 0);
+                    $windowAssignedCount = isset($windowAssigned[$dateKey]) ? count($windowAssigned[$dateKey]) : 0;
+                    $assignedCount = max($assignedOnDate, $windowAssignedCount);
+                }
                 $available = max(0, $baseAvailable - $assignedCount);
             }
             $days[] = [
