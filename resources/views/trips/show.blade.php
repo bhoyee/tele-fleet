@@ -271,12 +271,14 @@
                     @if ($tripRequest->assignments?->isNotEmpty())
                         <hr class="my-4">
                         <h6 class="fw-semibold mb-3">Assignment History</h6>
-                        <table class="table table-sm align-middle mb-0">
+                        <table class="table table-sm align-middle mb-0 w-100">
                             <thead class="table-light">
                                 <tr>
                                     <th>When</th>
                                     <th>Changed By</th>
-                                    <th class="text-end">Action</th>
+                                    <th>Reason</th>
+                                    <th>From</th>
+                                    <th>To</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -284,64 +286,19 @@
                                     <tr>
                                         <td class="text-muted small">{{ $assignment->created_at?->format('M d, Y H:i') ?? '—' }}</td>
                                         <td>{{ $assignment->changedBy?->name ?? '—' }}</td>
-                                        <td class="text-end">
-                                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#assignmentHistoryModal-{{ $assignment->id }}">
-                                                View
-                                            </button>
+                                        <td class="small text-break">{{ $assignment->reason ?: '—' }}</td>
+                                        <td class="small text-break">
+                                            <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->fromVehicle?->registration_number ?? '—' }}</span></div>
+                                            <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->fromDriver?->full_name ?? '—' }}</span></div>
+                                        </td>
+                                        <td class="small text-break">
+                                            <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->toVehicle?->registration_number ?? '—' }}</span></div>
+                                            <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->toDriver?->full_name ?? '—' }}</span></div>
                                         </td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
-
-
-                        @foreach ($tripRequest->assignments as $assignment)
-                            <div class="modal fade" id="assignmentHistoryModal-{{ $assignment->id }}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Assignment Change Details</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <div class="row g-3">
-                                                <div class="col-md-6">
-                                                    <div class="text-muted small">When</div>
-                                                    <div class="fw-semibold">{{ $assignment->created_at?->format('M d, Y H:i') ?? '—' }}</div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="text-muted small">Changed By</div>
-                                                    <div class="fw-semibold">{{ $assignment->changedBy?->name ?? '—' }}</div>
-                                                </div>
-                                                <div class="col-12">
-                                                    <div class="text-muted small">Reason</div>
-                                                    <div class="fw-semibold">{{ $assignment->reason ?: '—' }}</div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="text-muted small mb-1">From</div>
-                                                    <div class="border rounded p-3 bg-light">
-                                                        <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->fromVehicle?->registration_number ?? '—' }}</span></div>
-                                                        <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->fromDriver?->full_name ?? '—' }}</span></div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="text-muted small mb-1">To</div>
-                                                    <div class="border rounded p-3 bg-light">
-                                                        <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->toVehicle?->registration_number ?? '—' }}</span></div>
-                                                        <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->toDriver?->full_name ?? '—' }}</span></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
                     @endif
                 </div>
             </div>
