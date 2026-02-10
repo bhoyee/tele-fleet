@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Fleet;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Trip\AssignTripRequest;
+use App\Jobs\ProcessTripAssignmentSideEffects;
 use App\Http\Requests\Trip\LogTripRequest;
 use App\Http\Requests\Trip\StoreTripRequest;
 use App\Models\Branch;
@@ -484,30 +485,13 @@ class TripRequestController extends Controller
 
         $auditLog->log($isReassignment ? 'trip_request.reassigned' : 'trip_request.assigned', $tripRequest, [], $tripRequest->toArray());
 
-        $tripRequest->load(['assignedVehicle', 'assignedDriver', 'requestedBy']);
-        $recipients = $this->buildNotificationRecipients($tripRequest, $tripRequest->requestedBy);
-        try {
-            if ($isReassignment) {
-                Notification::send($recipients, new TripRequestReassigned($tripRequest, $fromVehicleId, $fromDriverId, (string) $request->input('reason')));
-            } else {
-                Notification::send($recipients, new TripRequestAssigned($tripRequest));
-            }
-        } catch (Throwable $exception) {
-            Log::warning('Trip request assignment notification failed.', [
-                'trip_request_id' => $tripRequest->id,
-                'error' => $exception->getMessage(),
-            ]);
-        }
-
-        if ($tripRequest->assignedDriver?->phone) {
-            $sms->send($tripRequest->assignedDriver->phone, sprintf(
-                'Trip %s assigned. Vehicle %s. Destination: %s. Date: %s.',
-                $tripRequest->request_number,
-                $tripRequest->assignedVehicle?->registration_number ?? 'N/A',
-                $tripRequest->destination,
-                $tripRequest->trip_date?->format('Y-m-d') ?? ''
-            ));
-        }
+        ProcessTripAssignmentSideEffects::dispatch(
+            tripRequestId: (int) $tripRequest->id,
+            isReassignment: $isReassignment,
+            fromVehicleId: $fromVehicleId ? (int) $fromVehicleId : null,
+            fromDriverId: $fromDriverId ? (int) $fromDriverId : null,
+            reason: $isReassignment ? (string) $request->input('reason') : null,
+        )->afterCommit();
         $this->broadcastTripChange($tripRequest, $isReassignment ? 'reassigned' : 'assigned');
 
         return redirect()
