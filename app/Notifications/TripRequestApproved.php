@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\TripRequest;
+use App\Notifications\Concerns\SkipsInvalidMailRecipients;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -10,6 +11,7 @@ use Illuminate\Notifications\Notification;
 class TripRequestApproved extends Notification
 {
     use Queueable;
+    use SkipsInvalidMailRecipients;
 
     public function __construct(private TripRequest $tripRequest)
     {
@@ -17,7 +19,9 @@ class TripRequestApproved extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return $this->shouldSendMailTo($notifiable)
+            ? ['database', 'mail']
+            : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

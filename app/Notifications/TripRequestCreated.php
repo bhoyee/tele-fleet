@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\TripRequest;
+use App\Notifications\Concerns\SkipsInvalidMailRecipients;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -11,6 +12,7 @@ use Illuminate\Notifications\Notification;
 class TripRequestCreated extends Notification implements ShouldQueue
 {
     use Queueable;
+    use SkipsInvalidMailRecipients;
 
     public bool $deleteWhenMissingModels = true;
 
@@ -39,7 +41,9 @@ class TripRequestCreated extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return $this->shouldSendMailTo($notifiable)
+            ? ['database', 'mail']
+            : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

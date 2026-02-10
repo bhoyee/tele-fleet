@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\TripRequest;
 use App\Models\User;
+use App\Notifications\Concerns\SkipsInvalidMailRecipients;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -12,6 +13,7 @@ use Illuminate\Notifications\Notification;
 class TripRequestCancelled extends Notification implements ShouldQueue
 {
     use Queueable;
+    use SkipsInvalidMailRecipients;
 
     public function __construct(private TripRequest $tripRequest, private User $cancelledBy)
     {
@@ -19,7 +21,9 @@ class TripRequestCancelled extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return $this->shouldSendMailTo($notifiable)
+            ? ['database', 'mail']
+            : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

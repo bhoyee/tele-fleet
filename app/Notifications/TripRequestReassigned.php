@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Driver;
 use App\Models\TripRequest;
 use App\Models\Vehicle;
+use App\Notifications\Concerns\SkipsInvalidMailRecipients;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -12,6 +13,7 @@ use Illuminate\Notifications\Notification;
 class TripRequestReassigned extends Notification
 {
     use Queueable;
+    use SkipsInvalidMailRecipients;
 
     private ?Vehicle $fromVehicle = null;
     private ?Driver $fromDriver = null;
@@ -32,7 +34,9 @@ class TripRequestReassigned extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return $this->shouldSendMailTo($notifiable)
+            ? ['database', 'mail']
+            : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage
