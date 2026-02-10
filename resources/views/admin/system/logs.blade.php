@@ -5,8 +5,8 @@
             <p class="text-muted mb-0">Review recent application logs.</p>
         </div>
         @if ($selected)
-            <a class="btn btn-outline-primary" href="{{ route('system.logs.download', $selected) }}" data-loading>Download Log</a>
-            <a class="btn btn-outline-secondary" href="{{ route('system.logs.download', $selected) }}?format=csv" data-loading>Export CSV</a>
+            <a class="btn btn-outline-primary" href="{{ route('system.logs.download', $selected) }}" data-download>Download Log</a>
+            <a class="btn btn-outline-secondary" href="{{ route('system.logs.download', $selected) }}?format=csv" data-download>Export CSV</a>
         @endif
     </div>
 

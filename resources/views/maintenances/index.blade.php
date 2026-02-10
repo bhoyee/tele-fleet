@@ -5,8 +5,8 @@
             <p class="text-muted mb-0">View service history and upcoming schedules.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('maintenances.export.csv', ['status' => $statusFilter]) }}" class="btn btn-outline-secondary" data-loading>Export CSV</a>
-            <a href="{{ route('maintenances.export.pdf', ['status' => $statusFilter]) }}" class="btn btn-outline-secondary" data-loading>Export PDF</a>
+            <a href="{{ route('maintenances.export.csv', ['status' => $statusFilter]) }}" class="btn btn-outline-secondary" data-download>Export CSV</a>
+            <a href="{{ route('maintenances.export.pdf', ['status' => $statusFilter]) }}" class="btn btn-outline-secondary" data-download>Export PDF</a>
             <a href="{{ route('maintenances.create') }}" class="btn btn-primary">Schedule Maintenance</a>
         </div>
     </div>

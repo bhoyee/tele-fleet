@@ -1527,22 +1527,70 @@
                     });
                 }
 
-                const applyLoadingState = (button) => {
-                    if (!button || button.classList.contains('btn-loading')) {
+                const applyLoadingState = (element) => {
+                    if (!element || element.classList.contains('btn-loading')) {
                         return;
                     }
+
+                    element.dataset.loadingOriginal ??= element.innerHTML;
+
                     const label = document.createElement('span');
                     label.className = 'btn-label';
-                    label.textContent = button.textContent.trim();
+                    label.innerHTML = element.dataset.loadingOriginal;
                     const spinner = document.createElement('span');
                     spinner.className = 'spinner-border spinner-border-sm btn-spinner';
                     spinner.setAttribute('role', 'status');
                     spinner.setAttribute('aria-hidden', 'true');
-                    button.textContent = '';
-                    button.appendChild(label);
-                    button.appendChild(spinner);
-                    button.classList.add('btn-loading');
-                    button.setAttribute('disabled', 'disabled');
+
+                    element.innerHTML = '';
+                    element.appendChild(label);
+                    element.appendChild(spinner);
+                    element.classList.add('btn-loading');
+                    element.setAttribute('aria-busy', 'true');
+                    if (element.tagName === 'BUTTON') {
+                        element.setAttribute('disabled', 'disabled');
+                    } else {
+                        element.setAttribute('aria-disabled', 'true');
+                    }
+                };
+
+                const clearLoadingState = (element) => {
+                    if (!element || !element.classList.contains('btn-loading')) {
+                        return;
+                    }
+
+                    const original = element.dataset.loadingOriginal;
+                    if (typeof original === 'string') {
+                        element.innerHTML = original;
+                    }
+                    element.classList.remove('btn-loading');
+                    element.removeAttribute('aria-busy');
+                    element.removeAttribute('aria-disabled');
+                    if (element.tagName === 'BUTTON') {
+                        element.removeAttribute('disabled');
+                    }
+                    delete element.dataset.loadingOriginal;
+                };
+
+                const applyTransientLoadingState = (element, timeoutMs = 12000) => {
+                    applyLoadingState(element);
+
+                    let cleaned = false;
+                    const cleanup = () => {
+                        if (cleaned) {
+                            return;
+                        }
+                        cleaned = true;
+                        clearLoadingState(element);
+                    };
+
+                    setTimeout(cleanup, timeoutMs);
+                    window.addEventListener('focus', cleanup, { once: true });
+                    document.addEventListener('visibilitychange', () => {
+                        if (!document.hidden) {
+                            cleanup();
+                        }
+                    }, { once: true });
                 };
 
                 document.querySelectorAll('form').forEach((form) => {
@@ -1555,6 +1603,12 @@
                 document.querySelectorAll('[data-loading]').forEach((button) => {
                     button.addEventListener('click', () => {
                         applyLoadingState(button);
+                    });
+                });
+
+                document.querySelectorAll('[data-download]').forEach((link) => {
+                    link.addEventListener('click', () => {
+                        applyTransientLoadingState(link, 12000);
                     });
                 });
             });
