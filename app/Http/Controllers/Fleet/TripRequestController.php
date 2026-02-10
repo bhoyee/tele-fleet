@@ -50,7 +50,9 @@ class TripRequestController extends Controller
 
         if ($showArchived) {
             $query->onlyTrashed();
-        } elseif (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+        } elseif ($user->role === User::ROLE_BRANCH_ADMIN) {
+            $query->where('requested_by_user_id', $user->id);
+        } elseif ($user->role === User::ROLE_BRANCH_HEAD) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -109,7 +111,9 @@ class TripRequestController extends Controller
 
         if ($showArchived) {
             $query->onlyTrashed();
-        } elseif (in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+        } elseif ($user->role === User::ROLE_BRANCH_ADMIN) {
+            $query->where('requested_by_user_id', $user->id);
+        } elseif ($user->role === User::ROLE_BRANCH_HEAD) {
             $query->where('branch_id', $user->branch_id);
         }
 
