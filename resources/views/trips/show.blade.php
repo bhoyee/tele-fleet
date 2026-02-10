@@ -267,48 +267,111 @@
                     <div class="fw-semibold">{{ $tripRequest->assignedVehicle?->registration_number ?? 'N/A' }}</div>
                     <div class="text-muted small mb-1 mt-3">Driver</div>
                     <div class="fw-semibold">{{ $tripRequest->assignedDriver?->full_name ?? 'N/A' }}</div>
+
+                    @if ($tripRequest->assignments?->isNotEmpty())
+                        <hr class="my-4">
+                        <h6 class="fw-semibold mb-3">Assignment History</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0 w-100">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>When</th>
+                                        <th>Changed By</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($tripRequest->assignments as $assignment)
+                                        <tr>
+                                            <td class="text-muted small">{{ $assignment->created_at?->format('M d, Y H:i') ?? '—' }}</td>
+                                            <td>{{ $assignment->changedBy?->name ?? '—' }}</td>
+                                            <td>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#assignmentDetailsModal"
+                                                        data-assignment-id="{{ $assignment->id }}"
+                                                        data-assignment-details="{{ json_encode([
+                                                            'when' => $assignment->created_at?->format('M d, Y H:i'),
+                                                            'changed_by' => $assignment->changedBy?->name,
+                                                            'reason' => $assignment->reason,
+                                                            'from_vehicle' => $assignment->fromVehicle?->registration_number ?? 'N/A',
+                                                            'from_driver' => $assignment->fromDriver?->full_name ?? 'N/A',
+                                                            'to_vehicle' => $assignment->toVehicle?->registration_number ?? 'N/A',
+                                                            'to_driver' => $assignment->toDriver?->full_name ?? 'N/A',
+                                                        ]) }}">
+                                                    View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
 
-    @if ($tripRequest->assignments?->isNotEmpty())
-        <div class="card shadow-sm border-0 mt-4">
-            <div class="card-body">
-                <h5 class="fw-semibold mb-3">Assignment History</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0 w-100">
-                        <thead class="table-light">
-                            <tr>
-                                <th>When</th>
-                                <th>Changed By</th>
-                                <th>Reason</th>
-                                <th>From</th>
-                                <th>To</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($tripRequest->assignments as $assignment)
-                                <tr>
-                                    <td class="text-muted small">{{ $assignment->created_at?->format('M d, Y H:i') ?? '—' }}</td>
-                                    <td>{{ $assignment->changedBy?->name ?? '—' }}</td>
-                                    <td class="small text-break">{{ $assignment->reason ?: '—' }}</td>
-                                    <td class="small text-break">
-                                        <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->fromVehicle?->registration_number ?? '—' }}</span></div>
-                                        <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->fromDriver?->full_name ?? '—' }}</span></div>
-                                    </td>
-                                    <td class="small text-break">
-                                        <div><span class="text-muted">Vehicle:</span> <span class="fw-semibold">{{ $assignment->toVehicle?->registration_number ?? '—' }}</span></div>
-                                        <div class="mt-1"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ $assignment->toDriver?->full_name ?? '—' }}</span></div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+    <!-- Assignment Details Modal -->
+    <div class="modal fade" id="assignmentDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Assignment Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-muted small">When</div>
+                            <div class="fw-semibold" id="modal-when">—</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">Changed By</div>
+                            <div class="fw-semibold" id="modal-changed-by">—</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="text-muted small">Reason</div>
+                            <div class="fw-semibold" id="modal-reason">—</div>
+                        </div>
+                        
+                        <div class="col-12 mt-3">
+                            <h6 class="fw-semibold mb-2">From</h6>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="text-muted small">Vehicle</div>
+                                    <div class="fw-semibold" id="modal-from-vehicle">—</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-muted small">Driver</div>
+                                    <div class="fw-semibold" id="modal-from-driver">—</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 mt-3">
+                            <h6 class="fw-semibold mb-2">To</h6>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="text-muted small">Vehicle</div>
+                                    <div class="fw-semibold" id="modal-to-vehicle">—</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-muted small">Driver</div>
+                                    <div class="fw-semibold" id="modal-to-driver">—</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
-    @endif
+    </div>
 
     @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
         <div class="modal fade" id="deleteTripModal" tabindex="-1" aria-hidden="true">
@@ -332,25 +395,43 @@
                 </div>
             </div>
         </div>
-
-        @push('scripts')
-            <script>
-                document.querySelectorAll('[data-delete-action]').forEach((button) => {
-                    button.addEventListener('click', () => {
-                        const action = button.getAttribute('data-delete-action');
-                        const label = button.getAttribute('data-delete-label');
-                        const form = document.getElementById('deleteTripForm');
-                        if (form) {
-                            form.setAttribute('action', action);
-                        }
-                        const labelEl = document.getElementById('deleteTripLabel');
-                        if (labelEl) {
-                            labelEl.textContent = label;
-                        }
-                    });
-                });
-            </script>
-        @endpush
     @endif
-</x-admin-layout>
 
+    @push('scripts')
+        <script>
+            // Delete Trip Modal Handler
+            document.querySelectorAll('[data-delete-action]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const action = button.getAttribute('data-delete-action');
+                    const label = button.getAttribute('data-delete-label');
+                    const form = document.getElementById('deleteTripForm');
+                    if (form) {
+                        form.setAttribute('action', action);
+                    }
+                    const labelEl = document.getElementById('deleteTripLabel');
+                    if (labelEl) {
+                        labelEl.textContent = label;
+                    }
+                });
+            });
+
+            // Assignment Details Modal Handler
+            const assignmentDetailsModal = document.getElementById('assignmentDetailsModal');
+            if (assignmentDetailsModal) {
+                assignmentDetailsModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const details = JSON.parse(button.getAttribute('data-assignment-details'));
+                    
+                    // Populate modal with data
+                    document.getElementById('modal-when').textContent = details.when || '—';
+                    document.getElementById('modal-changed-by').textContent = details.changed_by || '—';
+                    document.getElementById('modal-reason').textContent = details.reason || '—';
+                    document.getElementById('modal-from-vehicle').textContent = details.from_vehicle || '—';
+                    document.getElementById('modal-from-driver').textContent = details.from_driver || '—';
+                    document.getElementById('modal-to-vehicle').textContent = details.to_vehicle || '—';
+                    document.getElementById('modal-to-driver').textContent = details.to_driver || '—';
+                });
+            }
+        </script>
+    @endpush
+</x-admin-layout>
