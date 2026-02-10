@@ -97,7 +97,7 @@ class SupportTicketController extends Controller
             ->get();
         if ($recipients->isNotEmpty()) {
             try {
-                Notification::send($recipients, new SupportTicketCreated($ticket));
+                Notification::send($recipients, SupportTicketCreated::fromTicket($ticket));
             } catch (\Throwable $exception) {
                 report($exception);
             }
@@ -181,7 +181,7 @@ class SupportTicketController extends Controller
         $recipients = $this->replyRecipients($ticket, $request->user());
         if ($recipients->isNotEmpty()) {
             try {
-                Notification::send($recipients, new SupportTicketReply($ticket, $message));
+                Notification::send($recipients, SupportTicketReply::fromMessage($ticket, $message));
             } catch (\Throwable $exception) {
                 report($exception);
             }
