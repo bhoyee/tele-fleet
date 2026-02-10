@@ -19,6 +19,7 @@ class UserManualController extends Controller
             : "# User Manual\n\nThe user manual file was not found.";
 
         $html = Str::markdown($markdown);
+        $html = $this->rewritePublicAssetUrls($html);
         $safeHtml = $this->sanitizeHtml($html);
 
         return view('admin.user-manual', [
@@ -70,6 +71,36 @@ class UserManualController extends Controller
             }
             foreach ($remove as $attrName) {
                 $node->removeAttribute($attrName);
+            }
+        }
+
+        return $dom->saveHTML();
+    }
+
+    private function rewritePublicAssetUrls(string $html): string
+    {
+        $dom = new DOMDocument();
+        libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $xpath = new DOMXPath($dom);
+
+        foreach ($xpath->query('//*[@src]') as $node) {
+            $src = trim((string) $node->getAttribute('src'));
+            if (str_starts_with($src, '../public/')) {
+                $node->setAttribute('src', '/' . ltrim(substr($src, strlen('../public/')), '/'));
+            } elseif (str_starts_with($src, 'public/')) {
+                $node->setAttribute('src', '/' . ltrim(substr($src, strlen('public/')), '/'));
+            }
+        }
+
+        foreach ($xpath->query('//*[@href]') as $node) {
+            $href = trim((string) $node->getAttribute('href'));
+            if (str_starts_with($href, '../public/')) {
+                $node->setAttribute('href', '/' . ltrim(substr($href, strlen('../public/')), '/'));
+            } elseif (str_starts_with($href, 'public/')) {
+                $node->setAttribute('href', '/' . ltrim(substr($href, strlen('public/')), '/'));
             }
         }
 
