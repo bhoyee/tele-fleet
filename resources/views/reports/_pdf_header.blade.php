@@ -4,11 +4,20 @@
     $orgAddress = $appOrgAddress ?: (config('app.org_address') ?: '17B, Awolowo Road, Ikoyi, Lagos');
     $logoFile = config('app.brand_logo_file');
     $gdEnabled = extension_loaded('gd');
+    $logoSrc = null;
+    if (is_string($logoFile) && $logoFile !== '') {
+        // Dompdf handles filesystem paths better with a file:// URI on Windows.
+        if (str_contains($logoFile, ':\\') || str_contains($logoFile, ':/')) {
+            $logoSrc = 'file:///' . ltrim(str_replace('\\', '/', $logoFile), '/');
+        } else {
+            $logoSrc = $logoFile;
+        }
+    }
 @endphp
 
 <div style="text-align:center; margin: 0 0 18px 0;">
-    @if ($gdEnabled && is_string($logoFile) && $logoFile !== '')
-        <img src="{{ $logoFile }}" alt="{{ $brandName }} logo" style="height: 90px; width: auto; max-width: 92%; object-fit: contain;">
+    @if ($gdEnabled && is_string($logoSrc) && $logoSrc !== '')
+        <img src="{{ $logoSrc }}" alt="{{ $brandName }} logo" style="height: 90px; width: auto; max-width: 92%; object-fit: contain;">
     @else
         <div style="font-size: 22px; font-weight: 700; margin-bottom: 6px;">{{ $brandName }}</div>
     @endif
