@@ -26,9 +26,19 @@
 
         @if (! empty($report['summary']))
             <table class="summary-grid">
-                @foreach ($report['summary'] as $label => $value)
+                @php
+                    $summaryChunks = array_chunk($report['summary'], 5, true);
+                @endphp
+                @foreach ($summaryChunks as $chunk)
                     <tr>
-                        <td><strong>{{ $label }}:</strong> {{ $value }}</td>
+                        @foreach ($chunk as $label => $value)
+                            <td style="width: 20%; vertical-align: top;">
+                                <strong>{{ $label }}:</strong> {{ $value }}
+                            </td>
+                        @endforeach
+                        @for ($i = count($chunk); $i < 5; $i++)
+                            <td style="width: 20%;"></td>
+                        @endfor
                     </tr>
                 @endforeach
             </table>
