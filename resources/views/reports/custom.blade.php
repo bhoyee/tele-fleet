@@ -61,9 +61,9 @@
     </div>
 
     @if (! empty($summary))
-        <div class="row g-3 mb-4">
+        <div class="row row-cols-2 row-cols-md-5 g-3 mb-4">
             @foreach ($summary as $label => $value)
-                <div class="col-md-3">
+                <div class="col">
                     <div class="card stat-card h-100">
                         <div class="card-body">
                             <div class="stat-label">{{ $label }}</div>
