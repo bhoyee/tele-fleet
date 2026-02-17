@@ -3,15 +3,24 @@
     $orgName = $appOrgName ?: (config('app.org_name') ?: 'Lagos Island State Administration');
     $orgAddress = $appOrgAddress ?: (config('app.org_address') ?: '17B, Awolowo Road, Ikoyi, Lagos');
     $logoFile = config('app.brand_logo_file');
+    $logoUrl = config('app.brand_logo_url');
     $gdEnabled = extension_loaded('gd');
+
     $logoSrc = null;
-    if (is_string($logoFile) && $logoFile !== '') {
-        // Dompdf handles filesystem paths better with a file:// URI on Windows.
-        if (str_contains($logoFile, ':\\') || str_contains($logoFile, ':/')) {
-            $logoSrc = 'file:///' . ltrim(str_replace('\\', '/', $logoFile), '/');
-        } else {
-            $logoSrc = $logoFile;
+    if (is_string($logoFile) && $logoFile !== '' && is_file($logoFile) && is_readable($logoFile)) {
+        $mime = @mime_content_type($logoFile);
+        if (! is_string($mime) || $mime === '') {
+            $mime = 'image/png';
         }
+        $data = base64_encode((string) file_get_contents($logoFile));
+        if ($data !== '') {
+            // Data URI is the most reliable for Dompdf (no file/remote access needed).
+            $logoSrc = "data:{$mime};base64,{$data}";
+        }
+    }
+
+    if (! $logoSrc && is_string($logoUrl) && $logoUrl !== '') {
+        $logoSrc = $logoUrl;
     }
 @endphp
 

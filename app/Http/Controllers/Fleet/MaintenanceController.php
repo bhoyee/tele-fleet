@@ -200,7 +200,7 @@ class MaintenanceController extends Controller
             'generatedAt' => now(),
             'statusFilter' => $statusFilter,
         ]);
-        $pdf->setOptions(['isPhpEnabled' => true]);
+        $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
 
         return $pdf->download('maintenance-records-' . now()->format('Ymd-His') . '.pdf');
     }

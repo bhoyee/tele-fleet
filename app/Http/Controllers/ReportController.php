@@ -231,7 +231,7 @@ class ReportController extends Controller
             'report' => $report,
             'generatedAt' => now(),
         ]);
-        $pdf->setOptions(['isPhpEnabled' => true]);
+        $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
 
         return $pdf->download('fleet-report-' . now()->format('Ymd-His') . '.pdf');
     }
@@ -309,7 +309,7 @@ class ReportController extends Controller
             'report' => $report,
             'generatedAt' => now(),
         ]);
-        $pdf->setOptions(['isPhpEnabled' => true]);
+        $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
 
         return $pdf->download($report['report_type'] . '-report-' . now()->format('Ymd-His') . '.pdf');
     }
@@ -392,7 +392,7 @@ class ReportController extends Controller
             'generatedAt' => now(),
             'reportTitle' => $reportTitle,
         ]);
-        $pdf->setOptions(['isPhpEnabled' => true]);
+        $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
 
         $slug = str_replace(' ', '-', strtolower($request->user()->name));
         return $pdf->download($slug . '-report-' . now()->format('Ymd-His') . '.pdf');
@@ -480,7 +480,7 @@ class ReportController extends Controller
             'generatedAt' => now(),
             'reportTitle' => $reportTitle,
         ]);
-        $pdf->setOptions(['isPhpEnabled' => true]);
+        $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
 
         $slug = str_replace(' ', '-', strtolower($branchName));
         return $pdf->download($slug . '-report-' . now()->format('Ymd-His') . '.pdf');

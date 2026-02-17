@@ -412,7 +412,7 @@ class IncidentReportController extends Controller
             'incidents' => $incidents,
             'generatedAt' => now(),
         ]);
-        $pdf->setOptions(['isPhpEnabled' => true]);
+        $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
 
         return $pdf->download('incident-reports-' . now()->format('Ymd-His') . '.pdf');
     }
