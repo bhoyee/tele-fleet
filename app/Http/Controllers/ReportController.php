@@ -98,22 +98,47 @@ class ReportController extends Controller
             fputcsv($handle, ['Avg Assignment (hrs)', $report['stats']['avg_assignment_hours'] ?? 'N/A']);
             fputcsv($handle, []);
 
-            fputcsv($handle, ['Vehicle Summary']);
-            fputcsv($handle, ['Total Vehicles', $report['stats']['total_vehicles']]);
-            fputcsv($handle, ['Available', $report['stats']['vehicles_available']]);
-            fputcsv($handle, ['In Use', $report['stats']['vehicles_in_use']]);
-            fputcsv($handle, ['Maintenance', $report['stats']['vehicles_maintenance']]);
-            fputcsv($handle, ['Offline', $report['stats']['vehicles_offline']]);
-            fputcsv($handle, ['Maintenance Due', $report['stats']['maintenance_due']]);
-            fputcsv($handle, ['Maintenance Overdue', $report['stats']['maintenance_overdue']]);
-            fputcsv($handle, []);
+            $context = $report['filters']['context'] ?? 'all';
+            if ($context === 'range') {
+                $availability = $report['stats']['range_availability'] ?? null;
+                if (is_array($availability)) {
+                    fputcsv($handle, ['Vehicle Availability Summary']);
+                    fputcsv($handle, ['Base available', ($availability['base_available'] ?? 'N/A') . '/' . ($availability['total_active'] ?? 'N/A')]);
+                    fputcsv($handle, ['Min available', $availability['min_available'] ?? 'N/A']);
+                    fputcsv($handle, ['Avg available', $availability['avg_available'] ?? 'N/A']);
+                    fputcsv($handle, ['Maintenance (excluded)', $availability['maintenance'] ?? 'N/A']);
+                    fputcsv($handle, ['Offline (excluded)', $availability['offline'] ?? 'N/A']);
+                    fputcsv($handle, []);
+                }
 
-            fputcsv($handle, ['Driver Summary']);
-            fputcsv($handle, ['Total Drivers', $report['stats']['total_drivers']]);
-            fputcsv($handle, ['Active', $report['stats']['drivers_active']]);
-            fputcsv($handle, ['Inactive', $report['stats']['drivers_inactive']]);
-            fputcsv($handle, ['Suspended', $report['stats']['drivers_suspended']]);
-            fputcsv($handle, []);
+                fputcsv($handle, ['Driver Usage Summary']);
+                fputcsv($handle, ['Drivers used (unique)', $report['stats']['range_drivers_used'] ?? 0]);
+                fputcsv($handle, ['Vehicles used (unique)', $report['stats']['range_vehicles_used'] ?? 0]);
+                fputcsv($handle, []);
+
+                fputcsv($handle, ['Maintenance Summary']);
+                fputcsv($handle, ['Scheduled', $report['stats']['maintenances_scheduled']]);
+                fputcsv($handle, ['In Progress', $report['stats']['maintenances_in_progress']]);
+                fputcsv($handle, ['Completed', $report['stats']['maintenances_completed']]);
+                fputcsv($handle, []);
+            } else {
+                fputcsv($handle, ['Vehicle Summary']);
+                fputcsv($handle, ['Total Vehicles', $report['stats']['total_vehicles']]);
+                fputcsv($handle, ['Available', $report['stats']['vehicles_available']]);
+                fputcsv($handle, ['In Use', $report['stats']['vehicles_in_use']]);
+                fputcsv($handle, ['Maintenance', $report['stats']['vehicles_maintenance']]);
+                fputcsv($handle, ['Offline', $report['stats']['vehicles_offline']]);
+                fputcsv($handle, ['Maintenance Due', $report['stats']['maintenance_due']]);
+                fputcsv($handle, ['Maintenance Overdue', $report['stats']['maintenance_overdue']]);
+                fputcsv($handle, []);
+
+                fputcsv($handle, ['Driver Summary']);
+                fputcsv($handle, ['Total Drivers', $report['stats']['total_drivers']]);
+                fputcsv($handle, ['Active', $report['stats']['drivers_active']]);
+                fputcsv($handle, ['Inactive', $report['stats']['drivers_inactive']]);
+                fputcsv($handle, ['Suspended', $report['stats']['drivers_suspended']]);
+                fputcsv($handle, []);
+            }
 
             fputcsv($handle, ['Incident Summary']);
             fputcsv($handle, ['Open', $report['stats']['incidents_open']]);
@@ -548,7 +573,14 @@ class ReportController extends Controller
         [$from, $to] = $this->resolveDateRange($request);
         $fromDate = $from ? Carbon::parse($from)->startOfDay() : null;
         $toDate = $to ? Carbon::parse($to)->endOfDay() : null;
-        $rangeLabel = $this->buildRangeLabel($fromDate, $toDate, $request->input('range'));
+        $preset = $request->input('range');
+        $rangeLabel = $this->buildRangeLabel($fromDate, $toDate, $preset);
+
+        $reportContext = 'all';
+        if ($fromDate && $toDate) {
+            $isTodayRange = $fromDate->isSameDay(now()) && $toDate->isSameDay(now());
+            $reportContext = ($preset === 'today' || $isTodayRange) ? 'today' : 'range';
+        }
 
         $tripQuery = TripRequest::with(['branch', 'requestedBy'])
             ->when($branchId, function ($query) use ($branchId): void {
@@ -845,6 +877,22 @@ class ReportController extends Controller
         $approvalRate = $totalTrips ? round(($approvedTrips / $totalTrips) * 100, 1) : 0;
         $completionRate = $totalTrips ? round(($completedTrips / $totalTrips) * 100, 1) : 0;
 
+        $rangeDriversUsed = null;
+        $rangeVehiclesUsed = null;
+        if ($reportContext === 'range') {
+            $rangeDriversUsed = (clone $tripQuery)
+                ->whereIn('status', ['approved', 'assigned', 'completed'])
+                ->whereNotNull('assigned_driver_id')
+                ->distinct('assigned_driver_id')
+                ->count('assigned_driver_id');
+
+            $rangeVehiclesUsed = (clone $tripQuery)
+                ->whereIn('status', ['approved', 'assigned', 'completed'])
+                ->whereNotNull('assigned_vehicle_id')
+                ->distinct('assigned_vehicle_id')
+                ->count('assigned_vehicle_id');
+        }
+
         return [
             'branches' => Branch::orderBy('name')->get(),
             'filters' => [
@@ -854,6 +902,7 @@ class ReportController extends Controller
                 'branch_id' => $branchId,
                 'branch_label' => $branch?->name ?? 'All Branches',
                 'range_label' => $rangeLabel,
+                'context' => $reportContext,
             ],
             'stats' => [
                 'total_trips' => $totalTrips,
@@ -879,6 +928,9 @@ class ReportController extends Controller
                 'drivers_active' => $driversActive,
                 'drivers_inactive' => $driversInactive,
                 'drivers_suspended' => $driversSuspended,
+                'range_drivers_used' => $rangeDriversUsed,
+                'range_vehicles_used' => $rangeVehiclesUsed,
+                'range_incidents_total' => ($incidentsOpen + $incidentsReview + $incidentsResolved + $incidentsCancelled),
                 'incidents_open' => $incidentsOpen,
                 'incidents_review' => $incidentsReview,
                 'incidents_resolved' => $incidentsResolved,

@@ -26,6 +26,10 @@
         </div>
 
         <table class="summary-grid">
+            @php
+                $reportContext = $report['filters']['context'] ?? 'all';
+                $availability = $report['stats']['range_availability'] ?? null;
+            @endphp
             <tr>
                 <td><strong>Total Trips:</strong> {{ $report['stats']['total_trips'] }}</td>
                 <td><strong>Completed:</strong> {{ $report['stats']['completed_trips'] }}</td>
@@ -38,22 +42,36 @@
                 <td><strong>Avg Approval:</strong> {{ $report['stats']['avg_approval_hours'] ?? 'N/A' }} hrs</td>
                 <td><strong>Avg Assignment:</strong> {{ $report['stats']['avg_assignment_hours'] ?? 'N/A' }} hrs</td>
             </tr>
-            <tr>
-                <td><strong>Vehicles:</strong> {{ $report['stats']['vehicles_available'] }}/{{ $report['stats']['total_vehicles'] }} available</td>
-                <td><strong>In Use:</strong> {{ $report['stats']['vehicles_in_use'] }}</td>
-                <td><strong>Maintenance:</strong> {{ $report['stats']['vehicles_maintenance'] }}</td>
-                <td><strong>Offline:</strong> {{ $report['stats']['vehicles_offline'] }}</td>
-            </tr>
-            <tr>
-                <td><strong>Drivers Active:</strong> {{ $report['stats']['drivers_active'] }}</td>
-                <td><strong>Drivers Inactive:</strong> {{ $report['stats']['drivers_inactive'] }}</td>
-                <td><strong>Drivers Suspended:</strong> {{ $report['stats']['drivers_suspended'] }}</td>
-                <td><strong>Incidents Open:</strong> {{ $report['stats']['incidents_open'] }}</td>
-            </tr>
+            @if ($reportContext === 'range' && is_array($availability))
+                <tr>
+                    <td><strong>Base available:</strong> {{ $availability['base_available'] ?? 'N/A' }}/{{ $availability['total_active'] ?? 'N/A' }}</td>
+                    <td><strong>Min available:</strong> {{ $availability['min_available'] ?? 'N/A' }}</td>
+                    <td><strong>Avg available:</strong> {{ $availability['avg_available'] ?? 'N/A' }}</td>
+                    <td><strong>Max booked:</strong> {{ collect($availability['days'] ?? [])->max('booked') ?? 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Drivers used:</strong> {{ $report['stats']['range_drivers_used'] ?? 0 }}</td>
+                    <td><strong>Vehicles used:</strong> {{ $report['stats']['range_vehicles_used'] ?? 0 }}</td>
+                    <td><strong>Incidents:</strong> {{ $report['stats']['range_incidents_total'] ?? 0 }}</td>
+                    <td><strong>Maintenances scheduled:</strong> {{ $report['stats']['maintenances_scheduled'] }}</td>
+                </tr>
+            @else
+                <tr>
+                    <td><strong>Vehicles:</strong> {{ $report['stats']['vehicles_available'] }}/{{ $report['stats']['total_vehicles'] }} available</td>
+                    <td><strong>In Use:</strong> {{ $report['stats']['vehicles_in_use'] }}</td>
+                    <td><strong>Maintenance:</strong> {{ $report['stats']['vehicles_maintenance'] }}</td>
+                    <td><strong>Offline:</strong> {{ $report['stats']['vehicles_offline'] }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Drivers Active:</strong> {{ $report['stats']['drivers_active'] }}</td>
+                    <td><strong>Drivers Inactive:</strong> {{ $report['stats']['drivers_inactive'] }}</td>
+                    <td><strong>Drivers Suspended:</strong> {{ $report['stats']['drivers_suspended'] }}</td>
+                    <td><strong>Incidents Open:</strong> {{ $report['stats']['incidents_open'] }}</td>
+                </tr>
+            @endif
         </table>
 
-        @php($availability = $report['stats']['range_availability'] ?? null)
-        @if ($availability)
+        @if (is_array($availability))
             <h2>Vehicle Availability During Range</h2>
             <div class="meta" style="margin-bottom: 6px;">
                 Base available: {{ $availability['base_available'] }}/{{ $availability['total_active'] }}

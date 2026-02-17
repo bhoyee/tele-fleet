@@ -1,4 +1,6 @@
-@php($vehicle = $vehicle ?? null)
+@php
+    $vehicle = $vehicle ?? null;
+@endphp
 @csrf
 
 <div class="row g-3">

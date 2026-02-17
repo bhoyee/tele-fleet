@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    @php($brandName = $appBrandName ?? config('app.name', 'Tele-Fleet'))
+    @php
+        $brandName = $appBrandName ?? config('app.name', 'Tele-Fleet');
+    @endphp
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="{{ $brandName }}: Enterprise-grade fleet management system for corporate vehicle operations. Streamline trips, manage drivers, track maintenance, and optimize fleet performance.">

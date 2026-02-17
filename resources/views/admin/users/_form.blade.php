@@ -1,4 +1,6 @@
-@php($user = $user ?? null)
+@php
+    $user = $user ?? null;
+@endphp
 @csrf
 
 <div class="row g-3">

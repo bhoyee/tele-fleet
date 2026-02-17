@@ -1,4 +1,6 @@
-@php($branch = $branch ?? null)
+@php
+    $branch = $branch ?? null;
+@endphp
 @csrf
 
 <div class="row g-3">

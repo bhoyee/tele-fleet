@@ -1,5 +1,7 @@
 @component('mail::message')
-@php($brandName = config('app.name', 'Tele-Fleet'))
+@php
+    $brandName = config('app.name', 'Tele-Fleet');
+@endphp
 # Welcome to {{ $brandName }}
 
 Hello {{ $user?->name ?? 'there' }},

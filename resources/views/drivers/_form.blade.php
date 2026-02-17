@@ -1,4 +1,6 @@
-@php($driver = $driver ?? null)
+@php
+    $driver = $driver ?? null;
+@endphp
 @csrf
 
 <div class="row g-3">

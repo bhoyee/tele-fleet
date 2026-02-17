@@ -281,6 +281,10 @@
         <div class="tab-pane fade show active" id="overview-tabpane" role="tabpanel">
             <!-- SUMMARY CARDS - Mobile: 1 col, Tablet: 2 cols, Desktop: 3-4 cols -->
             <div class="row g-3 mb-4 fleet-summary-cards">
+                @php
+                    $reportContext = $filters['context'] ?? 'all';
+                    $availabilitySummary = $stats['range_availability'] ?? null;
+                @endphp
                 <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                     <div class="card stat-card h-100">
                         <div class="card-body">
@@ -308,42 +312,90 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                    <div class="card stat-card h-100">
-                        <div class="card-body">
-                            <div class="stat-label">Vehicles Available</div>
-                            <div class="stat-value">{{ $stats['vehicles_available'] }}/{{ $stats['total_vehicles'] }}</div>
-                            <div class="text-muted small">{{ $stats['vehicles_in_use'] }} in use</div>
+                @if ($reportContext === 'range' && is_array($availabilitySummary))
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Min Vehicles Available</div>
+                                <div class="stat-value">{{ $availabilitySummary['min_available'] ?? 'N/A' }}/{{ $availabilitySummary['base_available'] ?? $availabilitySummary['total_active'] ?? 'N/A' }}</div>
+                                <div class="text-muted small">During {{ $filters['range_label'] }}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                    <div class="card stat-card h-100">
-                        <div class="card-body">
-                            <div class="stat-label">Active Drivers</div>
-                            <div class="stat-value">{{ $stats['drivers_active'] }}/{{ $stats['total_drivers'] }}</div>
-                            <div class="text-muted small">Active today</div>
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Avg Vehicles Available</div>
+                                <div class="stat-value">{{ $availabilitySummary['avg_available'] ?? 'N/A' }}</div>
+                                <div class="text-muted small">During {{ $filters['range_label'] }}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                    <div class="card stat-card h-100">
-                        <div class="card-body">
-                            <div class="stat-label">Open Incidents</div>
-                            <div class="stat-value">{{ $stats['incidents_open'] }}</div>
-                            <div class="text-muted small">{{ $stats['incidents_review'] }} under review</div>
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Drivers Used</div>
+                                <div class="stat-value">{{ $stats['range_drivers_used'] ?? 0 }}</div>
+                                <div class="text-muted small">Unique assigned drivers</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
-                    <div class="card stat-card h-100">
-                        <div class="card-body">
-                            <div class="stat-label">Maintenance Due</div>
-                            <div class="stat-value">{{ $stats['maintenance_due'] }}</div>
-                            <div class="text-muted small">{{ $stats['maintenance_overdue'] }} overdue</div>
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Incidents Reported</div>
+                                <div class="stat-value">{{ $stats['range_incidents_total'] ?? 0 }}</div>
+                                <div class="text-muted small">{{ $stats['incidents_open'] }} open • {{ $stats['incidents_review'] }} under review</div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Maintenances Scheduled</div>
+                                <div class="stat-value">{{ $stats['maintenances_scheduled'] }}</div>
+                                <div class="text-muted small">{{ $stats['maintenances_completed'] }} completed</div>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Vehicles Available</div>
+                                <div class="stat-value">{{ $stats['vehicles_available'] }}/{{ $stats['total_vehicles'] }}</div>
+                                <div class="text-muted small">{{ $stats['vehicles_in_use'] }} in use</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Active Drivers</div>
+                                <div class="stat-value">{{ $stats['drivers_active'] }}/{{ $stats['total_drivers'] }}</div>
+                                <div class="text-muted small">Current roster</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Open Incidents</div>
+                                <div class="stat-value">{{ $stats['incidents_open'] }}</div>
+                                <div class="text-muted small">{{ $stats['incidents_review'] }} under review</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Maintenance Due</div>
+                                <div class="stat-value">{{ $stats['maintenance_due'] }}</div>
+                                <div class="text-muted small">{{ $stats['maintenance_overdue'] }} overdue</div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
                 <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                     <div class="card stat-card h-100">
                         <div class="card-body">
