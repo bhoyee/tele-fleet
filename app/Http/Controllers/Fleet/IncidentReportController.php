@@ -372,6 +372,15 @@ class IncidentReportController extends Controller
 
         return response()->streamDownload(function () use ($incidents): void {
             $handle = fopen('php://output', 'wb');
+            $brandName = (string) config('app.name', 'Tele-Fleet');
+            $orgName = strtoupper((string) (config('app.org_name') ?: 'Lagos Island State Administration'));
+            $orgAddress = (string) (config('app.org_address') ?: '17B, Awolowo Road, Ikoyi, Lagos');
+
+            fputcsv($handle, [$brandName]);
+            fputcsv($handle, [$orgName]);
+            fputcsv($handle, [$orgAddress]);
+            fputcsv($handle, []);
+
             fputcsv($handle, ['Reference', 'Branch', 'Severity', 'Status', 'Incident Date', 'Location', 'Reported By']);
             foreach ($incidents as $incident) {
                 fputcsv($handle, [
@@ -403,6 +412,7 @@ class IncidentReportController extends Controller
             'incidents' => $incidents,
             'generatedAt' => now(),
         ]);
+        $pdf->setOptions(['isPhpEnabled' => true]);
 
         return $pdf->download('incident-reports-' . now()->format('Ymd-His') . '.pdf');
     }

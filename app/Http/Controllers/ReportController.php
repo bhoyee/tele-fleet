@@ -48,12 +48,44 @@ class ReportController extends Controller
         return response()->streamDownload(function () use ($report, $branchLabel): void {
             $handle = fopen('php://output', 'wb');
 
+            $brandName = (string) config('app.name', 'Tele-Fleet');
+            $orgName = strtoupper((string) (config('app.org_name') ?: 'Lagos Island State Administration'));
+            $orgAddress = (string) (config('app.org_address') ?: '17B, Awolowo Road, Ikoyi, Lagos');
+
+            fputcsv($handle, [$brandName]);
+            fputcsv($handle, [$orgName]);
+            fputcsv($handle, [$orgAddress]);
+            fputcsv($handle, []);
+
             fputcsv($handle, ['Fleet Report']);
             fputcsv($handle, ['Branch', $branchLabel]);
             fputcsv($handle, ['Range', $report['filters']['range_label']]);
             fputcsv($handle, ['Generated', now()->format('M d, Y H:i')]);
-            fputcsv($handle, ['Tele-Fleet']);
+            fputcsv($handle, [$brandName]);
             fputcsv($handle, []);
+
+            $availability = $report['stats']['range_availability'] ?? null;
+            if (is_array($availability)) {
+                fputcsv($handle, ['Vehicle Availability During Range']);
+                fputcsv($handle, ['Base available', ($availability['base_available'] ?? 'N/A') . '/' . ($availability['total_active'] ?? 'N/A')]);
+                fputcsv($handle, ['Min available', $availability['min_available'] ?? 'N/A']);
+                fputcsv($handle, ['Avg available', $availability['avg_available'] ?? 'N/A']);
+                fputcsv($handle, []);
+
+                if (! empty($availability['detailed']) && ! empty($availability['days']) && is_array($availability['days'])) {
+                    fputcsv($handle, ['Date', 'Available', 'Booked', 'Maintenance', 'Offline']);
+                    foreach ($availability['days'] as $row) {
+                        fputcsv($handle, [
+                            $row['date'] ?? '',
+                            $row['available'] ?? '',
+                            $row['booked'] ?? '',
+                            $availability['maintenance'] ?? '',
+                            $availability['offline'] ?? '',
+                        ]);
+                    }
+                    fputcsv($handle, []);
+                }
+            }
 
             fputcsv($handle, ['Trip Summary']);
             fputcsv($handle, ['Total Trips', $report['stats']['total_trips']]);
@@ -174,6 +206,7 @@ class ReportController extends Controller
             'report' => $report,
             'generatedAt' => now(),
         ]);
+        $pdf->setOptions(['isPhpEnabled' => true]);
 
         return $pdf->download('fleet-report-' . now()->format('Ymd-His') . '.pdf');
     }
@@ -203,11 +236,21 @@ class ReportController extends Controller
 
         return response()->streamDownload(function () use ($report): void {
             $handle = fopen('php://output', 'wb');
+
+            $brandName = (string) config('app.name', 'Tele-Fleet');
+            $orgName = strtoupper((string) (config('app.org_name') ?: 'Lagos Island State Administration'));
+            $orgAddress = (string) (config('app.org_address') ?: '17B, Awolowo Road, Ikoyi, Lagos');
+
+            fputcsv($handle, [$brandName]);
+            fputcsv($handle, [$orgName]);
+            fputcsv($handle, [$orgAddress]);
+            fputcsv($handle, []);
+
             fputcsv($handle, [$report['title']]);
             fputcsv($handle, ['Branch', $report['filters']['branch_label']]);
             fputcsv($handle, ['Range', $report['filters']['range_label']]);
             fputcsv($handle, ['Generated', now()->format('M d, Y H:i')]);
-            fputcsv($handle, ['Tele-Fleet']);
+            fputcsv($handle, [$brandName]);
             fputcsv($handle, []);
 
             if (! empty($report['summary'])) {
@@ -241,6 +284,7 @@ class ReportController extends Controller
             'report' => $report,
             'generatedAt' => now(),
         ]);
+        $pdf->setOptions(['isPhpEnabled' => true]);
 
         return $pdf->download($report['report_type'] . '-report-' . now()->format('Ymd-His') . '.pdf');
     }
@@ -276,9 +320,19 @@ class ReportController extends Controller
 
         return response()->streamDownload(function () use ($trips, $title, $generatedAt): void {
             $handle = fopen('php://output', 'wb');
+
+            $brandName = (string) config('app.name', 'Tele-Fleet');
+            $orgName = strtoupper((string) (config('app.org_name') ?: 'Lagos Island State Administration'));
+            $orgAddress = (string) (config('app.org_address') ?: '17B, Awolowo Road, Ikoyi, Lagos');
+
+            fputcsv($handle, [$brandName]);
+            fputcsv($handle, [$orgName]);
+            fputcsv($handle, [$orgAddress]);
+            fputcsv($handle, []);
+
             fputcsv($handle, [$title]);
             fputcsv($handle, ['Generated ' . $generatedAt]);
-            fputcsv($handle, ['Tele-Fleet']);
+            fputcsv($handle, [$brandName]);
             fputcsv($handle, []);
             fputcsv($handle, ['Request Number', 'Branch', 'Destination', 'Trip Date', 'Status', 'Created At']);
             foreach ($trips as $trip) {
@@ -313,6 +367,7 @@ class ReportController extends Controller
             'generatedAt' => now(),
             'reportTitle' => $reportTitle,
         ]);
+        $pdf->setOptions(['isPhpEnabled' => true]);
 
         $slug = str_replace(' ', '-', strtolower($request->user()->name));
         return $pdf->download($slug . '-report-' . now()->format('Ymd-His') . '.pdf');
@@ -352,9 +407,19 @@ class ReportController extends Controller
 
         return response()->streamDownload(function () use ($trips, $title, $generatedAt): void {
             $handle = fopen('php://output', 'wb');
+
+            $brandName = (string) config('app.name', 'Tele-Fleet');
+            $orgName = strtoupper((string) (config('app.org_name') ?: 'Lagos Island State Administration'));
+            $orgAddress = (string) (config('app.org_address') ?: '17B, Awolowo Road, Ikoyi, Lagos');
+
+            fputcsv($handle, [$brandName]);
+            fputcsv($handle, [$orgName]);
+            fputcsv($handle, [$orgAddress]);
+            fputcsv($handle, []);
+
             fputcsv($handle, [$title]);
             fputcsv($handle, ['Generated ' . $generatedAt]);
-            fputcsv($handle, ['Tele-Fleet']);
+            fputcsv($handle, [$brandName]);
             fputcsv($handle, []);
             fputcsv($handle, ['Request Number', 'Branch', 'Destination', 'Trip Date', 'Status', 'Created At']);
             foreach ($trips as $trip) {
@@ -390,6 +455,7 @@ class ReportController extends Controller
             'generatedAt' => now(),
             'reportTitle' => $reportTitle,
         ]);
+        $pdf->setOptions(['isPhpEnabled' => true]);
 
         $slug = str_replace(' ', '-', strtolower($branchName));
         return $pdf->download($slug . '-report-' . now()->format('Ymd-His') . '.pdf');
@@ -561,6 +627,104 @@ class ReportController extends Controller
 
         $vehiclesTable = $vehicles->take(20);
         $totalVehicles = $vehicles->count();
+
+        $rangeAvailability = null;
+        if ($fromDate && $toDate) {
+            $rangeStart = Carbon::parse($fromDate)->startOfDay();
+            $rangeEnd = Carbon::parse($toDate)->startOfDay();
+            $rangeDays = $rangeStart->diffInDays($rangeEnd) + 1;
+
+            // Keep per-day tables reasonable in size for UI/PDF/CSV.
+            $maxDetailedDays = 31;
+
+            $offlineVehicleIds = $vehicles->where('status', 'offline')->pluck('id')->values();
+            $maintenanceVehicleIds = $vehicles->where('status', 'maintenance')->pluck('id')->values();
+            $activeVehicleIds = $vehicles
+                ->reject(fn (Vehicle $vehicle): bool => in_array($vehicle->status, ['offline'], true))
+                ->pluck('id')
+                ->values();
+
+            $totalVehiclesActive = $activeVehicleIds->count();
+            $maintenanceCount = $maintenanceVehicleIds->count();
+            $offlineCount = $offlineVehicleIds->count();
+            $baseAvailable = max(0, $totalVehiclesActive - $maintenanceCount);
+
+            $reservedByDate = [];
+
+            $tripWindowStart = $rangeStart->copy()->subDays(30);
+            $windowTrips = TripRequest::query()
+                ->when($branchId, function ($query) use ($branchId): void {
+                    $query->where('branch_id', $branchId);
+                })
+                ->whereNotNull('assigned_vehicle_id')
+                ->whereNotNull('trip_date')
+                ->whereIn('status', ['approved', 'assigned'])
+                ->where(function ($query): void {
+                    $query->whereNull('is_completed')->orWhere('is_completed', false);
+                })
+                ->whereDate('trip_date', '>=', $tripWindowStart->toDateString())
+                ->whereDate('trip_date', '<=', $rangeEnd->toDateString())
+                ->get(['id', 'trip_date', 'trip_time', 'estimated_distance_km', 'assigned_vehicle_id']);
+
+            foreach ($windowTrips as $trip) {
+                $vehicleId = (int) ($trip->assigned_vehicle_id ?? 0);
+                if (! $vehicleId) {
+                    continue;
+                }
+                if ($activeVehicleIds->isNotEmpty() && ! $activeVehicleIds->contains($vehicleId)) {
+                    continue;
+                }
+
+                $days = (int) ($trip->estimated_distance_km ?? 1);
+                if ($days < 1) {
+                    $days = 1;
+                }
+
+                $startDate = Carbon::parse($trip->trip_date)->startOfDay();
+                $endDate = $startDate->copy()->addDays($days - 1);
+
+                $cursor = $startDate->greaterThan($rangeStart) ? $startDate->copy() : $rangeStart->copy();
+                $cursorEnd = $endDate->lessThan($rangeEnd) ? $endDate->copy() : $rangeEnd->copy();
+
+                while ($cursor->lte($cursorEnd)) {
+                    $key = $cursor->toDateString();
+                    $reservedByDate[$key] ??= [];
+                    $reservedByDate[$key][$vehicleId] = true;
+                    $cursor->addDay();
+                }
+            }
+
+            $daysSeries = [];
+            $availableValues = [];
+            $cursor = $rangeStart->copy();
+            while ($cursor->lte($rangeEnd)) {
+                $key = $cursor->toDateString();
+                $bookedCount = isset($reservedByDate[$key]) ? count($reservedByDate[$key]) : 0;
+                $available = max(0, $baseAvailable - $bookedCount);
+                $daysSeries[] = [
+                    'date' => $key,
+                    'available' => $available,
+                    'booked' => $bookedCount,
+                ];
+                $availableValues[] = $available;
+                $cursor->addDay();
+            }
+
+            $minAvailable = empty($availableValues) ? null : min($availableValues);
+            $avgAvailable = empty($availableValues) ? null : round(array_sum($availableValues) / count($availableValues), 1);
+
+            $rangeAvailability = [
+                'range_days' => $rangeDays,
+                'detailed' => $rangeDays <= $maxDetailedDays,
+                'base_available' => $baseAvailable,
+                'total_active' => $totalVehiclesActive,
+                'maintenance' => $maintenanceCount,
+                'offline' => $offlineCount,
+                'min_available' => $minAvailable,
+                'avg_available' => $avgAvailable,
+                'days' => $rangeDays <= $maxDetailedDays ? $daysSeries : [],
+            ];
+        }
         $maintenanceDue = Vehicle::when($branchId, function ($query) use ($branchId): void {
                 $query->where('branch_id', $branchId);
             })
@@ -708,6 +872,7 @@ class ReportController extends Controller
                 'vehicles_in_use' => $vehicleStatusCounts['in_use'],
                 'vehicles_maintenance' => $vehicleStatusCounts['maintenance'],
                 'vehicles_offline' => $vehicleStatusCounts['offline'],
+                'range_availability' => $rangeAvailability,
                 'maintenance_due' => $maintenanceDue,
                 'maintenance_overdue' => $maintenanceOverdue,
                 'total_drivers' => $totalDrivers,

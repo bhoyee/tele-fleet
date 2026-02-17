@@ -55,23 +55,10 @@
         </style>
     </head>
     <body>
-        @php
-            $brandName = $appBrandName ?? config('app.name', 'Tele-Fleet');
-            $logoFile = config('app.brand_logo_file');
-        @endphp
-        <div class="header">
-            <div>
-                <div class="title">Incident Reports</div>
-                <div class="subtitle">Generated {{ $generatedAt->format('M d, Y H:i') }}</div>
-            </div>
-            <div class="subtitle">
-                @if (is_string($logoFile) && $logoFile !== '')
-                    <img src="{{ $logoFile }}" alt="{{ $brandName }} logo" style="height: 26px; width: auto; object-fit: contain;">
-                @else
-                    {{ $brandName }}
-                @endif
-            </div>
-        </div>
+        @include('reports._pdf_header')
+
+        <div class="title">Incident Reports</div>
+        <div class="subtitle" style="margin-bottom: 20px;">Generated {{ $generatedAt->format('M d, Y H:i') }}</div>
 
         <table>
             <thead>
@@ -99,5 +86,7 @@
                 @endforeach
             </tbody>
         </table>
+
+        @include('reports._pdf_pagination')
     </body>
 </html>

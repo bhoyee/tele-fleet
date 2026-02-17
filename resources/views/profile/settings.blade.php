@@ -26,6 +26,12 @@
                         @error('org_name') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
 
+                    <div class="col-md-12">
+                        <label class="form-label" for="org_address">Organization address</label>
+                        <input id="org_address" name="org_address" class="form-control" value="{{ old('org_address', $orgAddress ?? '') }}" placeholder="{{ $orgAddress ?? '17B, Awolowo Road, Ikoyi, Lagos' }}">
+                        @error('org_address') <div class="text-danger small">{{ $message }}</div> @enderror
+                    </div>
+
                     <div class="col-md-6">
                         <label class="form-label" for="support_email">Support/Developer email</label>
                         <input id="support_email" name="support_email" class="form-control" value="{{ old('support_email', $supportEmail ?? '') }}" placeholder="developer@example.com">

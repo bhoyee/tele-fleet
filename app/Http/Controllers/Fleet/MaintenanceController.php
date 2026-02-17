@@ -147,6 +147,15 @@ class MaintenanceController extends Controller
 
         return response()->streamDownload(function () use ($maintenances): void {
             $handle = fopen('php://output', 'wb');
+            $brandName = (string) config('app.name', 'Tele-Fleet');
+            $orgName = strtoupper((string) (config('app.org_name') ?: 'Lagos Island State Administration'));
+            $orgAddress = (string) (config('app.org_address') ?: '17B, Awolowo Road, Ikoyi, Lagos');
+
+            fputcsv($handle, [$brandName]);
+            fputcsv($handle, [$orgName]);
+            fputcsv($handle, [$orgAddress]);
+            fputcsv($handle, []);
+
             fputcsv($handle, ['Vehicle', 'Status', 'Scheduled For', 'Description', 'Cost', 'Mileage', 'Maintenance State']);
             foreach ($maintenances as $maintenance) {
                 fputcsv($handle, [
@@ -191,6 +200,7 @@ class MaintenanceController extends Controller
             'generatedAt' => now(),
             'statusFilter' => $statusFilter,
         ]);
+        $pdf->setOptions(['isPhpEnabled' => true]);
 
         return $pdf->download('maintenance-records-' . now()->format('Ymd-His') . '.pdf');
     }

@@ -397,6 +397,85 @@
                 </div>
             </div>
 
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span>Vehicle Availability During Range</span>
+                    <span class="text-muted small">{{ $filters['range_label'] }}</span>
+                </div>
+                <div class="card-body">
+                    @php
+                        $availability = $stats['range_availability'] ?? null;
+                    @endphp
+                    @if (! $availability)
+                        <div class="text-muted">Select a date range to see booking-based availability.</div>
+                    @else
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-3">
+                                <div class="border rounded-3 p-3 bg-white h-100">
+                                    <div class="text-muted small">Base available</div>
+                                    <div class="fw-semibold fs-5">{{ $availability['base_available'] }}/{{ $availability['total_active'] }}</div>
+                                    <div class="text-muted small">Excludes maintenance/offline</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <div class="border rounded-3 p-3 bg-white h-100">
+                                    <div class="text-muted small">Min available</div>
+                                    <div class="fw-semibold fs-5">{{ $availability['min_available'] ?? 'N/A' }}</div>
+                                    <div class="text-muted small">During range</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <div class="border rounded-3 p-3 bg-white h-100">
+                                    <div class="text-muted small">Avg available</div>
+                                    <div class="fw-semibold fs-5">{{ $availability['avg_available'] ?? 'N/A' }}</div>
+                                    <div class="text-muted small">During range</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <div class="border rounded-3 p-3 bg-white h-100">
+                                    <div class="text-muted small">Max booked</div>
+                                    <div class="fw-semibold fs-5">
+                                        {{ collect($availability['days'] ?? [])->max('booked') ?? 'N/A' }}
+                                    </div>
+                                    <div class="text-muted small">In a day</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (! ($availability['detailed'] ?? false))
+                            <div class="alert alert-info mb-0">
+                                Date range is large ({{ $availability['range_days'] }} days). Showing summary only.
+                            </div>
+                        @else
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Available</th>
+                                            <th>Booked</th>
+                                            <th class="text-muted">Maintenance</th>
+                                            <th class="text-muted">Offline</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (($availability['days'] ?? []) as $row)
+                                            <tr>
+                                                <td>{{ \Illuminate\Support\Carbon::parse($row['date'])->format('M d, Y') }}</td>
+                                                <td class="fw-semibold">{{ $row['available'] }}</td>
+                                                <td>{{ $row['booked'] }}</td>
+                                                <td class="text-muted">{{ $availability['maintenance'] }}</td>
+                                                <td class="text-muted">{{ $availability['offline'] }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    @endif
+                </div>
+            </div>
+
             <!-- BRANCH LEADERS - Stack on mobile -->
             <div class="row g-3 mt-1">
                 <div class="col-12">

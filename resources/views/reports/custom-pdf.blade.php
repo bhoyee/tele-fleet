@@ -15,6 +15,8 @@
         </style>
     </head>
     <body>
+        @include('reports._pdf_header')
+
         <h1>{{ $report['title'] }}</h1>
         <div class="meta">
             Branch: {{ $report['filters']['branch_label'] }} |
@@ -51,5 +53,7 @@
                 @endforeach
             </tbody>
         </table>
+
+        @include('reports._pdf_pagination')
     </body>
 </html>

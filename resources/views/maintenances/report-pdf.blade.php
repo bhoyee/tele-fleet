@@ -14,6 +14,8 @@
     </style>
 </head>
 <body>
+    @include('reports._pdf_header')
+
     <div class="header">
         <div class="title">Maintenance Records</div>
         <div class="meta">
@@ -50,5 +52,7 @@
             @endforeach
         </tbody>
     </table>
+
+    @include('reports._pdf_pagination')
 </body>
 </html>

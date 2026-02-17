@@ -16,6 +16,8 @@
         </style>
     </head>
     <body>
+        @include('reports._pdf_header')
+
         <h1>Fleet Report</h1>
         <div class="meta">
             Branch: {{ $report['filters']['branch_label'] }} |
@@ -49,6 +51,43 @@
                 <td><strong>Incidents Open:</strong> {{ $report['stats']['incidents_open'] }}</td>
             </tr>
         </table>
+
+        @php($availability = $report['stats']['range_availability'] ?? null)
+        @if ($availability)
+            <h2>Vehicle Availability During Range</h2>
+            <div class="meta" style="margin-bottom: 6px;">
+                Base available: {{ $availability['base_available'] }}/{{ $availability['total_active'] }}
+                | Min available: {{ $availability['min_available'] ?? 'N/A' }}
+                | Avg available: {{ $availability['avg_available'] ?? 'N/A' }}
+            </div>
+
+            @if (! ($availability['detailed'] ?? false))
+                <div class="meta">Range is {{ $availability['range_days'] }} days. Summary only.</div>
+            @else
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Available</th>
+                            <th>Booked</th>
+                            <th>Maintenance</th>
+                            <th>Offline</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (($availability['days'] ?? []) as $row)
+                            <tr>
+                                <td>{{ \Illuminate\Support\Carbon::parse($row['date'])->format('M d, Y') }}</td>
+                                <td>{{ $row['available'] }}</td>
+                                <td>{{ $row['booked'] }}</td>
+                                <td>{{ $availability['maintenance'] }}</td>
+                                <td>{{ $availability['offline'] }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+        @endif
 
         <h2>Trips</h2>
         <table>
@@ -191,5 +230,7 @@
                 @endforeach
             </tbody>
         </table>
+
+        @include('reports._pdf_pagination')
     </body>
 </html>

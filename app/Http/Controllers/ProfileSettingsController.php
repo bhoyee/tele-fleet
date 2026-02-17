@@ -16,6 +16,7 @@ class ProfileSettingsController extends Controller
         return view('profile.settings', [
             'appName' => AppSetting::getValue('app_name', config('app.name', 'Tele-Fleet')),
             'orgName' => AppSetting::getValue('org_name', 'Lagos Island State Administration'),
+            'orgAddress' => AppSetting::getValue('org_address', '17B, Awolowo Road, Ikoyi, Lagos'),
             'supportEmail' => AppSetting::getValue('support_email'),
             'logoPath' => AppSetting::getValue('app_logo_path'),
         ]);
@@ -26,12 +27,14 @@ class ProfileSettingsController extends Controller
         $validated = $request->validate([
             'app_name' => ['required', 'string', 'max:60'],
             'org_name' => ['nullable', 'string', 'max:120'],
+            'org_address' => ['nullable', 'string', 'max:160'],
             'support_email' => ['nullable', 'email', 'max:255'],
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp,svg', 'max:2048'],
         ]);
 
         AppSetting::setValue('app_name', $validated['app_name']);
         AppSetting::setValue('org_name', $validated['org_name'] ?? null);
+        AppSetting::setValue('org_address', $validated['org_address'] ?? null);
         AppSetting::setValue('support_email', $validated['support_email'] ?? null);
 
         if ($request->hasFile('logo')) {

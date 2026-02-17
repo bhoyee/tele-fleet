@@ -11,6 +11,10 @@
                 --border: #e5e7eb;
             }
 
+            @page {
+                margin: 26px 24px 48px 24px;
+            }
+
             body {
                 font-family: DejaVu Sans, Arial, sans-serif;
                 color: var(--dark);
@@ -18,13 +22,6 @@
                 margin: 0;
                 padding: 24px;
                 background: #ffffff;
-            }
-
-            .header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 24px;
             }
 
             .title {
@@ -37,17 +34,18 @@
                 color: var(--muted);
             }
 
-            .summary {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 10px;
+            .summary-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 10px;
                 margin-bottom: 20px;
             }
 
-            .summary-card {
+            .summary-cell {
                 border: 1px solid var(--border);
                 border-radius: 10px;
                 padding: 10px;
+                width: 25%;
             }
 
             .summary-label {
@@ -82,45 +80,35 @@
                 font-weight: 600;
                 text-transform: capitalize;
             }
+
         </style>
     </head>
     <body>
-        @php
-            $brandName = $appBrandName ?? config('app.name', 'Tele-Fleet');
-            $logoFile = config('app.brand_logo_file');
-        @endphp
-        <div class="header">
-            <div>
-                <div class="title">{{ $reportTitle }}</div>
-                <div class="subtitle">Generated {{ $generatedAt->format('M d, Y H:i') }}</div>
-            </div>
-            <div class="subtitle">
-                @if (is_string($logoFile) && $logoFile !== '')
-                    <img src="{{ $logoFile }}" alt="{{ $brandName }} logo" style="height: 26px; width: auto; object-fit: contain;">
-                @else
-                    {{ $brandName }}
-                @endif
-            </div>
-        </div>
+        @include('reports._pdf_header')
 
-        <div class="summary">
-            <div class="summary-card">
-                <div class="summary-label">Total Requests</div>
-                <div class="summary-value">{{ $stats['total'] }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Approved</div>
-                <div class="summary-value">{{ $stats['approved'] }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Pending</div>
-                <div class="summary-value">{{ $stats['pending'] }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Rejected</div>
-                <div class="summary-value">{{ $stats['rejected'] }}</div>
-            </div>
-        </div>
+        <div class="title">{{ $reportTitle }}</div>
+        <div class="subtitle" style="margin-bottom: 20px;">Generated {{ $generatedAt->format('M d, Y H:i') }}</div>
+
+        <table class="summary-table">
+            <tr>
+                <td class="summary-cell">
+                    <div class="summary-label">Total Requests</div>
+                    <div class="summary-value">{{ $stats['total'] }}</div>
+                </td>
+                <td class="summary-cell">
+                    <div class="summary-label">Approved</div>
+                    <div class="summary-value">{{ $stats['approved'] }}</div>
+                </td>
+                <td class="summary-cell">
+                    <div class="summary-label">Pending</div>
+                    <div class="summary-value">{{ $stats['pending'] }}</div>
+                </td>
+                <td class="summary-cell">
+                    <div class="summary-label">Rejected</div>
+                    <div class="summary-value">{{ $stats['rejected'] }}</div>
+                </td>
+            </tr>
+        </table>
 
         <table>
             <thead>
@@ -154,5 +142,7 @@
                 @endforeach
             </tbody>
         </table>
+
+        @include('reports._pdf_pagination')
     </body>
 </html>

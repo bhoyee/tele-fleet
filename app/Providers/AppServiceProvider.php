@@ -47,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         try {
             $brandName = AppSetting::getValue('app_name', config('app.name', 'Tele-Fleet'));
             $orgName = AppSetting::getValue('org_name');
+            $orgAddress = AppSetting::getValue('org_address');
             $logoPath = AppSetting::getValue('app_logo_path');
 
             $logoUrl = null;
@@ -71,6 +72,7 @@ class AppServiceProvider extends ServiceProvider
                 'app.name' => $brandName,
                 'mail.from.name' => $brandName,
                 'app.org_name' => $orgName,
+                'app.org_address' => $orgAddress,
                 'app.brand_logo_url' => $logoUrl,
                 'app.brand_logo_file' => $logoFile,
             ]);
@@ -103,10 +105,12 @@ class AppServiceProvider extends ServiceProvider
             $brandName = config('app.name', 'Tele-Fleet');
             $logoUrl = null;
             $orgName = null;
+            $orgAddress = null;
 
             try {
                 $brandName = config('app.name', $brandName);
                 $orgName = config('app.org_name');
+                $orgAddress = config('app.org_address');
                 $logoUrl = config('app.brand_logo_url');
                 $logoPath = AppSetting::getValue('app_logo_path');
 
@@ -127,11 +131,13 @@ class AppServiceProvider extends ServiceProvider
                 $brandName = config('app.name', 'Tele-Fleet');
                 $logoUrl = null;
                 $orgName = null;
+                $orgAddress = null;
             }
 
             $view->with('appBrandName', $brandName);
             $view->with('appLogoUrl', $logoUrl);
             $view->with('appOrgName', $orgName);
+            $view->with('appOrgAddress', $orgAddress);
         });
     }
 }
