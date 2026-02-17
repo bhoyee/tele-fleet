@@ -673,7 +673,7 @@
                                     @yield('hero-title', 'Enterprise-Grade Fleet Management')
                                 </h2>
                                 <p class="hero-description">
-                                    @yield('hero-description', 'Streamline Your Corporate Fleet Operations with comprehensive vehicle management, trip coordination, and real-time tracking.')
+                                    @yield('hero-description', 'Streamline NRS Fleet Operations with comprehensive vehicle management, trip coordination, and real-time tracking.')
                                 </p>
 
                                 <div class="features-grid">

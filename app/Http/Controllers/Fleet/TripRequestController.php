@@ -195,7 +195,7 @@ class TripRequestController extends Controller
 
         $auditLog->log('trip_request.created', $tripRequest, [], $tripRequest->toArray());
 
-        $recipients = $this->buildNotificationRecipients($tripRequest);
+        $recipients = $this->buildNotificationRecipients($tripRequest, $user);
         try {
             Notification::send($recipients, TripRequestCreated::fromTripRequest($tripRequest));
         } catch (Throwable $exception) {
@@ -1376,7 +1376,12 @@ class TripRequestController extends Controller
     {
         $recipients = collect();
 
-        $fleetManagers = User::where('role', User::ROLE_FLEET_MANAGER)->get();
+        $effectiveRequester = $requester ?: $tripRequest->requestedBy;
+
+        $fleetManagers = collect();
+        if (! ($effectiveRequester && $effectiveRequester->role === User::ROLE_SUPER_ADMIN)) {
+            $fleetManagers = User::where('role', User::ROLE_FLEET_MANAGER)->get();
+        }
         $superAdmins = User::where('role', User::ROLE_SUPER_ADMIN)->get();
         $branchHeads = User::where('role', User::ROLE_BRANCH_HEAD)
             ->where('branch_id', $tripRequest->branch_id)
@@ -1395,7 +1400,12 @@ class TripRequestController extends Controller
     {
         $recipients = collect();
 
-        $fleetManagers = User::where('role', User::ROLE_FLEET_MANAGER)->get();
+        $effectiveRequester = $tripRequest->requestedBy;
+
+        $fleetManagers = collect();
+        if (! ($effectiveRequester && $effectiveRequester->role === User::ROLE_SUPER_ADMIN)) {
+            $fleetManagers = User::where('role', User::ROLE_FLEET_MANAGER)->get();
+        }
         $superAdmins = User::where('role', User::ROLE_SUPER_ADMIN)->get();
         $branchHeads = User::where('role', User::ROLE_BRANCH_HEAD)
             ->where('branch_id', $tripRequest->branch_id)

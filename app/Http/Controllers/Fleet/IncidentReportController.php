@@ -479,9 +479,11 @@ class IncidentReportController extends Controller
     {
         $recipients = collect();
 
-        $recipients = $recipients->merge(
-            User::where('role', User::ROLE_FLEET_MANAGER)->get()
-        );
+        if ($reporter->role !== User::ROLE_SUPER_ADMIN) {
+            $recipients = $recipients->merge(
+                User::where('role', User::ROLE_FLEET_MANAGER)->get()
+            );
+        }
 
         $recipients = $recipients->merge(
             User::where('role', User::ROLE_SUPER_ADMIN)->get()

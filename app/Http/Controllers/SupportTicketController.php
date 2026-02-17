@@ -11,6 +11,7 @@ use App\Notifications\DeveloperSupportTicketMessage;
 use App\Notifications\DeveloperSupportTicketCreated;
 use App\Notifications\SupportTicketCreated;
 use App\Notifications\SupportTicketReply;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -141,8 +142,13 @@ class SupportTicketController extends Controller
             ]);
         }
 
+        $rolesToNotify = [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER];
+        if ($user && $user->role === User::ROLE_SUPER_ADMIN) {
+            $rolesToNotify = [User::ROLE_SUPER_ADMIN];
+        }
+
         $recipients = User::query()
-            ->whereIn('role', [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER])
+            ->whereIn('role', $rolesToNotify)
             ->get();
         if ($recipients->isNotEmpty()) {
             try {
@@ -219,6 +225,32 @@ class SupportTicketController extends Controller
         $ticket->load(['user', 'branch', 'attachments', 'messages.user', 'messages.attachments']);
 
         return view('helpdesk.show_v2', compact('ticket'));
+    }
+
+    public function latestMessages(Request $request, SupportTicket $ticket): JsonResponse
+    {
+        $this->ensureHelpDeskEnabled();
+        $this->authorizeTicket($ticket, $request->user());
+
+        $after = (int) $request->query('after', 0);
+        $lastId = (int) $ticket->messages()->max('id');
+
+        if ($lastId === 0 || $after >= $lastId) {
+            return response()->json([
+                'unchanged' => true,
+                'last_id' => $lastId,
+            ]);
+        }
+
+        $ticket->load(['messages.user', 'messages.attachments']);
+
+        return response()->json([
+            'last_id' => $lastId,
+            'html' => view('helpdesk._messages', [
+                'ticket' => $ticket,
+                'currentUser' => $request->user(),
+            ])->render(),
+        ]);
     }
 
     public function update(Request $request, SupportTicket $ticket): RedirectResponse

@@ -170,6 +170,7 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_h
     Route::get('helpdesk/{ticket}', [SupportTicketController::class, 'show'])->name('helpdesk.show');
     Route::patch('helpdesk/{ticket}', [SupportTicketController::class, 'update'])->name('helpdesk.update');
     Route::post('helpdesk/{ticket}/messages', [SupportTicketController::class, 'storeMessage'])->name('helpdesk.messages.store');
+    Route::get('helpdesk/{ticket}/messages/latest', [SupportTicketController::class, 'latestMessages'])->name('helpdesk.messages.latest');
     Route::get('helpdesk/{ticket}/attachments/{attachment}', [SupportTicketController::class, 'downloadAttachment'])->name('helpdesk.attachments.download');
 });
 

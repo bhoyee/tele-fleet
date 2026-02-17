@@ -63,37 +63,9 @@
                         </div>
                     @endif
 
-                    @forelse ($ticket->messages as $message)
-                        @php
-                            $isSelf = $message->user_id === $currentUser?->id;
-                            $messageClass = $isSelf ? 'bg-primary text-white' : 'bg-light';
-                            $senderLabel = $message->user?->name ?? null;
-                            if (! $senderLabel && $message->external_email) {
-                                $senderLabel = trim(($message->external_name ?: 'Developer') . ' <' . $message->external_email . '>');
-                            }
-                            $senderLabel = $senderLabel ?: 'User';
-                        @endphp
-                        <div class="mb-3">
-                            <div class="small text-muted mb-1">
-                                {{ $senderLabel }} - {{ $message->created_at?->format('M d, Y H:i') }}
-                            </div>
-                            <div class="p-3 rounded-3 {{ $messageClass }}">
-                                {!! $message->message !!}
-                            </div>
-
-                            @if ($message->attachments->count())
-                                <div class="mt-2">
-                                    @foreach ($message->attachments as $attachment)
-                                        <a class="btn btn-sm btn-outline-secondary me-2 mb-2" href="{{ route('helpdesk.attachments.download', [$ticket, $attachment]) }}">
-                                            <i class="bi bi-paperclip"></i> {{ $attachment->original_name }}
-                                        </a>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-                    @empty
-                        <div class="text-muted">No replies yet.</div>
-                    @endforelse
+                    <div id="helpdeskConversation">
+                        @include('helpdesk._messages', ['ticket' => $ticket, 'currentUser' => $currentUser])
+                    </div>
 
                     <form method="POST" action="{{ route('helpdesk.messages.store', $ticket) }}" class="mt-4" id="helpdeskReplyForm" enctype="multipart/form-data">
                         @csrf
@@ -224,6 +196,10 @@
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
         <script>
+            const helpdeskConversation = document.getElementById('helpdeskConversation');
+            const helpdeskMessagesUrl = "{{ route('helpdesk.messages.latest', $ticket) }}";
+            let helpdeskLastMessageId = {{ (int) ($ticket->messages->max('id') ?? 0) }};
+
             const initHelpdeskReplyEditor = () => {
                 if (!window.tinymce) return;
                 const replyField = document.getElementById('helpdeskReplyMessage');
@@ -238,6 +214,59 @@
             };
 
             document.addEventListener('DOMContentLoaded', initHelpdeskReplyEditor);
+
+            const shouldAutoScroll = () => {
+                if (!helpdeskConversation) return false;
+                const delta = helpdeskConversation.scrollHeight - helpdeskConversation.scrollTop - helpdeskConversation.clientHeight;
+                return delta < 40;
+            };
+
+            const scrollToBottom = () => {
+                if (!helpdeskConversation) return;
+                helpdeskConversation.scrollTop = helpdeskConversation.scrollHeight;
+            };
+
+            const refreshHelpdeskConversation = async () => {
+                if (!helpdeskConversation) return;
+                if (document.hidden) return;
+
+                const wasAtBottom = shouldAutoScroll();
+
+                try {
+                    const response = await fetch(`${helpdeskMessagesUrl}?after=${encodeURIComponent(helpdeskLastMessageId)}`, {
+                        headers: { 'Accept': 'application/json' },
+                        cache: 'no-store',
+                        credentials: 'same-origin',
+                    });
+                    if (!response.ok) return;
+                    const payload = await response.json();
+
+                    if (payload?.unchanged) {
+                        helpdeskLastMessageId = Number(payload.last_id ?? helpdeskLastMessageId);
+                        return;
+                    }
+
+                    if (typeof payload?.html === 'string') {
+                        helpdeskConversation.innerHTML = payload.html;
+                    }
+                    if (payload?.last_id) {
+                        helpdeskLastMessageId = Number(payload.last_id);
+                    }
+
+                    if (wasAtBottom) {
+                        scrollToBottom();
+                    }
+                } catch (error) {
+                    // silent
+                }
+            };
+
+            document.addEventListener('DOMContentLoaded', () => {
+                if (!helpdeskConversation) return;
+                scrollToBottom();
+                setInterval(refreshHelpdeskConversation, 10000);
+                window.addEventListener('focus', refreshHelpdeskConversation);
+            });
 
             const replyForm = document.getElementById('helpdeskReplyForm');
             const replySubmit = document.getElementById('helpdeskReplySubmit');
