@@ -66,6 +66,13 @@ class AppServiceProvider extends ServiceProvider
                 if (! $logoUrl) {
                     $logoUrl = url(Storage::disk('public')->url($normalized));
                 }
+
+                if (! $logoFile && Storage::disk('public')->exists($normalized)) {
+                    $candidate = Storage::disk('public')->path($normalized);
+                    if (is_string($candidate) && $candidate !== '' && File::exists($candidate)) {
+                        $logoFile = $candidate;
+                    }
+                }
             }
 
             config([
