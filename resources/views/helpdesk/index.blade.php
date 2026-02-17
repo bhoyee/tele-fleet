@@ -10,6 +10,9 @@
             <p class="text-muted mb-0">Submit support tickets and track responses.</p>
         </div>
         <div>
+            @if (($currentUser?->role ?? null) === \App\Models\User::ROLE_SUPER_ADMIN)
+                <a class="btn btn-outline-primary me-2" href="{{ route('helpdesk.create', ['developer' => 1]) }}">Contact Developer</a>
+            @endif
             <a class="btn btn-primary" href="{{ route('helpdesk.create') }}">New Ticket</a>
         </div>
     </div>
@@ -50,7 +53,12 @@
                                     'critical' => 'bg-dark',
                                     default => 'bg-secondary',
                                 };
-                                $categoryLabel = $ticket->category === 'administrative' ? 'Administrative' : 'Technical';
+                                $categoryLabel = match($ticket->category) {
+                                    'administrative' => 'Administrative',
+                                    'technical' => 'Technical',
+                                    'developer_support' => 'Developer Support',
+                                    default => ucfirst((string) $ticket->category),
+                                };
                             @endphp
                             <tr>
                                 <td class="fw-semibold">TCK-{{ str_pad($ticket->id, 5, '0', STR_PAD_LEFT) }}</td>

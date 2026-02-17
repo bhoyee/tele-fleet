@@ -1,4 +1,7 @@
 <x-admin-layout>
+    @php
+        $isDeveloperMode = ($developerMode ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN;
+    @endphp
     <style>
         @media (max-width: 767px) {
             .helpdesk-header {
@@ -31,8 +34,13 @@
     </style>
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2 helpdesk-header">
         <div>
-            <h1 class="h3 mb-1">New Support Ticket</h1>
-            <p class="text-muted mb-0">Provide details so we can assist quickly.</p>
+            @if ($isDeveloperMode)
+                <h1 class="h3 mb-1">Contact Developer</h1>
+                <p class="text-muted mb-0">Submit a developer support request (Super Admin only).</p>
+            @else
+                <h1 class="h3 mb-1">New Support Ticket</h1>
+                <p class="text-muted mb-0">Provide details so we can assist quickly.</p>
+            @endif
         </div>
         <div class="helpdesk-actions">
             <a class="btn btn-outline-secondary" href="{{ route('helpdesk.index') }}">Back to Tickets</a>
@@ -41,16 +49,28 @@
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
+            @if (! $isDeveloperMode && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                <div class="alert alert-info border">
+                    Need to contact the developer directly? Use <a href="{{ route('helpdesk.create', ['developer' => 1]) }}" class="fw-semibold text-decoration-none">Contact Developer</a>.
+                </div>
+            @endif
             <form method="POST" action="{{ route('helpdesk.store') }}" enctype="multipart/form-data" id="helpdeskCreateForm" class="helpdesk-form">
                 @csrf
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Category</label>
-                        <select class="form-select" name="category" required>
-                            <option value="">Select category</option>
-                            <option value="administrative" @selected(old('category') === 'administrative')>Administrative</option>
-                            <option value="technical" @selected(old('category') === 'technical')>Technical Support</option>
-                        </select>
+                        @if ($isDeveloperMode)
+                            <input type="hidden" name="category" value="developer_support">
+                            <input class="form-control" value="Developer Support" readonly>
+                            <div class="form-text">This ticket goes to the developer/support email configured in App Settings.</div>
+                        @else
+                            <select class="form-select" name="category" required>
+                                <option value="">Select category</option>
+                                <option value="administrative" @selected(old('category') === 'administrative')>Administrative</option>
+                                <option value="technical" @selected(old('category') === 'technical')>Technical Support</option>
+                            </select>
+                        @endif
+                        @error('category') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Priority</label>
@@ -58,23 +78,37 @@
                             <option value="">Select priority</option>
                             <option value="low" @selected(old('priority') === 'low')>Low</option>
                             <option value="medium" @selected(old('priority') === 'medium')>Medium</option>
-                            <option value="high" @selected(old('priority') === 'high')>High</option>
+                            <option value="high" @selected(old('priority', $isDeveloperMode ? 'high' : null) === 'high')>High</option>
                             <option value="critical" @selected(old('priority') === 'critical')>Critical</option>
                         </select>
+                        @error('priority') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Subject</label>
-                        <input class="form-control" name="subject" type="text" maxlength="150" value="{{ old('subject') }}" required>
+                        <input class="form-control" name="subject" type="text" maxlength="150" value="{{ old('subject', $isDeveloperMode ? 'Developer Support Request' : '') }}" required>
+                        @error('subject') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-12">
                         <label class="form-label">Description</label>
                         <textarea class="form-control" id="ticketDescription" name="description" rows="6">{{ old('description') }}</textarea>
                         <div class="text-muted small mt-1">Description is required.</div>
+                        @error('description') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
+                    @if ($isDeveloperMode)
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include_diagnostics" name="include_diagnostics" value="1" @checked(old('include_diagnostics', '1'))>
+                                <label class="form-check-label" for="include_diagnostics">
+                                    Include system diagnostics (recommended)
+                                </label>
+                            </div>
+                        </div>
+                    @endif
                     <div class="col-12">
                         <label class="form-label">Attachments (images, PDF, DOC/DOCX)</label>
                         <input class="form-control" type="file" name="attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx">
                         <div class="text-muted small mt-1">Max size per file: 10MB.</div>
+                        @error('attachments.*') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                 </div>
 

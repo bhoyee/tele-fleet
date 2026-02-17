@@ -4,6 +4,8 @@ namespace App\Notifications;
 
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
+use App\Notifications\Concerns\SkipsInvalidMailRecipients;
+use App\Notifications\Concerns\QueueReliability;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -12,6 +14,8 @@ use Illuminate\Notifications\Notification;
 class SupportTicketReply extends Notification implements ShouldQueue
 {
     use Queueable;
+    use QueueReliability;
+    use SkipsInvalidMailRecipients;
 
     public bool $deleteWhenMissingModels = true;
 
@@ -41,7 +45,9 @@ class SupportTicketReply extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return $this->shouldSendMailTo($notifiable)
+            ? ['database', 'mail']
+            : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

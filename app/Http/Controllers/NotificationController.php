@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -10,9 +11,38 @@ use Illuminate\Support\Facades\View as ViewFacade;
 
 class NotificationController extends Controller
 {
+    private function excludedTypes(): array
+    {
+        return [\App\Notifications\ChatMessageNotification::class];
+    }
+
+    private function dropdownPayload($user): array
+    {
+        $excludedTypes = $this->excludedTypes();
+
+        $unreadCount = $user
+            ->unreadNotifications()
+            ->whereNotIn('type', $excludedTypes)
+            ->count();
+
+        $latestNotifications = $user
+            ->unreadNotifications()
+            ->whereNotIn('type', $excludedTypes)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $html = ViewFacade::make('notifications._dropdown_list', compact('latestNotifications'))->render();
+
+        return [
+            'count' => $unreadCount,
+            'html' => $html,
+        ];
+    }
+
     public function index(Request $request): View
     {
-        $excludedTypes = [\App\Notifications\ChatMessageNotification::class];
+        $excludedTypes = $this->excludedTypes();
         $notifications = $request->user()
             ->notifications()
             ->whereNotIn('type', $excludedTypes)
@@ -22,24 +52,34 @@ class NotificationController extends Controller
         return view('notifications.index', compact('notifications'));
     }
 
-    public function markRead(Request $request, string $id): RedirectResponse
+    public function markRead(Request $request, string $id): RedirectResponse|JsonResponse
     {
         $notification = $request->user()->notifications()->where('id', $id)->firstOrFail();
         $notification->markAsRead();
+
+        if ($request->expectsJson()) {
+            return response()
+                ->json($this->dropdownPayload($request->user()));
+        }
 
         return redirect()
             ->back()
             ->with('success', 'Notification marked as read.');
     }
 
-    public function markAllRead(Request $request): RedirectResponse
+    public function markAllRead(Request $request): RedirectResponse|JsonResponse
     {
-        $excludedTypes = [\App\Notifications\ChatMessageNotification::class];
+        $excludedTypes = $this->excludedTypes();
         $request->user()
             ->unreadNotifications()
             ->whereNotIn('type', $excludedTypes)
             ->get()
             ->markAsRead();
+
+        if ($request->expectsJson()) {
+            return response()
+                ->json($this->dropdownPayload($request->user()));
+        }
 
         return redirect()
             ->back()
@@ -84,7 +124,7 @@ class NotificationController extends Controller
 
     public function count(Request $request)
     {
-        $excludedTypes = [\App\Notifications\ChatMessageNotification::class];
+        $excludedTypes = $this->excludedTypes();
         return response()->json([
             'count' => $request->user()
                 ->unreadNotifications()
@@ -95,25 +135,6 @@ class NotificationController extends Controller
 
     public function latest(Request $request)
     {
-        $excludedTypes = [\App\Notifications\ChatMessageNotification::class];
-        $user = $request->user();
-        $unreadCount = $user
-            ->unreadNotifications()
-            ->whereNotIn('type', $excludedTypes)
-            ->count();
-
-        $latestNotifications = $user
-            ->notifications()
-            ->whereNotIn('type', $excludedTypes)
-            ->latest()
-            ->take(5)
-            ->get();
-
-        $html = ViewFacade::make('notifications._dropdown_list', compact('latestNotifications'))->render();
-
-        return response()->json([
-            'count' => $unreadCount,
-            'html' => $html,
-        ]);
+        return response()->json($this->dropdownPayload($request->user()));
     }
 }

@@ -18,6 +18,11 @@ class ChatMessageSent implements ShouldBroadcastNow
         $this->conversation->loadMissing('participants.user');
     }
 
+    public function broadcastWhen(): bool
+    {
+        return (bool) config('app.realtime_enabled');
+    }
+
     public function broadcastOn(): array
     {
         $channels = [

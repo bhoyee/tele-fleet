@@ -23,9 +23,16 @@ class UserController extends Controller
 {
     public function index(): View
     {
-        $users = User::with('branch')->orderBy('name')->get();
+        $showArchived = request()->boolean('archived');
 
-        return view('admin.users.index', compact('users'));
+        $usersQuery = User::with('branch')->orderBy('name');
+        if ($showArchived) {
+            $usersQuery->onlyTrashed();
+        }
+
+        $users = $usersQuery->get();
+
+        return view('admin.users.index', compact('users', 'showArchived'));
     }
 
     public function create(): View
@@ -118,12 +125,54 @@ class UserController extends Controller
 
     public function destroy(User $user, AuditLogService $auditLog): RedirectResponse
     {
-        $user->forceDelete();
-        $auditLog->log('user.force_deleted', $user);
+        if ($user->id === auth()->id()) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('error', 'You cannot delete your own account.');
+        }
+
+        $user->delete();
+        $auditLog->log('user.deleted', $user);
 
         return redirect()
             ->route('admin.users.index')
-            ->with('success', 'User deleted successfully.');
+            ->with('success', 'User archived successfully.');
+    }
+
+    public function restore(int $user, AuditLogService $auditLog): RedirectResponse
+    {
+        $userModel = User::withTrashed()->findOrFail($user);
+
+        if (! $userModel->trashed()) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('error', 'User is already active.');
+        }
+
+        $userModel->restore();
+        $auditLog->log('user.restored', $userModel);
+
+        return redirect()
+            ->route('admin.users.index', ['archived' => 1])
+            ->with('success', 'User restored successfully.');
+    }
+
+    public function forceDelete(int $user, AuditLogService $auditLog): RedirectResponse
+    {
+        $userModel = User::withTrashed()->findOrFail($user);
+
+        if ($userModel->id === auth()->id()) {
+            return redirect()
+                ->route('admin.users.index', ['archived' => 1])
+                ->with('error', 'You cannot delete your own account.');
+        }
+
+        $userModel->forceDelete();
+        $auditLog->log('user.force_deleted', $userModel);
+
+        return redirect()
+            ->route('admin.users.index', ['archived' => 1])
+            ->with('success', 'User deleted permanently.');
     }
 
     private function roleOptions(): array

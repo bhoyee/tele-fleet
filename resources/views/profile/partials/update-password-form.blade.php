@@ -8,19 +8,23 @@
 
         <div class="mb-3">
             <label class="form-label" for="current_password">Current password</label>
-            <input id="current_password" name="current_password" type="password" class="form-control" autocomplete="current-password">
-            @error('current_password') <div class="text-danger small">{{ $message }}</div> @enderror
+            <input id="current_password" name="current_password" type="password" class="form-control" autocomplete="current-password" required>
+            @if ($errors->getBag('updatePassword')->has('current_password'))
+                <div class="text-danger small">{{ $errors->getBag('updatePassword')->first('current_password') }}</div>
+            @endif
         </div>
 
         <div class="mb-3">
             <label class="form-label" for="password">New password</label>
-            <input id="password" name="password" type="password" class="form-control" autocomplete="new-password">
-            @error('password') <div class="text-danger small">{{ $message }}</div> @enderror
+            <input id="password" name="password" type="password" class="form-control" autocomplete="new-password" required>
+            @if ($errors->getBag('updatePassword')->has('password'))
+                <div class="text-danger small">{{ $errors->getBag('updatePassword')->first('password') }}</div>
+            @endif
         </div>
 
         <div class="mb-4">
             <label class="form-label" for="password_confirmation">Confirm password</label>
-            <input id="password_confirmation" name="password_confirmation" type="password" class="form-control" autocomplete="new-password">
+            <input id="password_confirmation" name="password_confirmation" type="password" class="form-control" autocomplete="new-password" required>
         </div>
 
         <div class="d-flex align-items-center gap-3">

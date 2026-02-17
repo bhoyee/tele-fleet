@@ -410,6 +410,7 @@ class DashboardController extends Controller
         $calendarEnd = $monthEnd->copy();
 
         $assignedTrips = TripRequest::whereNotNull('assigned_vehicle_id')
+            ->whereHas('assignedVehicle')
             ->whereIn('status', ['approved', 'assigned'])
             ->where(function ($query): void {
                 $query->whereNull('is_completed')->orWhere('is_completed', false);
@@ -492,6 +493,7 @@ class DashboardController extends Controller
         $today = $now->toDateString();
 
         return TripRequest::whereNotNull('assigned_vehicle_id')
+            ->whereHas('assignedVehicle')
             ->whereIn('status', ['approved', 'assigned'])
             ->where(function ($query): void {
                 $query->whereNull('is_completed')->orWhere('is_completed', false);

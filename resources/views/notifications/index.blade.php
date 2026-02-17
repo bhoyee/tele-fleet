@@ -49,6 +49,7 @@
                         'IncidentStatusUpdated' => $incidentTitle,
                         'SupportTicketCreated' => $ticketTitle,
                         'SupportTicketReply' => $ticketTitle,
+                        'SupportTicketDeveloperReply' => $ticketTitle,
                         default => $tripTitle,
                     };
                     $message = match ($notificationType) {
@@ -70,6 +71,9 @@
                             : 'Incident status updated.',
                         'SupportTicketCreated' => 'New support ticket submitted.',
                         'SupportTicketReply' => 'New reply on support ticket.',
+                        'SupportTicketDeveloperReply' => ! empty($notificationData['from'])
+                            ? ('Developer replied: ' . $notificationData['from'])
+                            : 'Developer replied on support ticket.',
                         default => ($notificationData['status'] ?? null)
                             ? ('Status: ' . ucfirst($notificationData['status']))
                             : ($notificationData['purpose'] ?? 'Trip update received.'),

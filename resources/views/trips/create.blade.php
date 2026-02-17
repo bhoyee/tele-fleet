@@ -46,8 +46,10 @@
                         @error('destination') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="estimated_distance_km">Estimated Trip Days</label>
-                        <input class="form-control" id="estimated_distance_km" name="estimated_distance_km" type="number" step="1" min="1" value="{{ old('estimated_distance_km') }}">
+                        <label class="form-label" for="estimated_distance_km">Estimated Trip Days <span class="text-danger">*</span></label>
+                        <input class="form-control" id="estimated_distance_km" name="estimated_distance_km" type="number" step="1" min="1" value="{{ old('estimated_distance_km', 1) }}" required>
+                        <div class="form-text">If the trip returns the same day, enter 1.</div>
+                        @error('estimated_distance_km') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="number_of_passengers">Passengers</label>

@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\TripRequest;
 use App\Models\User;
+use App\Notifications\Concerns\QueueReliability;
 use App\Notifications\Concerns\SkipsInvalidMailRecipients;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,6 +14,7 @@ use Illuminate\Notifications\Notification;
 class TripRequestCancelled extends Notification implements ShouldQueue
 {
     use Queueable;
+    use QueueReliability;
     use SkipsInvalidMailRecipients;
 
     public function __construct(private TripRequest $tripRequest, private User $cancelledBy)

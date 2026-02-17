@@ -16,6 +16,11 @@ class ChatRequestAccepted implements ShouldBroadcastNow
     {
     }
 
+    public function broadcastWhen(): bool
+    {
+        return (bool) config('app.realtime_enabled');
+    }
+
     public function broadcastOn(): PrivateChannel
     {
         return new PrivateChannel('chat.user.' . $this->conversation->created_by_user_id);

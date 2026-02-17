@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Tele-Fleet') }}</title>
+        <title>{{ $appBrandName ?? config('app.name', 'Tele-Fleet') }}</title>
         <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -37,6 +37,12 @@
 
             html.tele-scrollbar-stable {
                 scrollbar-gutter: stable;
+            }
+
+            /* When using scrollbar-gutter: stable, Bootstrap's modal scrollbar compensation
+               can add extra padding and cause a visible "shake". */
+            html.tele-scrollbar-stable body.modal-open {
+                padding-right: 0 !important;
             }
 
             body {
@@ -102,9 +108,13 @@
             }
 
             .sidebar-brand {
-                padding: 1.5rem 1.5rem 1rem;
+                padding: 0.75rem 1.25rem;
                 border-bottom: 1px solid rgba(5, 108, 163, 0.1);
-                background: #056CA3;
+                background: #ffffff;
+                min-height: 92px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .sidebar-brand h2 {
@@ -117,6 +127,16 @@
 
             .sidebar-brand h2 i {
                 color: white;
+            }
+
+            .sidebar-brand .brand-logo {
+                display: block;
+                width: 92%;
+                height: 68px;
+                max-width: none;
+                object-fit: contain;
+                object-position: center;
+                margin: 0 auto;
             }
 
             .sidebar-nav {
@@ -249,6 +269,12 @@
             .card:hover {
                 transform: translateY(-4px);
                 box-shadow: var(--shadow-lg);
+            }
+
+            /* Modals are rendered inside pages; avoid hover transforms creating a containing block
+               (can make Bootstrap fixed-position modals "dance" / jitter). */
+            body.modal-open .card:hover {
+                transform: none !important;
             }
 
             .card-header {
@@ -973,11 +999,14 @@
             <!-- Sidebar -->
             <aside class="sidebar">
                 <div class="sidebar-brand">
-                    <a href="{{ url('/') }}" class="text-decoration-none">
-                        <h2 class="mb-0">
-                            <i class="bi bi-truck me-2"></i>
-                            Tele-Fleet
-                        </h2>
+                    <a href="{{ url('/') }}" class="text-decoration-none d-block w-100 text-center">
+                        @if (!empty($appLogoUrl))
+                            <img src="{{ $appLogoUrl }}" alt="Logo" class="brand-logo">
+                        @else
+                            <h2 class="mb-0">
+                                <i class="bi bi-truck me-2"></i>
+                            </h2>
+                        @endif
                     </a>
                 </div>
                 
@@ -1119,12 +1148,6 @@
 
                         @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
                             <li class="nav-item">
-                                <a class="nav-link @if (request()->routeIs('admin.chats.*')) active @endif" href="{{ route('admin.chats.index') }}">
-                                    <i class="bi bi-chat-square-dots nav-icon"></i>
-                                    <span>Chat Management</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('admin.maintenance-settings.*')) active @endif" href="{{ route('admin.maintenance-settings.edit') }}">
                                     <i class="bi bi-sliders nav-icon"></i>
                                     <span>Maintenance Settings</span>
@@ -1160,7 +1183,7 @@
                 </nav>
                 <div class="sidebar-footer">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span>Tele-Fleet</span>
+                                <span>{{ $appBrandName ?? 'Tele-Fleet' }}</span>
                         <span class="fw-semibold text-primary">v1.0.0</span>
                     </div>
                 </div>
@@ -1175,15 +1198,22 @@
                             <i class="bi bi-list"></i>
                         </button>
                         <nav aria-label="breadcrumb">
-                            <ol class="breadcrumb mb-0">
-                                <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-primary">Home</a></li>
-                                <li class="breadcrumb-item active" aria-current="page">
-                                    @php
-                                        $routeName = request()->route()->getName();
-                                        echo ucwords(str_replace(['.', '-'], ' ', $routeName));
-                                    @endphp
-                                </li>
-                            </ol>
+                            <div class="d-flex flex-column">
+                                <div class="small fw-semibold text-muted lh-1">
+                                    {{ $appOrgName ?: 'Lagos Island State Administration' }}
+                                </div>
+                                <ol class="breadcrumb mb-0 mt-1">
+                                    <li class="breadcrumb-item">
+                                        <a href="{{ route('dashboard') }}" class="text-decoration-none text-primary">Home</a>
+                                    </li>
+                                    <li class="breadcrumb-item active" aria-current="page">
+                                        @php
+                                            $routeName = request()->route()->getName();
+                                            echo ucwords(str_replace(['.', '-'], ' ', $routeName));
+                                        @endphp
+                                    </li>
+                                </ol>
+                            </div>
                         </nav>
                     </div>
                     
@@ -1200,10 +1230,11 @@
                             $latestNotifications = auth()->user()?->unreadNotifications()
                                 ->whereNotIn('type', $excludedNotificationTypes)
                                 ->latest()
+                                ->take(5)
                                 ->get() ?? collect();
                         @endphp
-                        <div class="dropdown position-relative">
-                            <button class="btn btn-light position-relative" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 10px; border: 1px solid rgba(5, 108, 163, 0.2);">
+                        <div class="dropdown position-relative" id="notificationDropdown">
+                            <button class="btn btn-light position-relative" id="notificationDropdownButton" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 10px; border: 1px solid rgba(5, 108, 163, 0.2);">
                                 <i class="bi bi-bell" style="color: #056CA3;"></i>
                                 <span class="notification-badge" style="{{ $unreadCount > 0 ? '' : 'display:none;' }}">{{ $unreadCount }}</span>
                             </button>
@@ -1245,6 +1276,14 @@
                                         Profile
                                     </a>
                                 </li>
+                                @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-center" href="{{ route('profile.settings') }}">
+                                            <i class="bi bi-gear me-2 text-primary"></i>
+                                            Settings
+                                        </a>
+                                    </li>
+                                @endif
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="POST" action="{{ route('logout') }}" id="logoutForm">
@@ -1286,7 +1325,7 @@
                     <div class="container-fluid">
                         <div class="row align-items-center">
                             <div class="col-md-6">
-                                &copy; {{ now()->year }} <strong class="text-primary">Tele-Fleet</strong>. All rights reserved.
+                                &copy; {{ now()->year }} <strong class="text-primary">{{ $appBrandName ?? 'Tele-Fleet' }}</strong>. All rights reserved.
                             </div>
                             <div class="col-md-6 text-md-end">
                                 <span class="text-muted">v1.0.0</span>
@@ -1671,6 +1710,8 @@
             });
 
             const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+
             const refreshNotificationCount = () => {
                 fetch('{{ route("notifications.count") }}', { cache: 'no-store' })
                     .then(response => response.json())
@@ -1689,23 +1730,28 @@
                     .catch(() => {});
             };
 
+            const applyNotificationPayload = (data) => {
+                const badge = document.querySelector('.notification-badge');
+                if (badge) {
+                    if (data?.count > 0) {
+                        badge.textContent = data.count;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+
+                const list = document.getElementById('notificationDropdownList');
+                if (list && typeof data?.html === 'string') {
+                    list.innerHTML = data.html;
+                }
+            };
+
             const refreshNotificationDropdown = () => {
                 fetch('{{ route("notifications.latest") }}', { cache: 'no-store' })
                     .then(response => response.json())
                     .then(data => {
-                        const badge = document.querySelector('.notification-badge');
-                        if (badge) {
-                            if (data.count > 0) {
-                                badge.textContent = data.count;
-                                badge.style.display = 'flex';
-                            } else {
-                                badge.style.display = 'none';
-                            }
-                        }
-                        const list = document.getElementById('notificationDropdownList');
-                        if (list && typeof data.html === 'string') {
-                            list.innerHTML = data.html;
-                        }
+                        applyNotificationPayload(data);
                     })
                     .catch(() => {});
             };
@@ -1718,6 +1764,63 @@
                 refreshNotificationDropdown();
                 setInterval(refreshNotificationDropdown, 30000);
             }
+
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            if (notificationDropdown) {
+                notificationDropdown.addEventListener('shown.bs.dropdown', () => {
+                    refreshNotificationDropdown();
+                });
+            }
+
+            document.addEventListener('submit', async (event) => {
+                const form = event.target;
+                if (!(form instanceof HTMLFormElement)) {
+                    return;
+                }
+                if (!notificationDropdown || !notificationDropdown.contains(form)) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const submitButton = form.querySelector('button[type=\"submit\"]');
+                const originalHtml = submitButton ? submitButton.innerHTML : null;
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<span class=\"spinner-border spinner-border-sm\" role=\"status\" aria-hidden=\"true\"></span>';
+                }
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: new FormData(form),
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json().catch(() => null);
+                        if (data) {
+                            applyNotificationPayload(data);
+                        } else {
+                            refreshNotificationDropdown();
+                        }
+                    } else {
+                        refreshNotificationDropdown();
+                    }
+                } catch (error) {
+                    refreshNotificationDropdown();
+                } finally {
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalHtml ?? submitButton.innerHTML;
+                    }
+                }
+            }, true);
 
             const chatWidget = document.getElementById('chatWidget');
             if (chatWidget) {

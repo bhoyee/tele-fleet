@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\ChatConversation;
+use App\Notifications\Concerns\QueueReliability;
+use App\Notifications\Concerns\SkipsInvalidMailRecipients;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,6 +13,8 @@ use Illuminate\Notifications\Notification;
 class ChatRequestNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+    use QueueReliability;
+    use SkipsInvalidMailRecipients;
 
     public function __construct(private readonly ChatConversation $conversation)
     {
@@ -18,7 +22,9 @@ class ChatRequestNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return $this->shouldSendMailTo($notifiable)
+            ? ['database', 'mail']
+            : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

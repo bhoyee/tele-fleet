@@ -4,6 +4,8 @@ namespace App\Notifications;
 
 use App\Models\IncidentReport;
 use App\Models\User;
+use App\Notifications\Concerns\QueueReliability;
+use App\Notifications\Concerns\SkipsInvalidMailRecipients;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -12,6 +14,8 @@ use Illuminate\Notifications\Notification;
 class IncidentStatusUpdated extends Notification implements ShouldQueue
 {
     use Queueable;
+    use QueueReliability;
+    use SkipsInvalidMailRecipients;
 
     public function __construct(private IncidentReport $incident, private User $updatedBy)
     {
@@ -19,7 +23,9 @@ class IncidentStatusUpdated extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return $this->shouldSendMailTo($notifiable)
+            ? ['database', 'mail']
+            : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

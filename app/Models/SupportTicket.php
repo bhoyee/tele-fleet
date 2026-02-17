@@ -13,6 +13,7 @@ class SupportTicket extends Model
 
     public const CATEGORY_ADMIN = 'administrative';
     public const CATEGORY_TECH = 'technical';
+    public const CATEGORY_DEVELOPER = 'developer_support';
 
     public const PRIORITY_LOW = 'low';
     public const PRIORITY_MEDIUM = 'medium';

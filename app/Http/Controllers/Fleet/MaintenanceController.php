@@ -62,7 +62,8 @@ class MaintenanceController extends Controller
         $data = $this->normalizeStatusDates($data);
 
         $maintenance = VehicleMaintenance::create($data);
-        $this->syncVehicleStatus($vehicle, $maintenance->status, $request->user());
+        $this->syncVehicleMileageFromMaintenance($vehicle, $maintenance);
+        $this->syncVehicleStatus($vehicle, $maintenance->status, $request->user(), $maintenance->odometer);
         $auditLog->log('maintenance.created', $maintenance, [], $maintenance->toArray());
 
         return redirect()
@@ -103,7 +104,8 @@ class MaintenanceController extends Controller
 
         $oldValues = $maintenance->getOriginal();
         $maintenance->update($data);
-        $this->syncVehicleStatus($vehicle, $maintenance->status, $request->user());
+        $this->syncVehicleMileageFromMaintenance($vehicle, $maintenance);
+        $this->syncVehicleStatus($vehicle, $maintenance->status, $request->user(), $maintenance->odometer);
         $auditLog->log('maintenance.updated', $maintenance, $oldValues, $maintenance->getChanges());
 
         return redirect()
@@ -259,7 +261,7 @@ class MaintenanceController extends Controller
         return $data;
     }
 
-    private function syncVehicleStatus(Vehicle $vehicle, string $maintenanceStatus, ?User $actor = null): void
+    private function syncVehicleStatus(Vehicle $vehicle, string $maintenanceStatus, ?User $actor = null, ?int $odometer = null): void
     {
         $wasMaintenance = $vehicle->status === 'maintenance';
         if ($maintenanceStatus === VehicleMaintenance::STATUS_IN_PROGRESS) {
@@ -278,7 +280,7 @@ class MaintenanceController extends Controller
 
         if (in_array($maintenanceStatus, [VehicleMaintenance::STATUS_COMPLETED, VehicleMaintenance::STATUS_CANCELLED], true)) {
             if ($maintenanceStatus === VehicleMaintenance::STATUS_COMPLETED) {
-                $vehicle->last_maintenance_mileage = $vehicle->current_mileage ?? $vehicle->last_maintenance_mileage;
+                $vehicle->last_maintenance_mileage = $odometer ?? $vehicle->current_mileage ?? $vehicle->last_maintenance_mileage;
                 $vehicle->maintenance_state = 'ok';
                 $vehicle->maintenance_due_notified_at = null;
                 $vehicle->maintenance_overdue_notified_at = null;
@@ -293,6 +295,21 @@ class MaintenanceController extends Controller
             if ($maintenanceStatus === VehicleMaintenance::STATUS_COMPLETED) {
                 $this->refreshMaintenanceMileageState($vehicle);
             }
+        }
+    }
+
+    private function syncVehicleMileageFromMaintenance(Vehicle $vehicle, VehicleMaintenance $maintenance): void
+    {
+        if ($maintenance->odometer === null) {
+            return;
+        }
+
+        $currentMileage = (int) ($vehicle->current_mileage ?? 0);
+        $odometer = (int) $maintenance->odometer;
+
+        if ($odometer > $currentMileage) {
+            $vehicle->current_mileage = $odometer;
+            $vehicle->save();
         }
     }
 

@@ -1,9 +1,10 @@
 @component('mail::message')
-# Welcome to Tele-Fleet
+@php($brandName = config('app.name', 'Tele-Fleet'))
+# Welcome to {{ $brandName }}
 
 Hello {{ $user?->name ?? 'there' }},
 
-Your Tele-Fleet account has been set up successfully. You can now access the fleet management platform and begin managing trips, vehicles, and driver assignments.
+Your {{ $brandName }} account has been set up successfully. You can now access the fleet management platform and begin managing trips, vehicles, and driver assignments.
 
 @component('mail::panel')
 **Login Details**
@@ -13,7 +14,7 @@ Your Tele-Fleet account has been set up successfully. You can now access the fle
 @endcomponent
 
 @component('mail::button', ['url' => $loginUrl])
-Sign In to Tele-Fleet
+Sign In to {{ $brandName }}
 @endcomponent
 
 For security, please sign in and change your password immediately after your first login.
@@ -21,5 +22,5 @@ For security, please sign in and change your password immediately after your fir
 If you have any questions or need assistance, please contact your system administrator.
 
 Thanks,  
-The Tele-Fleet Team
+The {{ $brandName }} Team
 @endcomponent

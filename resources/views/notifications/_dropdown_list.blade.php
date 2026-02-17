@@ -29,6 +29,7 @@
             'IncidentStatusUpdated' => $incidentTitle,
             'SupportTicketCreated' => $ticketTitle,
             'SupportTicketReply' => $ticketTitle,
+            'SupportTicketDeveloperReply' => $ticketTitle,
             default => $tripTitle,
         };
 
@@ -54,6 +55,9 @@
             'OverdueTripNotification' => 'Trip marked overdue.',
             'SupportTicketCreated' => 'New support ticket submitted.',
             'SupportTicketReply' => 'New reply on support ticket.',
+            'SupportTicketDeveloperReply' => ! empty($notificationData['from'])
+                ? ('Developer replied: ' . $notificationData['from'])
+                : 'Developer replied on support ticket.',
             default => ! empty($notificationData['status'])
                 ? ('Status: ' . ucfirst($notificationData['status']))
                 : ($notificationData['purpose'] ?? 'Trip update received.'),
@@ -101,5 +105,5 @@
         </div>
     </div>
 @empty
-    <div class="px-3 py-4 text-center text-muted">No notifications yet.</div>
+    <div class="px-3 py-4 text-center text-muted">No new notifications.</div>
 @endforelse

@@ -79,6 +79,152 @@
         </div>
     </div>
 
+    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <h5 class="fw-semibold mb-1">Driver Trip Log</h5>
+                        <div class="text-muted small">Current and upcoming assigned trips (across all drivers).</div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <select class="form-select form-select-sm" id="driverTripLogBranchFilter" style="min-width: 180px;">
+                            <option value="">All branches</option>
+                            @foreach (($driverTripLogs ?? collect())->pluck('branch.name')->filter()->unique()->sort()->values() as $branchName)
+                                <option value="{{ $branchName }}">{{ $branchName }}</option>
+                            @endforeach
+                        </select>
+                        <select class="form-select form-select-sm" id="driverTripLogStatusFilter" style="min-width: 160px;">
+                            <option value="">All statuses</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Assigned">Assigned</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle" id="driverTripLogTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Driver</th>
+                                <th>Request #</th>
+                                <th>Trip Date</th>
+                                <th>Branch</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse (($driverTripLogs ?? collect()) as $trip)
+                                @php
+                                    $tripTime = $trip->trip_time;
+                                    if ($tripTime) {
+                                        try {
+                                            $tripTime = \Illuminate\Support\Carbon::parse($tripTime)->format('g:i A');
+                                        } catch (\Exception $e) {
+                                            $tripTime = \Illuminate\Support\Carbon::parse($trip->trip_time)->format('g:i A');
+                                        }
+                                    }
+                                    $status = strtolower((string) $trip->status);
+                                    $statusClass = match ($status) {
+                                        'assigned' => 'primary',
+                                        'approved' => 'info',
+                                        default => 'secondary',
+                                    };
+
+                                    $tripStart = $trip->trip_date?->copy()?->startOfDay();
+                                    if ($trip->trip_date && $trip->trip_time) {
+                                        $dateString = $trip->trip_date->format('Y-m-d');
+                                        $timeString = trim((string) $trip->trip_time);
+                                        if (str_contains($timeString, '.')) {
+                                            $timeString = explode('.', $timeString, 2)[0];
+                                        }
+                                        try {
+                                            $tripStart = \Illuminate\Support\Carbon::createFromFormat('Y-m-d H:i', $dateString.' '.$timeString);
+                                        } catch (\Exception $e) {
+                                            $tripStart = \Illuminate\Support\Carbon::parse($dateString.' '.$timeString);
+                                        }
+                                    }
+
+                                    $windowBadge = 'Current';
+                                    $windowBadgeClass = 'primary';
+                                    if ($tripStart && now()->lt($tripStart)) {
+                                        $windowBadge = 'Future';
+                                        $windowBadgeClass = 'info text-dark';
+                                    }
+                                    if (method_exists($trip, 'dueStatus') && $trip->dueStatus() === 'overdue') {
+                                        $windowBadge = 'Overdue';
+                                        $windowBadgeClass = 'danger';
+                                    }
+                                @endphp
+                                <tr>
+                                    <td>{{ $trip->assignedDriver?->full_name ?? 'N/A' }}</td>
+                                    <td class="fw-semibold">{{ $trip->request_number }}</td>
+                                    <td>
+                                        <div>{{ $trip->trip_date?->format('M d, Y') ?? 'N/A' }}</div>
+                                        <small class="text-muted">{{ $tripTime ?: 'N/A' }}</small>
+                                    </td>
+                                    <td>{{ $trip->branch?->name ?? 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ $statusClass }} {{ $status === 'approved' ? 'text-dark' : '' }}">
+                                            {{ ucfirst($status) }}
+                                        </span>
+                                        <span class="badge bg-{{ $windowBadgeClass }} ms-1">{{ $windowBadge }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('trips.show', $trip) }}" data-loading>View</a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-muted">No assigned trips found.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @push('scripts')
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.dataTable) {
+                        return;
+                    }
+                    const table = document.getElementById('driverTripLogTable');
+                    if (!table) {
+                        return;
+                    }
+
+                    const dt = window.jQuery(table).DataTable({
+                        pageLength: 10,
+                        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+                        order: [[2, 'asc']],
+                        searching: true,
+                        paging: true,
+                        info: true,
+                        responsive: true,
+                    });
+
+                    const statusFilter = document.getElementById('driverTripLogStatusFilter');
+                    if (statusFilter) {
+                        statusFilter.addEventListener('change', () => {
+                            dt.column(4).search(statusFilter.value).draw();
+                        });
+                    }
+
+                    const branchFilter = document.getElementById('driverTripLogBranchFilter');
+                    if (branchFilter) {
+                        branchFilter.addEventListener('change', () => {
+                            dt.column(3).search(branchFilter.value).draw();
+                        });
+                    }
+                });
+            </script>
+        @endpush
+    @endif
+
     <div class="modal fade" id="archiveDriverModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">

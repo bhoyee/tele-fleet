@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\SupportTicket;
+use App\Notifications\Concerns\SkipsInvalidMailRecipients;
+use App\Notifications\Concerns\QueueReliability;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -11,6 +13,8 @@ use Illuminate\Notifications\Notification;
 class SupportTicketCreated extends Notification implements ShouldQueue
 {
     use Queueable;
+    use QueueReliability;
+    use SkipsInvalidMailRecipients;
 
     /**
      * If the underlying ticket was deleted before this queued notification runs,
@@ -41,7 +45,9 @@ class SupportTicketCreated extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return $this->shouldSendMailTo($notifiable)
+            ? ['database', 'mail']
+            : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

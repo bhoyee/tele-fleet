@@ -28,6 +28,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\JsonResponse;
@@ -179,8 +180,7 @@ class TripRequestController extends Controller
                 ->withInput();
         }
 
-        $tripRequest = TripRequest::create([
-            'request_number' => $this->generateRequestNumber(),
+        $tripRequest = $this->createTripRequestWithUniqueRequestNumber([
             'branch_id' => $branchId,
             'requested_by_user_id' => $user->id,
             'purpose' => $data['purpose'],
@@ -234,8 +234,17 @@ class TripRequestController extends Controller
         $drivers = collect();
 
         if (in_array(auth()->user()?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
-            $vehicles = $this->availableVehiclesNow();
+            [$conflictingDriverIds, $conflictingVehicleIds] = $this->tripAssignmentConflictIdsForTripWindow($tripRequest);
+
+            $vehicles = $this->availableVehiclesForTripWindow($tripRequest)
+                ->when($conflictingVehicleIds->isNotEmpty(), function ($collection) use ($conflictingVehicleIds) {
+                    return $collection->reject(fn ($vehicle) => $conflictingVehicleIds->contains((int) $vehicle->id));
+                });
+
             $drivers = Driver::where('status', 'active')
+                ->when($conflictingDriverIds->isNotEmpty(), function ($query) use ($conflictingDriverIds): void {
+                    $query->whereNotIn('id', $conflictingDriverIds->all());
+                })
                 ->orderBy('full_name')
                 ->get();
 
@@ -309,7 +318,7 @@ class TripRequestController extends Controller
 
         $recipients = $this->buildNotificationRecipients($tripRequest, $tripRequest->requestedBy);
         try {
-            Notification::send($recipients, new TripRequestApproved($tripRequest));
+            Notification::send($recipients, TripRequestApproved::fromTripRequest($tripRequest));
         } catch (Throwable $exception) {
             Log::warning('Trip request approval notification failed.', [
                 'trip_request_id' => $tripRequest->id,
@@ -396,24 +405,24 @@ class TripRequestController extends Controller
         if ($isChangingVehicle) {
             $vehicle = Vehicle::findOrFail($toVehicleId);
 
-            if ($vehicle->status !== 'available') {
+            if (in_array($vehicle->status, ['maintenance', 'offline'], true)) {
                 return redirect()
                     ->back()
                     ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is not available.'])
                     ->withInput();
             }
 
-            if ($this->isVehicleBlockedByScheduledMaintenance($vehicle->id)) {
+            if ($this->isVehicleBlockedByScheduledMaintenanceForTrip($vehicle->id, $tripRequest)) {
                 return redirect()
                     ->back()
                     ->withErrors(['assigned_vehicle_id' => 'Selected vehicle has scheduled maintenance due and cannot be assigned.'])
                     ->withInput();
             }
 
-            if (! $this->isVehicleAvailableNow($vehicle->id)) {
+            if (! $this->isVehicleAvailableForTripWindow($vehicle->id, $tripRequest)) {
                 return redirect()
                     ->back()
-                    ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is currently in use.'])
+                    ->withErrors(['assigned_vehicle_id' => 'Selected vehicle is assigned to another trip during this trip time window.'])
                     ->withInput();
             }
         } else {
@@ -427,6 +436,13 @@ class TripRequestController extends Controller
                 return redirect()
                     ->back()
                     ->withErrors(['assigned_driver_id' => 'Selected driver is not available.'])
+                    ->withInput();
+            }
+
+            if (! $this->isDriverAvailableForTripWindow($driver->id, $tripRequest)) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['assigned_driver_id' => 'Selected driver is assigned to another trip during this trip time window.'])
                     ->withInput();
             }
         } else {
@@ -690,6 +706,11 @@ class TripRequestController extends Controller
             'logbook_entered_at' => now(),
             'updated_by_user_id' => $request->user()->id,
         ]);
+
+        $tripRequest->loadMissing(['assignedVehicle']);
+        if ($tripRequest->assignedVehicle && $tripRequest->assignedVehicle->status === 'in_use') {
+            $tripRequest->assignedVehicle->update(['status' => 'available']);
+        }
 
         $auditLog->log('trip_request.logbook_updated', $tripRequest, [], [
             'trip_log_id' => $tripRequest->log->id,
@@ -955,8 +976,19 @@ class TripRequestController extends Controller
 
     public function assignmentForm(TripRequest $tripRequest): View
     {
-        $vehicles = $this->availableVehiclesNow();
-        $drivers = Driver::where('status', 'active')->orderBy('full_name')->get();
+        [$conflictingDriverIds, $conflictingVehicleIds] = $this->tripAssignmentConflictIdsForTripWindow($tripRequest);
+
+        $vehicles = $this->availableVehiclesForTripWindow($tripRequest)
+            ->when($conflictingVehicleIds->isNotEmpty(), function ($collection) use ($conflictingVehicleIds) {
+                return $collection->reject(fn ($vehicle) => $conflictingVehicleIds->contains((int) $vehicle->id));
+            });
+
+        $drivers = Driver::where('status', 'active')
+            ->when($conflictingDriverIds->isNotEmpty(), function ($query) use ($conflictingDriverIds): void {
+                $query->whereNotIn('id', $conflictingDriverIds->all());
+            })
+            ->orderBy('full_name')
+            ->get();
 
         return view('trips.assign', compact('tripRequest', 'vehicles', 'drivers'));
     }
@@ -964,9 +996,55 @@ class TripRequestController extends Controller
     private function generateRequestNumber(): string
     {
         $today = now()->format('Ymd');
-        $count = TripRequest::whereDate('created_at', now()->toDateString())->count() + 1;
+        $prefix = sprintf('TR-%s-', $today);
+
+        $latest = TripRequest::withTrashed()
+            ->where('request_number', 'like', $prefix . '%')
+            ->orderByRaw('CAST(SUBSTRING_INDEX(request_number, "-", -1) AS UNSIGNED) DESC')
+            ->value('request_number');
+
+        $latestSequence = 0;
+        if ($latest && preg_match('/^TR-\\d{8}-(\\d+)$/', $latest, $matches)) {
+            $latestSequence = (int) $matches[1];
+        }
+
+        $count = $latestSequence + 1;
 
         return sprintf('TR-%s-%03d', $today, $count);
+    }
+
+    private function createTripRequestWithUniqueRequestNumber(array $attributes): TripRequest
+    {
+        $attempts = 0;
+        $maxAttempts = 5;
+
+        while ($attempts < $maxAttempts) {
+            $attempts++;
+            $attributes['request_number'] = $this->generateRequestNumber();
+
+            try {
+                return TripRequest::create($attributes);
+            } catch (QueryException $exception) {
+                if ($this->isDuplicateTripRequestNumberException($exception)) {
+                    usleep(50_000);
+                    continue;
+                }
+                throw $exception;
+            }
+        }
+
+        throw new \RuntimeException('Unable to generate a unique trip request number. Please try again.');
+    }
+
+    private function isDuplicateTripRequestNumberException(QueryException $exception): bool
+    {
+        $errorInfo = $exception->errorInfo ?? [];
+        $sqlState = $errorInfo[0] ?? null;
+        $errno = $errorInfo[1] ?? null;
+
+        return $sqlState === '23000'
+            && (int) $errno === 1062
+            && str_contains($exception->getMessage(), 'trip_requests_request_number_unique');
     }
 
     private function availableVehiclesNow()
@@ -985,6 +1063,102 @@ class TripRequestController extends Controller
             ->get();
     }
 
+    private function availableVehiclesForTripWindow(TripRequest $tripRequest)
+    {
+        $maintenanceBlockedIds = $this->vehiclesBlockedByScheduledMaintenanceIdsForTrip($tripRequest);
+
+        return Vehicle::query()
+            ->whereNotIn('status', ['maintenance', 'offline'])
+            ->when($maintenanceBlockedIds->isNotEmpty(), function ($query) use ($maintenanceBlockedIds): void {
+                $query->whereNotIn('id', $maintenanceBlockedIds);
+            })
+            ->orderBy('registration_number')
+            ->get();
+    }
+
+    private function isVehicleBlockedByScheduledMaintenanceForTrip(int $vehicleId, TripRequest $tripRequest): bool
+    {
+        $tripDate = $tripRequest->trip_date?->toDateString();
+        if (! $tripDate) {
+            $tripDate = now()->toDateString();
+        }
+
+        return VehicleMaintenance::query()
+            ->where('vehicle_id', $vehicleId)
+            ->where('status', VehicleMaintenance::STATUS_SCHEDULED)
+            ->whereDate('scheduled_for', '<=', $tripDate)
+            ->exists();
+    }
+
+    private function vehiclesBlockedByScheduledMaintenanceIdsForTrip(TripRequest $tripRequest)
+    {
+        $tripDate = $tripRequest->trip_date?->toDateString();
+        if (! $tripDate) {
+            $tripDate = now()->toDateString();
+        }
+
+        return VehicleMaintenance::query()
+            ->where('status', VehicleMaintenance::STATUS_SCHEDULED)
+            ->whereDate('scheduled_for', '<=', $tripDate)
+            ->pluck('vehicle_id')
+            ->filter()
+            ->unique();
+    }
+
+    private function tripAssignmentConflictIdsForTripWindow(TripRequest $tripRequest): array
+    {
+        $window = $this->tripWindow($tripRequest);
+        if (! $window) {
+            return [collect(), collect()];
+        }
+
+        [$start, $end] = $window;
+        $queryStart = $start->copy()->subDays(31)->toDateString();
+
+        $otherTrips = TripRequest::query()
+            ->where('id', '!=', $tripRequest->id)
+            ->whereIn('status', ['approved', 'assigned'])
+            ->where(function ($query): void {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->whereDate('trip_date', '<=', $end->toDateString())
+            ->whereDate('trip_date', '>=', $queryStart)
+            ->where(function ($query): void {
+                $query->whereNotNull('assigned_driver_id')
+                    ->orWhereNotNull('assigned_vehicle_id');
+            })
+            ->get(['id', 'trip_date', 'trip_time', 'estimated_distance_km', 'assigned_driver_id', 'assigned_vehicle_id']);
+
+        $conflictingDriverIds = collect();
+        $conflictingVehicleIds = collect();
+
+        foreach ($otherTrips as $other) {
+            $otherWindow = $this->tripWindow($other);
+            if (! $otherWindow) {
+                continue;
+            }
+
+            [$otherStart, $otherEnd] = $otherWindow;
+
+            $overlaps = $start->lt($otherEnd) && $otherStart->lt($end);
+            if (! $overlaps) {
+                continue;
+            }
+
+            if ($other->assigned_driver_id) {
+                $conflictingDriverIds->push((int) $other->assigned_driver_id);
+            }
+            if ($other->assigned_vehicle_id) {
+                $conflictingVehicleIds->push((int) $other->assigned_vehicle_id);
+            }
+        }
+
+        return [
+            $conflictingDriverIds->unique()->values(),
+            $conflictingVehicleIds->unique()->values(),
+        ];
+    }
+
     private function isVehicleAvailableNow(int $vehicleId): bool
     {
         if ($this->vehiclesBlockedByScheduledMaintenanceIds()->contains($vehicleId)) {
@@ -992,6 +1166,70 @@ class TripRequestController extends Controller
         }
 
         return ! $this->activeAssignedVehicleIds()->contains($vehicleId);
+    }
+
+    private function isVehicleAvailableForTripWindow(int $vehicleId, TripRequest $tripRequest): bool
+    {
+        $window = $this->tripWindow($tripRequest);
+        if (! $window) {
+            return true;
+        }
+
+        [$start, $end] = $window;
+        $queryStart = $start->copy()->subDays(31)->toDateString();
+
+        return ! TripRequest::query()
+            ->where('id', '!=', $tripRequest->id)
+            ->where('assigned_vehicle_id', $vehicleId)
+            ->whereIn('status', ['approved', 'assigned'])
+            ->where(function ($query): void {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->whereDate('trip_date', '<=', $end->toDateString())
+            ->whereDate('trip_date', '>=', $queryStart)
+            ->get(['id', 'trip_date', 'trip_time', 'estimated_distance_km'])
+            ->contains(function (TripRequest $other) use ($start, $end): bool {
+                $otherWindow = $this->tripWindow($other);
+                if (! $otherWindow) {
+                    return false;
+                }
+
+                [$otherStart, $otherEnd] = $otherWindow;
+
+                return $start->lt($otherEnd) && $otherStart->lt($end);
+            });
+    }
+
+    private function isDriverAvailableForTripWindow(int $driverId, TripRequest $tripRequest): bool
+    {
+        $window = $this->tripWindow($tripRequest);
+        if (! $window) {
+            return true;
+        }
+
+        [$start, $end] = $window;
+        $queryStart = $start->copy()->subDays(31)->toDateString();
+
+        return ! TripRequest::query()
+            ->where('id', '!=', $tripRequest->id)
+            ->where('assigned_driver_id', $driverId)
+            ->whereIn('status', ['approved', 'assigned'])
+            ->where(function ($query): void {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->whereDate('trip_date', '<=', $end->toDateString())
+            ->whereDate('trip_date', '>=', $queryStart)
+            ->get(['id', 'trip_date', 'trip_time', 'estimated_distance_km'])
+            ->contains(function (TripRequest $other) use ($start, $end): bool {
+                $otherWindow = $this->tripWindow($other);
+                if (! $otherWindow) {
+                    return false;
+                }
+
+                [$otherStart, $otherEnd] = $otherWindow;
+
+                return $start->lt($otherEnd) && $otherStart->lt($end);
+            });
     }
 
     private function isVehicleBlockedByScheduledMaintenance(int $vehicleId): bool
@@ -1039,6 +1277,83 @@ class TripRequestController extends Controller
             })
             ->pluck('assigned_vehicle_id')
             ->unique();
+    }
+
+    private function activeAssignedDriverIds()
+    {
+        $now = now();
+        $today = $now->toDateString();
+
+        return TripRequest::whereNotNull('assigned_driver_id')
+            ->whereIn('status', ['approved', 'assigned'])
+            ->where(function ($query): void {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->where(function ($query) use ($today, $now): void {
+                $query->whereDate('trip_date', '<', $today)
+                    ->orWhere(function ($sub) use ($today, $now): void {
+                        $sub->whereDate('trip_date', $today)
+                            ->where(function ($timeQuery) use ($now): void {
+                                $timeQuery->whereNull('trip_time')
+                                    ->orWhere('trip_time', '<=', $now->format('H:i'));
+                            });
+                    });
+            })
+            ->pluck('assigned_driver_id')
+            ->unique();
+    }
+
+    private function isDriverAvailableNow(int $driverId): bool
+    {
+        return ! $this->activeAssignedDriverIds()->contains($driverId);
+    }
+
+    private function tripWindow(TripRequest $tripRequest): ?array
+    {
+        if (! $tripRequest->trip_date) {
+            return null;
+        }
+
+        $date = $tripRequest->trip_date->format('Y-m-d');
+        $time = trim((string) ($tripRequest->trip_time ?? '00:00'));
+
+        if ($time === '') {
+            $time = '00:00';
+        }
+
+        if (str_contains($time, '.')) {
+            $time = explode('.', $time, 2)[0];
+        }
+
+        $candidate = $date.' '.$time;
+        $formats = [
+            'Y-m-d H:i',
+            'Y-m-d H:i:s',
+            'Y-m-d g:i A',
+            'Y-m-d g:iA',
+        ];
+
+        $start = null;
+        foreach ($formats as $format) {
+            try {
+                $start = \Illuminate\Support\Carbon::createFromFormat($format, $candidate);
+                break;
+            } catch (\Exception $exception) {
+                // try next
+            }
+        }
+
+        $start = $start ?? \Illuminate\Support\Carbon::parse($candidate);
+
+        $estimateDays = (float) ($tripRequest->estimated_distance_km ?? 0);
+        $hours = $estimateDays > 0 ? (int) round($estimateDays * 24) : 24;
+        if ($hours <= 0) {
+            $hours = 24;
+        }
+
+        $end = $start->copy()->addHours($hours);
+
+        return [$start, $end];
     }
 
     private function tripHasStarted(TripRequest $tripRequest): bool

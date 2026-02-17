@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
+    @php($brandName = $appBrandName ?? config('app.name', 'Tele-Fleet'))
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Tele-Fleet: Enterprise-grade fleet management system for corporate vehicle operations. Streamline trips, manage drivers, track maintenance, and optimize fleet performance.">
+    <meta name="description" content="{{ $brandName }}: Enterprise-grade fleet management system for corporate vehicle operations. Streamline trips, manage drivers, track maintenance, and optimize fleet performance.">
 
-    <title>{{ config('app.name', 'Tele-Fleet') }} | Corporate Fleet Management</title>
+    <title>{{ $brandName }} | Corporate Fleet Management</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,6 +81,21 @@
             display: flex;
             align-items: center;
             gap: 12px;
+        }
+
+        .brand-logo img {
+            height: 56px;
+            width: auto;
+            max-width: 360px;
+            object-fit: contain;
+            display: block;
+        }
+
+        @media (max-width: 575.98px) {
+            .brand-logo img {
+                height: 46px;
+                max-width: 260px;
+            }
         }
 
         .brand-icon {
@@ -450,12 +466,17 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg fixed-top" id="navbar">
         <div class="container">
-            <div class="brand-logo">
-                <div class="brand-icon">
-                    <i class="fas fa-truck-moving text-white"></i>
-                </div>
-                <span class="brand-text">Tele-Fleet</span>
-            </div>
+            <a href="{{ url('/') }}" class="brand-logo text-decoration-none">
+                @if (!empty($appLogoUrl))
+                    <img src="{{ $appLogoUrl }}" alt="{{ $brandName }} logo">
+                    <span class="visually-hidden">{{ $brandName }}</span>
+                @else
+                    <div class="brand-icon">
+                        <i class="fas fa-truck-moving text-white"></i>
+                    </div>
+                    <span class="brand-text">{{ $brandName }}</span>
+                @endif
+            </a>
             
             <div class="ms-auto">
                 @auth
@@ -488,7 +509,7 @@
                     </h1>
                     
                     <p class="hero-subtitle animate-on-scroll">
-                        Tele-Fleet provides comprehensive vehicle management, trip coordination, and real-time tracking for corporate fleets across multiple branches.
+                        {{ $brandName }} provides comprehensive vehicle management, trip coordination, and real-time tracking for corporate fleets across multiple branches.
                     </p>
                     
                     <div class="cta-buttons animate-on-scroll">
@@ -691,7 +712,7 @@
                 <div class="col-lg-8 text-center">
                     <h2 class="mb-4 animate-on-scroll">Ready to Optimize Your Fleet Operations?</h2>
                     <p class="lead mb-5 animate-on-scroll" style="animation-delay: 0.1s;">
-                        Join leading companies that trust Tele-Fleet for their corporate transportation management.
+                        Join leading companies that trust {{ $brandName }} for their corporate transportation management.
                     </p>
                     <div class="animate-on-scroll mb-5" style="animation-delay: 0.2s;">
                         @auth
@@ -715,10 +736,15 @@
             <div class="row">
                 <div class="col-lg-4 mb-4">
                     <div class="brand-logo mb-4">
-                        <div class="brand-icon">
-                            <i class="fas fa-truck-moving text-white"></i>
-                        </div>
-                        <span class="brand-text text-white">Tele-Fleet</span>
+                        @if (!empty($appLogoUrl))
+                            <img src="{{ $appLogoUrl }}" alt="{{ $brandName }} logo">
+                            <span class="visually-hidden">{{ $brandName }}</span>
+                        @else
+                            <div class="brand-icon">
+                                <i class="fas fa-truck-moving text-white"></i>
+                            </div>
+                            <span class="brand-text text-white">{{ $brandName }}</span>
+                        @endif
                     </div>
                     <p class="text-neutral-200 mb-0">
                         Enterprise-grade fleet management system for corporate transportation efficiency.
@@ -757,7 +783,7 @@
             
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="mb-0 text-neutral-300">&copy; {{ now()->year }} Tele-Fleet. All rights reserved.</p>
+                    <p class="mb-0 text-neutral-300">&copy; {{ now()->year }} {{ $brandName }}. All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p class="mb-0 text-neutral-300">Enterprise Fleet Management System</p>

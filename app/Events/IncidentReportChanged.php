@@ -22,6 +22,11 @@ class IncidentReportChanged implements ShouldBroadcastNow
     ) {
     }
 
+    public function broadcastWhen(): bool
+    {
+        return (bool) config('app.realtime_enabled');
+    }
+
     public function broadcastOn(): array
     {
         $channels = [];

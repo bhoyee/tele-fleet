@@ -25,6 +25,7 @@ class VehicleMaintenanceMileageAlert extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $statusLabel = $this->state === 'overdue' ? 'Overdue' : 'Due';
+        $brandName = config('app.name', 'Tele-Fleet');
 
         return (new MailMessage())
             ->subject("Vehicle Maintenance {$statusLabel} - {$this->vehicle->registration_number}")
@@ -33,7 +34,7 @@ class VehicleMaintenanceMileageAlert extends Notification
             ->line("Current mileage: {$this->vehicle->current_mileage} km")
             ->line("Target mileage: {$this->threshold} km")
             ->line('Please schedule or complete maintenance as soon as possible.')
-            ->salutation('Tele-Fleet Operations');
+            ->salutation($brandName . ' Operations');
     }
 
     public function toArray(object $notifiable): array

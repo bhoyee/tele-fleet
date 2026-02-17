@@ -6,14 +6,19 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketAttachment;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
+use App\Models\AppSetting;
+use App\Notifications\DeveloperSupportTicketMessage;
+use App\Notifications\DeveloperSupportTicketCreated;
 use App\Notifications\SupportTicketCreated;
 use App\Notifications\SupportTicketReply;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Illuminate\Validation\Rule;
 
 class SupportTicketController extends Controller
 {
@@ -38,18 +43,29 @@ class SupportTicketController extends Controller
     {
         $this->ensureHelpDeskEnabled();
 
-        return view('helpdesk.create');
+        $user = $request->user();
+        $developerMode = $user && $user->role === User::ROLE_SUPER_ADMIN && $request->boolean('developer');
+
+        return view('helpdesk.create', [
+            'developerMode' => $developerMode,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $this->ensureHelpDeskEnabled();
 
+        $user = $request->user();
+        $allowedCategories = [
+            SupportTicket::CATEGORY_ADMIN,
+            SupportTicket::CATEGORY_TECH,
+        ];
+        if ($user && $user->role === User::ROLE_SUPER_ADMIN) {
+            $allowedCategories[] = SupportTicket::CATEGORY_DEVELOPER;
+        }
+
         $data = $request->validate([
-            'category' => ['required', 'in:' . implode(',', [
-                SupportTicket::CATEGORY_ADMIN,
-                SupportTicket::CATEGORY_TECH,
-            ])],
+            'category' => ['required', Rule::in($allowedCategories)],
             'priority' => ['required', 'in:' . implode(',', [
                 SupportTicket::PRIORITY_LOW,
                 SupportTicket::PRIORITY_MEDIUM,
@@ -58,12 +74,45 @@ class SupportTicketController extends Controller
             ])],
             'subject' => ['required', 'string', 'max:150'],
             'description' => ['required', 'string'],
+            'include_diagnostics' => ['nullable'],
             'attachments' => ['nullable', 'array'],
             'attachments.*' => ['file', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx', 'max:10240'],
         ]);
 
-        $user = $request->user();
         $description = $this->sanitizeDescription($data['description']);
+        $descriptionPlain = trim(preg_replace('/\s+/', ' ', strip_tags($description)));
+
+        $isDeveloperTicket = $data['category'] === SupportTicket::CATEGORY_DEVELOPER;
+        if ($isDeveloperTicket && (! $user || $user->role !== User::ROLE_SUPER_ADMIN)) {
+            abort(403);
+        }
+
+        $diagnosticsText = '';
+        if ($isDeveloperTicket && $request->boolean('include_diagnostics', true)) {
+            $diagnosticsLines = [];
+            $diagnosticsLines[] = 'Time: ' . now()->toDateTimeString();
+            $diagnosticsLines[] = 'URL: ' . (string) $request->fullUrl();
+            $diagnosticsLines[] = 'User: ' . ($user->name ?? 'N/A') . ' (' . ($user->email ?? 'N/A') . ')';
+            $diagnosticsLines[] = 'Role: ' . ($user->role ?? 'N/A');
+            $diagnosticsLines[] = 'Branch: ' . ($user->branch?->name ?? 'Head Office');
+            $diagnosticsLines[] = 'App: ' . config('app.name');
+            $diagnosticsLines[] = 'Laravel: ' . app()->version();
+            $diagnosticsLines[] = 'PHP: ' . PHP_VERSION;
+            $diagnosticsLines[] = 'Queue: ' . config('queue.default');
+            $diagnosticsLines[] = 'Realtime enabled: ' . (config('app.realtime_enabled') ? 'true' : 'false');
+
+            try {
+                if (config('queue.default') === 'database') {
+                    $diagnosticsLines[] = 'Jobs pending: ' . (string) DB::table('jobs')->count();
+                }
+                $diagnosticsLines[] = 'Jobs failed: ' . (string) DB::table('failed_jobs')->count();
+            } catch (\Throwable $exception) {
+                $diagnosticsLines[] = 'Jobs: unavailable';
+            }
+
+            $diagnosticsText = implode("\n", $diagnosticsLines);
+            $description .= '<p><strong>Diagnostics</strong></p><p>' . nl2br(e($diagnosticsText)) . '</p>';
+        }
 
         $ticket = SupportTicket::create([
             'user_id' => $user->id,
@@ -103,9 +152,63 @@ class SupportTicketController extends Controller
             }
         }
 
-        return redirect()
+        $developerEmailNote = null;
+        if ($isDeveloperTicket) {
+            $supportEmail = null;
+            try {
+                $supportEmail = AppSetting::getValue('support_email');
+            } catch (\Throwable $exception) {
+                $supportEmail = null;
+            }
+
+            $supportEmail = is_string($supportEmail) ? trim($supportEmail) : '';
+
+            if ($supportEmail !== '' && filter_var($supportEmail, FILTER_VALIDATE_EMAIL)) {
+                try {
+                    $ticket->loadMissing('attachments');
+                    $attachments = $ticket->attachments
+                        ->map(fn ($a) => [
+                            'path' => $a->path,
+                            'name' => $a->original_name,
+                            'mime' => $a->mime_type,
+                        ])
+                        ->values()
+                        ->all();
+
+                    $payload = [
+                        'ticket_id' => $ticket->id,
+                        'subject' => $ticket->subject,
+                        'description' => $descriptionPlain,
+                        'requester_name' => (string) ($user->name ?? ''),
+                        'requester_email' => (string) ($user->email ?? ''),
+                        'branch_name' => $user->branch?->name,
+                        'priority' => $ticket->priority,
+                        'status' => $ticket->status,
+                        'link' => route('helpdesk.show', $ticket),
+                        'diagnostics' => $diagnosticsText,
+                        'attachments' => $attachments,
+                    ];
+                    Notification::route('mail', $supportEmail)
+                        ->notify(DeveloperSupportTicketCreated::fromPayload($payload));
+                    $developerEmailNote = 'Developer email sent to ' . $supportEmail . '.';
+                } catch (\Throwable $exception) {
+                    report($exception);
+                    $developerEmailNote = 'Ticket created, but sending the developer email failed. Please check your mail settings and logs.';
+                }
+            } else {
+                $developerEmailNote = 'Ticket created, but no developer email was sent because “Support/Developer email” is not set or invalid (Profile → App Settings).';
+            }
+        }
+
+        $redirect = redirect()
             ->route('helpdesk.show', $ticket)
             ->with('success', 'Support ticket submitted.');
+
+        if ($developerEmailNote) {
+            $redirect->with('warning', $developerEmailNote);
+        }
+
+        return $redirect;
     }
 
     public function show(Request $request, SupportTicket $ticket): View
@@ -113,9 +216,9 @@ class SupportTicketController extends Controller
         $this->ensureHelpDeskEnabled();
         $this->authorizeTicket($ticket, $request->user());
 
-        $ticket->load(['user', 'branch', 'attachments', 'messages.user']);
+        $ticket->load(['user', 'branch', 'attachments', 'messages.user', 'messages.attachments']);
 
-        return view('helpdesk.show', compact('ticket'));
+        return view('helpdesk.show_v2', compact('ticket'));
     }
 
     public function update(Request $request, SupportTicket $ticket): RedirectResponse
@@ -166,9 +269,10 @@ class SupportTicketController extends Controller
             'message' => $this->sanitizeDescription($data['message']),
         ]);
 
+        $messageAttachments = [];
         foreach ($request->file('attachments', []) as $file) {
             $path = $file->store('helpdesk', 'local');
-            SupportTicketAttachment::create([
+            $attachment = SupportTicketAttachment::create([
                 'support_ticket_id' => $ticket->id,
                 'support_ticket_message_id' => $message->id,
                 'path' => $path,
@@ -176,6 +280,11 @@ class SupportTicketController extends Controller
                 'mime_type' => $file->getClientMimeType(),
                 'size' => $file->getSize(),
             ]);
+            $messageAttachments[] = [
+                'path' => $attachment->path,
+                'name' => $attachment->original_name,
+                'mime' => $attachment->mime_type,
+            ];
         }
 
         $recipients = $this->replyRecipients($ticket, $request->user());
@@ -184,6 +293,27 @@ class SupportTicketController extends Controller
                 Notification::send($recipients, SupportTicketReply::fromMessage($ticket, $message));
             } catch (\Throwable $exception) {
                 report($exception);
+            }
+        }
+
+        if ($ticket->category === SupportTicket::CATEGORY_DEVELOPER) {
+            $supportEmail = null;
+            try {
+                $supportEmail = AppSetting::getValue('support_email');
+            } catch (\Throwable $exception) {
+                $supportEmail = null;
+            }
+            $supportEmail = is_string($supportEmail) ? trim($supportEmail) : '';
+
+            if ($supportEmail !== '' && filter_var($supportEmail, FILTER_VALIDATE_EMAIL)) {
+                try {
+                    $ticket->loadMissing('user');
+                    $message->loadMissing('user');
+                    $devMail = DeveloperSupportTicketMessage::fromTicketAndMessage($ticket, $message, $messageAttachments);
+                    Notification::route('mail', $supportEmail)->notify($devMail);
+                } catch (\Throwable $exception) {
+                    report($exception);
+                }
             }
         }
 

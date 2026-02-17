@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>@yield('title', config('app.name', 'Tele-Fleet'))</title>
+        <title>@yield('title', $appBrandName ?? config('app.name', 'Tele-Fleet'))</title>
         <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -171,9 +171,27 @@
                 transform: translateY(-2px);
             }
 
+            .brand-logo.has-image {
+                background: rgba(255, 255, 255, 0.92);
+                backdrop-filter: none;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+            }
+
+            .brand-logo.has-image:hover {
+                background: rgba(255, 255, 255, 0.98);
+            }
+
             .brand-logo i {
                 font-size: 1.75rem;
                 color: white; /* Made icon white */
+            }
+
+            .brand-logo img {
+                height: 48px;
+                width: auto;
+                max-width: 340px;
+                object-fit: contain;
+                display: block;
             }
 
             .brand-logo h1 {
@@ -582,6 +600,11 @@
                     padding: 0.75rem 1.25rem;
                 }
 
+                .brand-logo img {
+                    height: 42px;
+                    max-width: 280px;
+                }
+
                 .brand-logo h1 {
                     font-size: 1.5rem;
                 }
@@ -635,9 +658,13 @@
                     <div class="col-lg-6 col-xl-6">
                         <div class="auth-hero">
                             <div class="brand-header">
-                                <a href="{{ url('/') }}" class="brand-logo text-decoration-none">
-                                    <i class="bi bi-truck"></i>
-                                    <h1>Tele-Fleet</h1>
+                                <a href="{{ url('/') }}" class="brand-logo text-decoration-none {{ !empty($appLogoUrl) ? 'has-image' : '' }}">
+                                    @if (!empty($appLogoUrl))
+                                        <img src="{{ $appLogoUrl }}" alt="{{ $appBrandName ?? 'Tele-Fleet' }} logo">
+                                    @else
+                                        <i class="bi bi-truck"></i>
+                                        <h1>{{ $appBrandName ?? 'Tele-Fleet' }}</h1>
+                                    @endif
                                 </a>
                             </div>
 
@@ -678,7 +705,7 @@
                             </div>
 
                             <div class="hero-footer">
-                                © {{ date('Y') }} Tele-Fleet. All rights reserved.
+                                © {{ date('Y') }} {{ $appBrandName ?? 'Tele-Fleet' }}. All rights reserved.
                             </div>
                         </div>
                     </div>

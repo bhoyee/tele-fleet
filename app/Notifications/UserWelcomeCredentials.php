@@ -23,9 +23,10 @@ class UserWelcomeCredentials extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $user = $notifiable instanceof User ? $notifiable : null;
+        $brandName = config('app.name', 'Tele-Fleet');
 
         return (new MailMessage)
-            ->subject('Welcome to Tele-Fleet')
+            ->subject('Welcome to ' . $brandName)
             ->markdown('mail.user-welcome', [
                 'user' => $user,
                 'plainPassword' => $this->plainPassword,
@@ -35,9 +36,11 @@ class UserWelcomeCredentials extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $brandName = config('app.name', 'Tele-Fleet');
+
         return [
             'type' => 'user_welcome',
-            'message' => 'Your Tele-Fleet account has been created.',
+            'message' => 'Your ' . $brandName . ' account has been created.',
         ];
     }
 }

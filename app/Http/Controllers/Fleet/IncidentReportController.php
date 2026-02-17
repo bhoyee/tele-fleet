@@ -136,7 +136,7 @@ class IncidentReportController extends Controller
 
         $recipients = $this->buildRecipients($incident, $user);
         try {
-            Notification::send($recipients, new IncidentReported($incident));
+            Notification::send($recipients, IncidentReported::fromIncident($incident));
         } catch (Throwable $exception) {
             Log::warning('Incident email notification failed.', [
                 'incident_id' => $incident->id,
@@ -458,7 +458,19 @@ class IncidentReportController extends Controller
     private function generateReference(): string
     {
         $today = now()->format('Ymd');
-        $count = IncidentReport::whereDate('created_at', now()->toDateString())->count() + 1;
+        $prefix = sprintf('IN-%s-', $today);
+
+        $latest = IncidentReport::withTrashed()
+            ->where('reference', 'like', $prefix . '%')
+            ->orderByRaw('CAST(SUBSTRING_INDEX(reference, "-", -1) AS UNSIGNED) DESC')
+            ->value('reference');
+
+        $latestSequence = 0;
+        if ($latest && preg_match('/^IN-\\d{8}-(\\d+)$/', $latest, $matches)) {
+            $latestSequence = (int) $matches[1];
+        }
+
+        $count = $latestSequence + 1;
 
         return sprintf('IN-%s-%03d', $today, $count);
     }

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Fleet\StoreDriverRequest;
 use App\Http\Requests\Fleet\UpdateDriverRequest;
 use App\Models\Driver;
+use App\Models\TripRequest;
+use App\Models\User;
 use App\Services\AuditLogService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -17,14 +19,28 @@ class DriverController extends Controller
 {
     public function index(Request $request): View
     {
-        $showArchived = $request->boolean('archived') && $request->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN;
+        $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
         $driversQuery = Driver::orderBy('full_name');
         if ($showArchived) {
             $driversQuery->onlyTrashed();
         }
         $drivers = $driversQuery->get();
 
-        return view('drivers.index', compact('drivers', 'showArchived'));
+        $driverTripLogs = collect();
+        if (in_array($request->user()?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
+            $driverTripLogs = TripRequest::query()
+                ->with(['assignedDriver', 'branch'])
+                ->whereNotNull('assigned_driver_id')
+                ->whereIn('status', ['approved', 'assigned'])
+                ->where(function ($query): void {
+                    $query->whereNull('is_completed')->orWhere('is_completed', false);
+                })
+                ->orderBy('trip_date')
+                ->orderBy('trip_time')
+                ->get();
+        }
+
+        return view('drivers.index', compact('drivers', 'showArchived', 'driverTripLogs'));
     }
 
     public function create(): View

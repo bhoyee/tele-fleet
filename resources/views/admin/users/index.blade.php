@@ -4,7 +4,14 @@
             <h1 class="h3 mb-1">Users</h1>
             <p class="text-muted mb-0">Manage access and roles across branches.</p>
         </div>
-        <a href="{{ route('admin.users.create') }}" class="btn btn-primary">New User</a>
+        <div class="d-flex gap-2">
+            @if (!($showArchived ?? false))
+                <a href="{{ route('admin.users.index', ['archived' => 1]) }}" class="btn btn-outline-secondary">Show Archived</a>
+            @else
+                <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">Back to Active</a>
+            @endif
+            <a href="{{ route('admin.users.create') }}" class="btn btn-primary">New User</a>
+        </div>
     </div>
 
     <div class="card shadow-sm border-0">
@@ -23,6 +30,9 @@
                             <th>Role</th>
                             <th>Branch</th>
                             <th>Status</th>
+                            @if ($showArchived ?? false)
+                                <th>Deleted</th>
+                            @endif
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -38,18 +48,39 @@
                                         {{ ucfirst($user->status) }}
                                     </span>
                                 </td>
+                                @if ($showArchived ?? false)
+                                    <td class="text-muted small">{{ $user->deleted_at?->format('M d, Y H:i') ?? '—' }}</td>
+                                @endif
                                 <td class="text-end">
-                                    <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-secondary">View</a>
-                                    <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    @if ($user->id !== auth()->id())
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteUserModal"
-                                                data-delete-action="{{ route('admin.users.destroy', $user) }}"
-                                                data-delete-name="{{ $user->name }}">
-                                            Delete
-                                        </button>
+                                    @if (!($showArchived ?? false))
+                                        <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-secondary">View</a>
+                                        <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        @if ($user->id !== auth()->id())
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteUserModal"
+                                                    data-delete-action="{{ route('admin.users.destroy', $user) }}"
+                                                    data-delete-name="{{ $user->name }}">
+                                                Archive
+                                            </button>
+                                        @endif
+                                    @else
+                                        <form method="POST" action="{{ route('admin.users.restore', $user->id) }}" class="d-inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-outline-success">Restore</button>
+                                        </form>
+                                        @if ($user->id !== auth()->id())
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#forceDeleteUserModal"
+                                                    data-force-action="{{ route('admin.users.force', $user->id) }}"
+                                                    data-force-name="{{ $user->name }}">
+                                                Delete Permanently
+                                            </button>
+                                        @endif
                                     @endif
                                 </td>
                             </tr>
@@ -64,18 +95,40 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Delete User</h5>
+                    <h5 class="modal-title">Archive User</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-0">Are you sure you want to delete <strong id="deleteUserName"></strong>? This action cannot be undone.</p>
+                    <p class="mb-0">Archive <strong id="deleteUserName"></strong>? You can restore archived users later.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <form method="POST" id="deleteUserForm">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-danger">Delete User</button>
+                        <button type="submit" class="btn btn-danger">Archive User</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="forceDeleteUserModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete User Permanently</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Permanently delete <strong id="forceDeleteUserName"></strong>? This cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="POST" id="forceDeleteUserForm">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">Delete Permanently</button>
                     </form>
                 </div>
             </div>
@@ -92,6 +145,18 @@
                         const name = button.getAttribute('data-delete-name');
                         document.getElementById('deleteUserForm').setAttribute('action', action);
                         document.getElementById('deleteUserName').textContent = name;
+                    });
+                });
+            }
+
+            const forceDeleteUserModal = document.getElementById('forceDeleteUserModal');
+            if (forceDeleteUserModal) {
+                document.querySelectorAll('[data-force-action]').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const action = button.getAttribute('data-force-action');
+                        const name = button.getAttribute('data-force-name');
+                        document.getElementById('forceDeleteUserForm').setAttribute('action', action);
+                        document.getElementById('forceDeleteUserName').textContent = name;
                     });
                 });
             }

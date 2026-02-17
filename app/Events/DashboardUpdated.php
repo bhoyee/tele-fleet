@@ -17,6 +17,11 @@ class DashboardUpdated implements ShouldBroadcastNow
         public readonly ?string $context = null,
     ) {}
 
+    public function broadcastWhen(): bool
+    {
+        return (bool) config('app.realtime_enabled');
+    }
+
     /**
      * @return array<int, \Illuminate\Broadcasting\PrivateChannel>
      */

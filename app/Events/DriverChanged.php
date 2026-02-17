@@ -17,6 +17,11 @@ class DriverChanged implements ShouldBroadcastNow
         public string $action = 'updated'
     ) {}
 
+    public function broadcastWhen(): bool
+    {
+        return (bool) config('app.realtime_enabled');
+    }
+
     public function broadcastOn(): array
     {
         return [new PrivateChannel('drivers.all')];

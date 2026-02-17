@@ -13,10 +13,12 @@ use App\Http\Controllers\Fleet\TripRequestController;
 use App\Http\Controllers\Fleet\VehicleController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfileSettingsController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SupportTicketController;
+use App\Http\Controllers\DeveloperSupportReplyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -24,14 +26,29 @@ Route::get('/', function () {
     $maintenanceVehicles = \App\Models\Vehicle::where('status', 'maintenance')->count();
     $totalDrivers = \App\Models\Driver::count();
     $totalBranches = \App\Models\Branch::count();
-    $activeTrips = \App\Models\TripRequest::whereNotNull('assigned_vehicle_id')
+    $now = now();
+    $today = $now->toDateString();
+
+    $activeTripsQuery = \App\Models\TripRequest::whereNotNull('assigned_vehicle_id')
+        ->whereHas('assignedVehicle')
         ->whereIn('status', ['approved', 'assigned'])
         ->where(function ($query): void {
             $query->whereNull('is_completed')->orWhere('is_completed', false);
         })
-        ->whereDate('trip_date', '<=', now()->toDateString())
-        ->count();
-    $availableVehicles = max(0, $totalVehicles - $maintenanceVehicles - $activeTrips);
+        ->where(function ($query) use ($today, $now): void {
+            $query->whereDate('trip_date', '<', $today)
+                ->orWhere(function ($sub) use ($today, $now): void {
+                    $sub->whereDate('trip_date', $today)
+                        ->where(function ($timeQuery) use ($now): void {
+                            $timeQuery->whereNull('trip_time')
+                                ->orWhere('trip_time', '<=', $now->format('H:i'));
+                        });
+                });
+        });
+
+    $activeTrips = (clone $activeTripsQuery)->count();
+    $assignedVehiclesNow = (clone $activeTripsQuery)->pluck('assigned_vehicle_id')->unique()->count();
+    $availableVehicles = max(0, $totalVehicles - $maintenanceVehicles - $assignedVehiclesNow);
     $completedToday = \App\Models\TripRequest::where('status', 'completed')
         ->whereDate('trip_date', now()->toDateString())
         ->count();
@@ -57,14 +74,30 @@ Route::get('/landing-metrics', function () {
     $maintenanceVehicles = \App\Models\Vehicle::where('status', 'maintenance')->count();
     $totalDrivers = \App\Models\Driver::count();
     $totalBranches = \App\Models\Branch::count();
-    $activeTrips = \App\Models\TripRequest::whereNotNull('assigned_vehicle_id')
+
+    $now = now();
+    $today = $now->toDateString();
+
+    $activeTripsQuery = \App\Models\TripRequest::whereNotNull('assigned_vehicle_id')
+        ->whereHas('assignedVehicle')
         ->whereIn('status', ['approved', 'assigned'])
         ->where(function ($query): void {
             $query->whereNull('is_completed')->orWhere('is_completed', false);
         })
-        ->whereDate('trip_date', '<=', now()->toDateString())
-        ->count();
-    $availableVehicles = max(0, $totalVehicles - $maintenanceVehicles - $activeTrips);
+        ->where(function ($query) use ($today, $now): void {
+            $query->whereDate('trip_date', '<', $today)
+                ->orWhere(function ($sub) use ($today, $now): void {
+                    $sub->whereDate('trip_date', $today)
+                        ->where(function ($timeQuery) use ($now): void {
+                            $timeQuery->whereNull('trip_time')
+                                ->orWhere('trip_time', '<=', $now->format('H:i'));
+                        });
+                });
+        });
+
+    $activeTrips = (clone $activeTripsQuery)->count();
+    $assignedVehiclesNow = (clone $activeTripsQuery)->pluck('assigned_vehicle_id')->unique()->count();
+    $availableVehicles = max(0, $totalVehicles - $maintenanceVehicles - $assignedVehiclesNow);
     $completedToday = \App\Models\TripRequest::where('status', 'completed')
         ->whereDate('trip_date', now()->toDateString())
         ->count();
@@ -114,6 +147,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/password-check', [ProfileController::class, 'passwordCheck'])->name('profile.password.check');
+    Route::get('/profile/settings', [ProfileSettingsController::class, 'edit'])
+        ->middleware('role:super_admin')
+        ->name('profile.settings');
+    Route::patch('/profile/settings', [ProfileSettingsController::class, 'update'])
+        ->middleware('role:super_admin')
+        ->name('profile.settings.update');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
@@ -133,12 +173,21 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_h
     Route::get('helpdesk/{ticket}/attachments/{attachment}', [SupportTicketController::class, 'downloadAttachment'])->name('helpdesk.attachments.download');
 });
 
+Route::middleware(['signed'])->group(function () {
+    Route::get('developer-support/{ticket}/reply', [DeveloperSupportReplyController::class, 'create'])
+        ->name('developer-support.reply');
+    Route::post('developer-support/{ticket}/reply', [DeveloperSupportReplyController::class, 'store'])
+        ->name('developer-support.reply.store');
+});
+
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::delete('helpdesk/{ticket}', [SupportTicketController::class, 'destroy'])->name('helpdesk.destroy');
 });
 
 Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('users', UserController::class);
+    Route::patch('users/{user}/restore', [UserController::class, 'restore'])->name('users.restore');
+    Route::delete('users/{user}/force', [UserController::class, 'forceDelete'])->name('users.force');
     Route::get('maintenance-settings', [MaintenanceSettingsController::class, 'edit'])->name('maintenance-settings.edit');
     Route::patch('maintenance-settings', [MaintenanceSettingsController::class, 'update'])->name('maintenance-settings.update');
     Route::get('chats', [ChatManagementController::class, 'index'])->name('chats.index');

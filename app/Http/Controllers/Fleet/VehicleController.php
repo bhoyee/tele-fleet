@@ -7,6 +7,7 @@ use App\Http\Requests\Fleet\StoreVehicleRequest;
 use App\Http\Requests\Fleet\UpdateVehicleRequest;
 use App\Models\Vehicle;
 use App\Models\TripRequest;
+use App\Models\User;
 use App\Services\AuditLogService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +19,7 @@ class VehicleController extends Controller
 {
     public function index(Request $request): View
     {
-        $showArchived = $request->boolean('archived') && $request->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN;
+        $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
         $now = now();
         $today = $now->toDateString();
         $activeAssignedIds = TripRequest::whereNotNull('assigned_vehicle_id')
@@ -45,7 +46,21 @@ class VehicleController extends Controller
         }
         $vehicles = $vehiclesQuery->get();
 
-        return view('vehicles.index', compact('vehicles', 'activeAssignedIds', 'showArchived'));
+        $vehicleTripLogs = collect();
+        if (in_array($request->user()?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
+            $vehicleTripLogs = TripRequest::query()
+                ->with(['assignedVehicle', 'branch'])
+                ->whereNotNull('assigned_vehicle_id')
+                ->whereIn('status', ['approved', 'assigned'])
+                ->where(function ($query): void {
+                    $query->whereNull('is_completed')->orWhere('is_completed', false);
+                })
+                ->orderBy('trip_date')
+                ->orderBy('trip_time')
+                ->get();
+        }
+
+        return view('vehicles.index', compact('vehicles', 'activeAssignedIds', 'showArchived', 'vehicleTripLogs'));
     }
 
     public function indexData(Request $request): JsonResponse

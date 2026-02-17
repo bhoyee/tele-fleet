@@ -1,6 +1,10 @@
 <nav class="navbar navbar-expand-lg bg-white border-bottom">
     <div class="container">
-        <a class="navbar-brand fw-bold text-primary" href="{{ route('dashboard') }}">Tele-Fleet</a>
+        <a class="navbar-brand fw-bold text-primary d-flex align-items-center gap-2" href="{{ route('dashboard') }}">
+            @if (!empty($appLogoUrl))
+                <img src="{{ $appLogoUrl }}" alt="Logo" style="height: 28px; width: 28px; object-fit: contain;">
+            @endif
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
             <span class="navbar-toggler-icon"></span>
         </button>
