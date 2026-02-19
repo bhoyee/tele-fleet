@@ -201,6 +201,7 @@ class TripRequestController extends Controller
             'additional_notes' => $data['additional_notes'] ?? null,
             'attachments' => $attachments ?: null,
             'status' => 'pending',
+            'updated_by_user_id' => $user->id,
         ]);
 
         $auditLog->log('trip_request.created', $tripRequest, [], $tripRequest->toArray());

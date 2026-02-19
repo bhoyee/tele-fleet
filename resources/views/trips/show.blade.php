@@ -66,6 +66,24 @@
                             <div class="fw-semibold">{{ $tripRequest->additional_notes ?: 'N/A' }}</div>
                         </div>
                         <div class="col-md-12">
+                            <div class="text-muted small">Trip Condition</div>
+                            @if ($tripRequest->condition_notes)
+                                <div class="alert alert-warning mb-0">
+                                    <div class="fw-semibold">{{ $tripRequest->condition_notes }}</div>
+                                </div>
+                            @else
+                                <div class="fw-semibold">None</div>
+                            @endif
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Last Updated By</div>
+                            <div class="fw-semibold">{{ $tripRequest->updatedBy?->name ?? $tripRequest->requestedBy?->name ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Last Updated At</div>
+                            <div class="fw-semibold">{{ $tripRequest->updated_at?->format('M d, Y H:i') ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-md-12">
                             <div class="text-muted small">Attachments</div>
                             @if (! empty($tripRequest->attachments))
                                 <div class="d-flex flex-wrap gap-2 mt-1">
@@ -102,24 +120,6 @@
                             @else
                                 <div class="fw-semibold">None</div>
                             @endif
-                        </div>
-                        <div class="col-md-12">
-                            <div class="text-muted small">Trip Condition</div>
-                            @if ($tripRequest->condition_notes)
-                                <div class="alert alert-warning mb-0">
-                                    <div class="fw-semibold">{{ $tripRequest->condition_notes }}</div>
-                                </div>
-                            @else
-                                <div class="fw-semibold">None</div>
-                            @endif
-                        </div>
-                        <div class="col-md-6">
-                            <div class="text-muted small">Last Updated By</div>
-                            <div class="fw-semibold">{{ $tripRequest->updatedBy?->name ?? 'N/A' }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="text-muted small">Last Updated At</div>
-                            <div class="fw-semibold">{{ $tripRequest->updated_at?->format('M d, Y H:i') ?? 'N/A' }}</div>
                         </div>
                     </div>
                 </div>
