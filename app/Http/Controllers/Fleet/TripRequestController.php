@@ -779,6 +779,11 @@ class TripRequestController extends Controller
         }
 
         $data = $request->validated();
+        $tripRequest->loadMissing('assignedDriver');
+        if ($tripRequest->assignedDriver) {
+            $data['driver_name'] = $tripRequest->assignedDriver->full_name;
+            $data['driver_license_number'] = $tripRequest->assignedDriver->license_number;
+        }
 
         $distance = $data['end_mileage'] - $data['start_mileage'];
         $fuelConsumed = null;
@@ -1040,6 +1045,11 @@ class TripRequestController extends Controller
         }
 
         $data = $request->validated();
+        $tripRequest->loadMissing('assignedDriver');
+        if ($tripRequest->assignedDriver) {
+            $data['driver_name'] = $tripRequest->assignedDriver->full_name;
+            $data['driver_license_number'] = $tripRequest->assignedDriver->license_number;
+        }
 
         $distance = $data['end_mileage'] - $data['start_mileage'];
         $fuelConsumed = null;

@@ -4,6 +4,7 @@
         $isEdit = $log !== null;
         $viewOnly = $viewOnly ?? false;
         $backUrl = $backUrl ?? route('trips.show', $tripRequest);
+        $lockDriverFields = (bool) ($tripRequest->assignedDriver || $log?->driver_name || $log?->driver_license_number);
     @endphp
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -51,12 +52,12 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="driver_name">Driver Name</label>
-                        <input class="form-control" id="driver_name" name="driver_name" value="{{ old('driver_name', $log?->driver_name ?? $tripRequest->assignedDriver?->full_name) }}" required @disabled($viewOnly)>
+                        <input class="form-control {{ $lockDriverFields ? 'bg-light' : '' }}" id="driver_name" name="driver_name" value="{{ old('driver_name', $log?->driver_name ?? $tripRequest->assignedDriver?->full_name) }}" required @disabled($viewOnly) {{ $lockDriverFields && ! $viewOnly ? 'readonly' : '' }}>
                         @error('driver_name') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="driver_license_number">Driver License Number</label>
-                        <input class="form-control" id="driver_license_number" name="driver_license_number" value="{{ old('driver_license_number', $log?->driver_license_number ?? $tripRequest->assignedDriver?->license_number) }}" required @disabled($viewOnly)>
+                        <input class="form-control {{ $lockDriverFields ? 'bg-light' : '' }}" id="driver_license_number" name="driver_license_number" value="{{ old('driver_license_number', $log?->driver_license_number ?? $tripRequest->assignedDriver?->license_number) }}" required @disabled($viewOnly) {{ $lockDriverFields && ! $viewOnly ? 'readonly' : '' }}>
                         @error('driver_license_number') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6">
