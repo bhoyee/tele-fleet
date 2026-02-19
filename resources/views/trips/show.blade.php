@@ -548,13 +548,20 @@
 
             // Realtime trip status refresh (handles cases where another user cancels/updates the trip
             // while a fleet manager is viewing this page).
-            document.addEventListener('DOMContentLoaded', () => {
+            const initTeleTripStatusWatcher = () => {
                 const tripId = {{ (int) $tripRequest->id }};
                 const tripBranchId = {{ $tripRequest->branch_id ? (int) $tripRequest->branch_id : 'null' }};
                 const tripRequesterId = {{ $tripRequest->requested_by_user_id ? (int) $tripRequest->requested_by_user_id : 'null' }};
                 const statusUrl = "{{ route('trips.status', $tripRequest) }}";
                 const currentUserRole = "{{ auth()->user()?->role ?? '' }}";
                 const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
+
+                // Prevent double-init (Blade partials / turbo / bfcache).
+                const guardKey = `tele_trip_status_watcher_${tripId}`;
+                if (window[guardKey]) {
+                    return;
+                }
+                window[guardKey] = true;
 
                 const statusBadge = document.getElementById('tripStatusBadge');
                 const statusUpdatedAt = document.getElementById('tripStatusUpdatedAt');
@@ -679,7 +686,7 @@
 
                 const refreshStatus = async () => {
                     try {
-                        const response = await fetch(statusUrl, {
+                        const response = await fetch(`${statusUrl}${statusUrl.includes('?') ? '&' : '?'}_t=${Date.now()}`, {
                             headers: { 'Accept': 'application/json' },
                             cache: 'no-store',
                             credentials: 'same-origin',
@@ -687,7 +694,13 @@
                         if (!response.ok) {
                             return;
                         }
-                        const payload = await response.json();
+                        const contentType = response.headers.get('content-type') ?? '';
+                        if (!contentType.includes('application/json')) {
+                            // Likely a redirect-to-login HTML if session expired.
+                            lockWorkflow('Unable to refresh trip status automatically. Please refresh this page.');
+                            return;
+                        }
+                        const payload = await response.json().catch(() => null);
                         applyStatusPayload(payload);
                     } catch (error) {
                         // Ignore refresh errors.
@@ -757,7 +770,13 @@
                 refreshStatus();
                 subscribeTripChannels();
                 setInterval(refreshStatus, 5000);
-            });
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initTeleTripStatusWatcher, { once: true });
+            } else {
+                initTeleTripStatusWatcher();
+            }
         </script>
     @endpush
 </x-admin-layout>
