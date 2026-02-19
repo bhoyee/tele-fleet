@@ -35,6 +35,7 @@ class TripRequest extends Model
         'condition_notes',
         'condition_set_by_user_id',
         'condition_set_at',
+        'cancellation_reason',
         'assigned_vehicle_id',
         'assigned_driver_id',
         'assigned_at',

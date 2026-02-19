@@ -254,9 +254,14 @@ class IncidentReportController extends Controller
                 ->with('error', 'Only open incidents can be cancelled.');
         }
 
+        $data = $request->validate([
+            'cancellation_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
         $oldValues = $incident->getOriginal();
         $incident->update([
             'status' => IncidentReport::STATUS_CANCELLED,
+            'cancellation_reason' => $data['cancellation_reason'],
             'closed_by_user_id' => $request->user()->id,
             'updated_by_user_id' => $request->user()->id,
             'closed_at' => now(),

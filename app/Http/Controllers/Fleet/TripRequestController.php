@@ -308,18 +308,22 @@ class TripRequestController extends Controller
                 ->with('error', 'This trip can no longer be cancelled.');
         }
 
+        $data = $request->validate([
+            'cancellation_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
         if ($tripRequest->assignedVehicle) {
             if ($tripRequest->assignedVehicle->status === 'in_use') {
                 $tripRequest->assignedVehicle->update(['status' => 'available']);
             }
         }
 
-
         $tripRequest->update([
             'status' => 'cancelled',
             'assigned_vehicle_id' => null,
             'assigned_driver_id' => null,
             'assigned_at' => null,
+            'cancellation_reason' => $data['cancellation_reason'],
             'updated_by_user_id' => $request->user()->id,
         ]);
 

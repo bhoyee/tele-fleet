@@ -37,6 +37,7 @@ class IncidentReport extends Model
         'status',
         'attachments',
         'resolution_notes',
+        'cancellation_reason',
         'closed_by_user_id',
         'updated_by_user_id',
         'closed_at',

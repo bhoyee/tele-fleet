@@ -251,17 +251,22 @@
                     <h5 class="modal-title">Cancel Incident</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <p class="mb-0">Cancel incident <strong id="cancelIncidentLabel"></strong>? This cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button>
-                    <form method="POST" id="cancelIncidentForm">
-                        @csrf
-                        @method('PATCH')
+                <form method="POST" id="cancelIncidentForm">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-body">
+                        <p class="mb-3">Cancel incident <strong id="cancelIncidentLabel"></strong>? This cannot be undone.</p>
+                        <div class="mb-0">
+                            <label class="form-label fw-semibold" for="cancelIncidentReason">Cancellation reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="cancelIncidentReason" name="cancellation_reason" rows="3" required placeholder="Explain why you are cancelling this incident..."></textarea>
+                            <div class="form-text">This reason will be saved and visible to users who can view the incident.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button>
                         <button type="submit" class="btn btn-warning">Cancel Incident</button>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -290,6 +295,10 @@
                 const labelEl = document.getElementById('cancelIncidentLabel');
                 if (labelEl) {
                     labelEl.textContent = label;
+                }
+                const reasonEl = document.getElementById('cancelIncidentReason');
+                if (reasonEl) {
+                    reasonEl.value = '';
                 }
             });
 

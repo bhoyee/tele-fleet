@@ -75,6 +75,14 @@
                                 <div class="fw-semibold">None</div>
                             @endif
                         </div>
+                        @if (! empty($tripRequest->cancellation_reason))
+                            <div class="col-md-12">
+                                <div class="text-muted small">Cancellation Reason</div>
+                                <div class="alert alert-secondary mb-0">
+                                    <div class="fw-semibold">{{ $tripRequest->cancellation_reason }}</div>
+                                </div>
+                            </div>
+                        @endif
                         <div class="col-md-6">
                             <div class="text-muted small">Last Updated By</div>
                             <div class="fw-semibold">{{ $tripRequest->updatedBy?->name ?? $tripRequest->requestedBy?->name ?? 'N/A' }}</div>

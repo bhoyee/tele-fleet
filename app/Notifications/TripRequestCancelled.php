@@ -44,6 +44,7 @@ class TripRequestCancelled extends Notification implements ShouldQueue
             ->line('Destination: ' . ($this->tripRequest->destination ?? 'N/A'))
             ->line('Trip Date: ' . $tripDate)
             ->line('Trip Time: ' . $tripTime)
+            ->line('Cancellation Reason: ' . ($this->tripRequest->cancellation_reason ?? 'N/A'))
             ->line('Cancelled By: ' . ($this->cancelledBy->name ?? 'System'))
             ->action('View Trip', route('trips.show', $this->tripRequest))
             ->line('If you have questions, please contact your fleet manager.');
@@ -59,6 +60,7 @@ class TripRequestCancelled extends Notification implements ShouldQueue
             'trip_date' => $this->tripRequest->trip_date?->toDateString(),
             'trip_time' => $this->tripRequest->trip_time,
             'cancelled_by' => $this->cancelledBy->name ?? null,
+            'cancellation_reason' => $this->tripRequest->cancellation_reason,
             'status' => 'cancelled',
         ];
     }

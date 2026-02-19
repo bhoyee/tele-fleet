@@ -555,17 +555,22 @@
                     <h5 class="modal-title">Cancel Trip</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <p class="mb-0">Cancel trip <strong id="cancelTripLabel"></strong>? This cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button>
-                    <form method="POST" id="cancelTripForm">
-                        @csrf
-                        @method('PATCH')
+                <form method="POST" id="cancelTripForm">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-body">
+                        <p class="mb-3">Cancel trip <strong id="cancelTripLabel"></strong>? This cannot be undone.</p>
+                        <div class="mb-0">
+                            <label class="form-label fw-semibold" for="cancelTripReason">Cancellation reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="cancelTripReason" name="cancellation_reason" rows="3" required placeholder="Explain why you are cancelling this trip..."></textarea>
+                            <div class="form-text">This reason will be saved and visible to users who can view the trip.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button>
                         <button type="submit" class="btn btn-warning">Cancel Trip</button>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -960,6 +965,10 @@
                 const labelEl = document.getElementById('cancelTripLabel');
                 if (labelEl) {
                     labelEl.textContent = label;
+                }
+                const reasonEl = document.getElementById('cancelTripReason');
+                if (reasonEl) {
+                    reasonEl.value = '';
                 }
             });
         </script>
