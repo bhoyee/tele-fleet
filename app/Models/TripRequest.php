@@ -31,6 +31,9 @@ class TripRequest extends Model
         'approved_by_user_id',
         'approved_at',
         'rejection_reason',
+        'condition_notes',
+        'condition_set_by_user_id',
+        'condition_set_at',
         'assigned_vehicle_id',
         'assigned_driver_id',
         'assigned_at',
@@ -52,6 +55,7 @@ class TripRequest extends Model
         'assigned_at' => 'datetime',
         'is_completed' => 'boolean',
         'logbook_entered_at' => 'datetime',
+        'condition_set_at' => 'datetime',
         'overdue_notified_at' => 'datetime',
         'reminder_notified_at' => 'datetime',
         'assignment_reminder_notified_at' => 'datetime',
@@ -71,6 +75,11 @@ class TripRequest extends Model
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by_user_id');
+    }
+
+    public function conditionSetBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'condition_set_by_user_id');
     }
 
     public function assignedVehicle(): BelongsTo

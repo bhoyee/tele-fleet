@@ -65,6 +65,10 @@
                             <div class="text-muted small">Notes</div>
                             <div class="fw-semibold">{{ $tripRequest->additional_notes ?: 'N/A' }}</div>
                         </div>
+                        <div class="col-md-12">
+                            <div class="text-muted small">Trip Condition</div>
+                            <div class="fw-semibold">{{ $tripRequest->condition_notes ?: 'None' }}</div>
+                        </div>
                         <div class="col-md-6">
                             <div class="text-muted small">Last Updated By</div>
                             <div class="fw-semibold">{{ $tripRequest->updatedBy?->name ?? 'N/A' }}</div>
@@ -141,7 +145,48 @@
                         </form>
                     @endif
 
+                    @php
+                        $showConditionPrompt = (bool) request()->boolean('condition_prompt')
+                            && $tripRequest->status === 'approved'
+                            && in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true)
+                            && ! $tripRequest->condition_notes;
+                    @endphp
+
+                    @if ($showConditionPrompt)
+                        <div class="alert alert-warning border mt-3">
+                            <div class="fw-semibold mb-2">Put a condition on this trip?</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-sm btn-outline-dark" type="button" data-bs-toggle="collapse" data-bs-target="#tripConditionCollapse">
+                                    Yes
+                                </button>
+                                <a class="btn btn-sm btn-primary" href="{{ route('trips.show', $tripRequest) }}#assignment">
+                                    No, continue
+                                </a>
+                            </div>
+
+                            <div class="collapse mt-3" id="tripConditionCollapse">
+                                <form method="POST" action="{{ route('trips.condition', $tripRequest) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <div class="mb-2">
+                                        <label class="form-label" for="condition_notes">Trip Condition</label>
+                                        <textarea class="form-control" id="condition_notes" name="condition_notes" rows="4" required>{{ old('condition_notes') }}</textarea>
+                                        <div class="form-text">This condition will be visible to all users on this trip.</div>
+                                        @error('condition_notes') <div class="text-danger small">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-success" type="submit">Save &amp; Continue</button>
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#tripConditionCollapse">
+                                            Close
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
+
                     @if (in_array($tripRequest->status, ['approved', 'assigned'], true) && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                        <div id="assignment"></div>
                         <form method="POST" action="{{ route('trips.assign.store', $tripRequest) }}" class="mb-3">
                             @csrf
                             @method('PATCH')

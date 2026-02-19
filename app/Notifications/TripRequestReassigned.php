@@ -46,8 +46,9 @@ class TripRequestReassigned extends Notification
         $toVehicle = $this->tripRequest->assignedVehicle?->registration_number ?? 'N/A';
         $toDriver = $this->tripRequest->assignedDriver?->full_name ?? 'N/A';
         $toDriverPhone = $this->tripRequest->assignedDriver?->phone ?? 'N/A';
+        $condition = trim((string) ($this->tripRequest->condition_notes ?? ''));
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Trip Reassigned '.$this->tripRequest->request_number)
             ->line('A trip assignment has been changed.')
             ->line('Previous Vehicle: '.$fromVehicle)
@@ -57,6 +58,12 @@ class TripRequestReassigned extends Notification
             ->line('New Driver Phone: '.$toDriverPhone)
             ->line('Reason: '.$this->reason)
             ->action('View Trip Request', route('trips.show', $this->tripRequest));
+
+        if ($condition !== '') {
+            $mail->line('Condition: '.$condition);
+        }
+
+        return $mail;
     }
 
     public function toArray(object $notifiable): array
@@ -69,6 +76,7 @@ class TripRequestReassigned extends Notification
             'from_driver' => $this->fromDriver?->full_name,
             'assigned_vehicle' => $this->tripRequest->assignedVehicle?->registration_number,
             'assigned_driver' => $this->tripRequest->assignedDriver?->full_name,
+            'condition_notes' => $this->tripRequest->condition_notes,
             'reason' => $this->reason,
             'reassigned_at' => now()->toDateTimeString(),
         ];

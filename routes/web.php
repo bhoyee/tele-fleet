@@ -298,6 +298,7 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
     Route::delete('logbooks/{tripLog}', [TripRequestController::class, 'archiveLogbook'])->name('logbooks.archive');
     Route::patch('trips/{tripRequest}/approve', [TripRequestController::class, 'approve'])->name('trips.approve');
     Route::patch('trips/{tripRequest}/reject', [TripRequestController::class, 'reject'])->name('trips.reject');
+    Route::patch('trips/{tripRequest}/condition', [TripRequestController::class, 'setCondition'])->name('trips.condition');
     Route::get('trips/{tripRequest}/assign', [TripRequestController::class, 'assignmentForm'])->name('trips.assign');
     Route::patch('trips/{tripRequest}/assign', [TripRequestController::class, 'assign'])->name('trips.assign.store');
     Route::get('trips/{tripRequest}/logbook', [TripRequestController::class, 'logbook'])->name('trips.logbook');

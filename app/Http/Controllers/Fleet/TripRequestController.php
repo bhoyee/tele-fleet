@@ -328,8 +328,40 @@ class TripRequestController extends Controller
         $this->broadcastTripChange($tripRequest, 'approved');
 
         return redirect()
-            ->route('trips.show', $tripRequest)
+            ->route('trips.show', ['tripRequest' => $tripRequest->id, 'condition_prompt' => 1])
             ->with('success', 'Trip request approved.');
+    }
+
+    public function setCondition(Request $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
+    {
+        if (! in_array($tripRequest->status, ['approved', 'assigned'], true)) {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'Trip conditions can only be added before the trip is completed or cancelled.');
+        }
+
+        $request->validate([
+            'condition_notes' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $tripRequest->update([
+            'condition_notes' => $request->condition_notes,
+            'condition_set_by_user_id' => $request->user()->id,
+            'condition_set_at' => now(),
+            'updated_by_user_id' => $request->user()->id,
+        ]);
+
+        $auditLog->log('trip_request.condition_set', $tripRequest, [], [
+            'condition_notes' => $tripRequest->condition_notes,
+            'condition_set_by_user_id' => $tripRequest->condition_set_by_user_id,
+            'condition_set_at' => $tripRequest->condition_set_at?->toDateTimeString(),
+        ]);
+
+        $this->broadcastTripChange($tripRequest, 'condition');
+
+        return redirect()
+            ->route('trips.show', $tripRequest)
+            ->with('success', 'Trip condition saved.');
     }
 
     public function reject(Request $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse

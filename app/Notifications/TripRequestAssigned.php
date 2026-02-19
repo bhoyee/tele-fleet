@@ -29,14 +29,21 @@ class TripRequestAssigned extends Notification
         $vehicle = $this->tripRequest->assignedVehicle?->registration_number ?? 'N/A';
         $driver = $this->tripRequest->assignedDriver?->full_name ?? 'N/A';
         $driverPhone = $this->tripRequest->assignedDriver?->phone ?? 'N/A';
+        $condition = trim((string) ($this->tripRequest->condition_notes ?? ''));
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Trip Assigned '.$this->tripRequest->request_number)
             ->line('Your trip request has been assigned.')
             ->line('Vehicle: '.$vehicle)
             ->line('Driver: '.$driver)
             ->line('Driver Phone: '.$driverPhone)
             ->action('View Trip Request', route('trips.show', $this->tripRequest));
+
+        if ($condition !== '') {
+            $mail->line('Condition: '.$condition);
+        }
+
+        return $mail;
     }
 
     public function toArray(object $notifiable): array
@@ -47,6 +54,7 @@ class TripRequestAssigned extends Notification
             'status' => $this->tripRequest->status,
             'assigned_vehicle' => $this->tripRequest->assignedVehicle?->registration_number,
             'assigned_driver' => $this->tripRequest->assignedDriver?->full_name,
+            'condition_notes' => $this->tripRequest->condition_notes,
             'assigned_at' => $this->tripRequest->assigned_at?->toDateTimeString(),
         ];
     }
