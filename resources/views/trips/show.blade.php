@@ -67,7 +67,13 @@
                         </div>
                         <div class="col-md-12">
                             <div class="text-muted small">Trip Condition</div>
-                            <div class="fw-semibold">{{ $tripRequest->condition_notes ?: 'None' }}</div>
+                            @if ($tripRequest->condition_notes)
+                                <div class="alert alert-warning mb-0">
+                                    <div class="fw-semibold">{{ $tripRequest->condition_notes }}</div>
+                                </div>
+                            @else
+                                <div class="fw-semibold">None</div>
+                            @endif
                         </div>
                         <div class="col-md-6">
                             <div class="text-muted small">Last Updated By</div>
