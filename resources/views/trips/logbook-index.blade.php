@@ -9,6 +9,7 @@
 
     @php
         $isSuperAdmin = auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN;
+        $canEditLogbook = in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true);
     @endphp
 
     <div class="card shadow-sm border-0">
@@ -71,7 +72,9 @@
                                 <td class="text-end">
                                     @if ($trip->log)
                                         <a href="{{ route('logbooks.show', $trip->log->id) }}" class="btn btn-sm btn-outline-primary" data-loading>View Logbook</a>
-                                        <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit Logbook</a>
+                                        @if ($canEditLogbook)
+                                            <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit Logbook</a>
+                                        @endif
                                     @else
                                         <a href="{{ route('trips.logbook', $trip) }}" class="btn btn-sm btn-dark" data-loading>Enter Logbook</a>
                                     @endif

@@ -6,6 +6,7 @@
         </div>
         @php
             $isSuperAdmin = auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN;
+            $canEditLogbook = in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true);
         @endphp
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary @if (! $showArchived) active @endif" href="{{ route('logbooks.manage') }}">Active</a>
@@ -60,7 +61,9 @@
                                 <td class="text-end">
                                     <a href="{{ route('logbooks.show', $log->id) }}@if($showArchived){{ '?archived=1' }}@endif" class="btn btn-sm btn-outline-primary" data-loading>View</a>
                                     @if (! $showArchived && $trip)
-                                        <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
+                                        @if ($canEditLogbook)
+                                            <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
+                                        @endif
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"

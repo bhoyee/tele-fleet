@@ -753,7 +753,7 @@ class TripRequestController extends Controller
             ->with('success', 'Trip updated successfully.');
     }
 
-    public function editLogbook(TripRequest $tripRequest): View
+    public function editLogbook(TripRequest $tripRequest): View|RedirectResponse
     {
         $this->authorizeTripMutation(request()->user(), $tripRequest);
         $tripRequest->load(['assignedDriver', 'log']);
@@ -762,6 +762,16 @@ class TripRequestController extends Controller
             return redirect()
                 ->route('trips.logbook', $tripRequest)
                 ->with('error', 'No logbook found for this trip yet.');
+        }
+
+        $user = request()->user();
+        if (
+            in_array($user?->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)
+            && $tripRequest->status === 'completed'
+        ) {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'This trip is completed. To edit the logbook, please contact the fleet manager.');
         }
 
         return view('trips.logbook', compact('tripRequest'));
@@ -776,6 +786,15 @@ class TripRequestController extends Controller
             return redirect()
                 ->route('trips.logbook', $tripRequest)
                 ->with('error', 'No logbook found for this trip yet.');
+        }
+
+        if (
+            in_array($request->user()?->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)
+            && $tripRequest->status === 'completed'
+        ) {
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', 'This trip is completed. To edit the logbook, please contact the fleet manager.');
         }
 
         $data = $request->validated();

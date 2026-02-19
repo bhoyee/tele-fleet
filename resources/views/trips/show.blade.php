@@ -294,8 +294,14 @@
                         <a href="{{ route('trips.logbook', $tripRequest) }}" class="btn btn-dark w-100" data-loading>Enter Logbook</a>
                     @endif
 
-                    @if ($tripRequest->status === 'completed' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                    @if ($tripRequest->status === 'completed' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
                         <a href="{{ route('trips.logbook.edit', $tripRequest) }}" class="btn btn-outline-dark w-100" data-loading>Edit Logbook</a>
+                    @endif
+
+                    @if ($tripRequest->status === 'completed' && in_array(auth()->user()->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                        <div class="alert alert-info mt-3 mb-0">
+                            Logbook edits are locked after completion. Please contact the fleet manager if changes are needed.
+                        </div>
                     @endif
 
                     @php
