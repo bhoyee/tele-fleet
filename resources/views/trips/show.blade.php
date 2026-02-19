@@ -76,20 +76,27 @@
                             @endif
                         </div>
                         @if (! empty($tripRequest->cancellation_reason))
-                            <div class="col-md-12">
+                            <div class="col-md-12" id="tripCancellationReasonBlock">
                                 <div class="text-muted small">Cancellation Reason</div>
                                 <div class="alert alert-secondary mb-0">
-                                    <div class="fw-semibold">{{ $tripRequest->cancellation_reason }}</div>
+                                    <div class="fw-semibold" id="tripCancellationReasonText">{{ $tripRequest->cancellation_reason }}</div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="col-md-12" id="tripCancellationReasonBlock" style="display:none;">
+                                <div class="text-muted small">Cancellation Reason</div>
+                                <div class="alert alert-secondary mb-0">
+                                    <div class="fw-semibold" id="tripCancellationReasonText"></div>
                                 </div>
                             </div>
                         @endif
                         <div class="col-md-6">
                             <div class="text-muted small">Last Updated By</div>
-                            <div class="fw-semibold">{{ $tripRequest->updatedBy?->name ?? $tripRequest->requestedBy?->name ?? 'N/A' }}</div>
+                            <div class="fw-semibold" id="tripLastUpdatedBy">{{ $tripRequest->updatedBy?->name ?? $tripRequest->requestedBy?->name ?? 'N/A' }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="text-muted small">Last Updated At</div>
-                            <div class="fw-semibold">{{ $tripRequest->updated_at?->format('M d, Y H:i') ?? 'N/A' }}</div>
+                            <div class="fw-semibold" id="tripLastUpdatedAt">{{ $tripRequest->updated_at?->format('M d, Y H:i') ?? 'N/A' }}</div>
                         </div>
                         <div class="col-md-12">
                             <div class="text-muted small">Attachments</div>
@@ -176,8 +183,9 @@
 
         <div class="col-lg-5">
             <div class="card shadow-sm border-0">
-                <div class="card-body">
+                <div class="card-body" id="tripWorkflowActions">
                     <h5 class="fw-semibold mb-3">Workflow Actions</h5>
+                    <div id="tripRealtimeBanner" class="alert alert-warning border d-none mb-3"></div>
 
                     @if ($tripRequest->status === 'pending' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
                         <form method="POST" action="{{ route('trips.approve', $tripRequest) }}" class="mb-3">
@@ -239,7 +247,7 @@
 
                     @if (in_array($tripRequest->status, ['approved', 'assigned'], true) && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
                         <div id="assignment"></div>
-                        <form method="POST" action="{{ route('trips.assign.store', $tripRequest) }}" class="mb-3">
+                        <form method="POST" action="{{ route('trips.assign.store', $tripRequest) }}" class="mb-3" id="tripAssignForm">
                             @csrf
                             @method('PATCH')
 
@@ -317,18 +325,18 @@
                         <div class="alert alert-info border mt-3">
                             <div class="text-muted small mb-1">Current Status</div>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-warning text-dark">Pending</span>
-                                <span class="small text-muted">Awaiting approval</span>
+                                <span class="badge bg-warning text-dark" id="tripStatusBadge">Pending</span>
+                                <span class="small text-muted" id="tripStatusUpdatedAt">Awaiting approval</span>
                             </div>
                         </div>
                     @else
                         <div class="alert alert-light border mt-3">
                             <div class="text-muted small mb-1">Current Status</div>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="badge {{ $statusStyles[$tripRequest->status] ?? 'bg-light text-dark' }}">
+                                <span class="badge {{ $statusStyles[$tripRequest->status] ?? 'bg-light text-dark' }}" id="tripStatusBadge">
                                     {{ ucfirst($tripRequest->status) }}
                                 </span>
-                                <span class="small text-muted">
+                                <span class="small text-muted" id="tripStatusUpdatedAt">
                                     Updated {{ $tripRequest->updated_at?->diffForHumans() ?? 'recently' }}
                                 </span>
                             </div>
@@ -537,6 +545,219 @@
                     document.getElementById('modal-to-driver').textContent = details.to_driver || '—';
                 });
             }
+
+            // Realtime trip status refresh (handles cases where another user cancels/updates the trip
+            // while a fleet manager is viewing this page).
+            document.addEventListener('DOMContentLoaded', () => {
+                const tripId = {{ (int) $tripRequest->id }};
+                const tripBranchId = {{ $tripRequest->branch_id ? (int) $tripRequest->branch_id : 'null' }};
+                const tripRequesterId = {{ $tripRequest->requested_by_user_id ? (int) $tripRequest->requested_by_user_id : 'null' }};
+                const statusUrl = "{{ route('trips.status', $tripRequest) }}";
+                const currentUserRole = "{{ auth()->user()?->role ?? '' }}";
+                const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
+
+                const statusBadge = document.getElementById('tripStatusBadge');
+                const statusUpdatedAt = document.getElementById('tripStatusUpdatedAt');
+                const lastUpdatedBy = document.getElementById('tripLastUpdatedBy');
+                const lastUpdatedAt = document.getElementById('tripLastUpdatedAt');
+                const cancellationBlock = document.getElementById('tripCancellationReasonBlock');
+                const cancellationText = document.getElementById('tripCancellationReasonText');
+                const workflowActions = document.getElementById('tripWorkflowActions');
+                const realtimeBanner = document.getElementById('tripRealtimeBanner');
+
+                let lastStatus = "{{ $tripRequest->status }}";
+                let lastUpdatedIso = "{{ $tripRequest->updated_at?->toIso8601String() ?? '' }}";
+                let workflowLocked = false;
+
+                const capitalize = (value) => {
+                    const str = String(value ?? '');
+                    return str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
+                };
+
+                const statusBadgeClass = (status) => {
+                    switch (String(status ?? '').toLowerCase()) {
+                        case 'pending': return 'bg-warning text-dark';
+                        case 'approved': return 'bg-info text-dark';
+                        case 'assigned': return 'bg-primary';
+                        case 'completed': return 'bg-success';
+                        case 'rejected': return 'bg-danger';
+                        case 'cancelled': return 'bg-secondary';
+                        default: return 'bg-light text-dark';
+                    }
+                };
+
+                const lockWorkflow = (message) => {
+                    if (!workflowActions || workflowLocked) {
+                        return;
+                    }
+                    workflowLocked = true;
+
+                    workflowActions.querySelectorAll('button, input, select, textarea').forEach((el) => {
+                        el.setAttribute('disabled', 'disabled');
+                        el.disabled = true;
+                    });
+                    workflowActions.querySelectorAll('a.btn').forEach((link) => {
+                        link.classList.add('disabled');
+                        link.setAttribute('aria-disabled', 'true');
+                        link.addEventListener('click', (event) => event.preventDefault(), { once: true });
+                    });
+
+                    if (realtimeBanner) {
+                        realtimeBanner.textContent = message || 'This trip was updated while you were viewing it.';
+                        realtimeBanner.classList.remove('d-none');
+                    }
+                };
+
+                const applyStatusPayload = (payload) => {
+                    if (!payload) {
+                        return;
+                    }
+
+                    const incomingStatus = String(payload.status ?? '').toLowerCase();
+                    const incomingUpdatedIso = String(payload.updated_at ?? '');
+                    const updatedByName = payload.updated_by ?? 'N/A';
+                    const updatedAtFormatted = payload.updated_at_formatted ?? 'N/A';
+                    const updatedAtHuman = payload.updated_at_human ?? '';
+
+                    if (statusBadge && incomingStatus) {
+                        statusBadge.textContent = capitalize(incomingStatus);
+                        statusBadge.className = 'badge ' + statusBadgeClass(incomingStatus);
+                    }
+
+                    if (statusUpdatedAt) {
+                        if (incomingStatus === 'pending') {
+                            statusUpdatedAt.textContent = 'Awaiting approval';
+                        } else if (updatedAtHuman) {
+                            statusUpdatedAt.textContent = `Updated ${updatedAtHuman}`;
+                        } else {
+                            statusUpdatedAt.textContent = 'Updated recently';
+                        }
+                    }
+
+                    if (lastUpdatedBy) {
+                        lastUpdatedBy.textContent = String(updatedByName);
+                    }
+
+                    if (lastUpdatedAt) {
+                        lastUpdatedAt.textContent = String(updatedAtFormatted);
+                    }
+
+                    if (cancellationBlock && cancellationText) {
+                        const reason = String(payload.cancellation_reason ?? '').trim();
+                        if (reason) {
+                            cancellationText.textContent = reason;
+                            cancellationBlock.style.display = '';
+                        } else {
+                            cancellationText.textContent = '';
+                            cancellationBlock.style.display = 'none';
+                        }
+                    }
+
+                    const statusChanged = incomingStatus && incomingStatus !== String(lastStatus ?? '').toLowerCase();
+                    const updatedChanged = incomingUpdatedIso && incomingUpdatedIso !== lastUpdatedIso;
+
+                    if (statusChanged || updatedChanged) {
+                        lastStatus = incomingStatus || lastStatus;
+                        lastUpdatedIso = incomingUpdatedIso || lastUpdatedIso;
+                    }
+
+                    if (statusChanged) {
+                        if (incomingStatus === 'cancelled') {
+                            window.teleShowToast?.('Trip cancelled', 'This trip was cancelled while you were viewing it.', 'warning');
+                            lockWorkflow('This trip has been cancelled. Actions are now disabled.');
+                        } else if (incomingStatus === 'rejected') {
+                            window.teleShowToast?.('Trip rejected', 'This trip was rejected while you were viewing it.', 'danger');
+                            lockWorkflow('This trip has been rejected. Actions are now disabled.');
+                        } else if (incomingStatus === 'completed') {
+                            window.teleShowToast?.('Trip completed', 'This trip was completed while you were viewing it.', 'success');
+                            lockWorkflow('This trip has been completed. Actions are now disabled.');
+                        } else {
+                            window.teleShowToast?.('Trip updated', `Status changed to ${capitalize(incomingStatus)}.`, 'info');
+                        }
+                    }
+                };
+
+                const refreshStatus = async () => {
+                    try {
+                        const response = await fetch(statusUrl, {
+                            headers: { 'Accept': 'application/json' },
+                            cache: 'no-store',
+                            credentials: 'same-origin',
+                        });
+                        if (!response.ok) {
+                            return;
+                        }
+                        const payload = await response.json();
+                        applyStatusPayload(payload);
+                    } catch (error) {
+                        // Ignore refresh errors.
+                    }
+                };
+
+                const initTripsEcho = () => {
+                    if (!realtimeEnabled) {
+                        return null;
+                    }
+                    if (window.TripEcho && typeof window.TripEcho.private === 'function') {
+                        return window.TripEcho;
+                    }
+                    if (window.ChatEcho && typeof window.ChatEcho.private === 'function') {
+                        window.TripEcho = window.ChatEcho;
+                        return window.TripEcho;
+                    }
+                    const EchoConstructor = window.Echo;
+                    if (typeof EchoConstructor !== 'function') {
+                        return null;
+                    }
+                    window.Pusher = window.Pusher ?? Pusher;
+                    window.TripEcho = new EchoConstructor({
+                        broadcaster: 'pusher',
+                        cluster: 'mt1',
+                        key: "{{ config('broadcasting.connections.reverb.key') }}",
+                        wsHost: "{{ config('broadcasting.connections.reverb.options.host') }}",
+                        wsPort: {{ config('broadcasting.connections.reverb.options.port') }},
+                        wssPort: {{ config('broadcasting.connections.reverb.options.port') }},
+                        forceTLS: "{{ config('broadcasting.connections.reverb.options.scheme') }}" === 'https',
+                        enabledTransports: ['ws', 'wss'],
+                        disableStats: true,
+                        authEndpoint: '/broadcasting/auth',
+                        auth: {
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]')?.getAttribute('content') ?? '',
+                            }
+                        },
+                    });
+                    return window.TripEcho;
+                };
+
+                const subscribeTripChannels = () => {
+                    const echo = initTripsEcho();
+                    if (!echo || typeof echo.private !== 'function') {
+                        return;
+                    }
+
+                    const handler = (event) => {
+                        if (!event || Number(event.trip_id) !== Number(tripId)) {
+                            return;
+                        }
+                        refreshStatus();
+                    };
+
+                    if (['super_admin', 'fleet_manager'].includes(currentUserRole)) {
+                        echo.private('trips.all').listen('.trip.changed', handler);
+                    }
+                    if (tripBranchId) {
+                        echo.private(`trips.branch.${tripBranchId}`).listen('.trip.changed', handler);
+                    }
+                    if (tripRequesterId) {
+                        echo.private(`trips.user.${tripRequesterId}`).listen('.trip.changed', handler);
+                    }
+                };
+
+                refreshStatus();
+                subscribeTripChannels();
+                setInterval(refreshStatus, 5000);
+            });
         </script>
     @endpush
 </x-admin-layout>

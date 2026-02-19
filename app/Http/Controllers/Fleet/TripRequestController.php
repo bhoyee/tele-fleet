@@ -279,6 +279,32 @@ class TripRequestController extends Controller
         return view('trips.show', compact('tripRequest', 'vehicles', 'drivers'));
     }
 
+    public function statusData(Request $request, TripRequest $tripRequest): JsonResponse
+    {
+        $this->authorizeTripView($request->user(), $tripRequest);
+
+        $tripRequest->load([
+            'updatedBy',
+            'requestedBy',
+            'assignedVehicle',
+            'assignedDriver',
+        ]);
+
+        return response()->json([
+            'id' => $tripRequest->id,
+            'status' => $tripRequest->status,
+            'updated_at' => $tripRequest->updated_at?->toIso8601String(),
+            'updated_at_human' => $tripRequest->updated_at?->diffForHumans(),
+            'updated_at_formatted' => $tripRequest->updated_at?->format('M d, Y H:i'),
+            'updated_by' => $tripRequest->updatedBy?->name ?? $tripRequest->requestedBy?->name,
+            'condition_notes' => $tripRequest->condition_notes,
+            'cancellation_reason' => $tripRequest->cancellation_reason,
+            'rejection_reason' => $tripRequest->rejection_reason,
+            'assigned_vehicle' => $tripRequest->assignedVehicle?->registration_number,
+            'assigned_driver' => $tripRequest->assignedDriver?->full_name,
+        ]);
+    }
+
     public function downloadAttachment(TripRequest $tripRequest, string $filename)
     {
         $this->authorizeTripView(request()->user(), $tripRequest);

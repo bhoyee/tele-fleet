@@ -268,6 +268,7 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_h
 Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::get('trips', [TripRequestController::class, 'index'])->name('trips.index');
     Route::get('trips/{tripRequest}', [TripRequestController::class, 'show'])->name('trips.show');
+    Route::get('trips/{tripRequest}/status', [TripRequestController::class, 'statusData'])->name('trips.status');
     Route::get('trips/{tripRequest}/attachments/{filename}/preview', [TripRequestController::class, 'previewAttachment'])->name('trips.attachments.preview');
     Route::get('trips/{tripRequest}/attachments/{filename}', [TripRequestController::class, 'downloadAttachment'])->name('trips.attachments.download');
 });
