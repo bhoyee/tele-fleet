@@ -992,6 +992,9 @@
     </head>
     <body>
         <div class="page-progress" id="pageProgress" aria-hidden="true"></div>
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+            <div id="teleToastContainer" class="d-flex flex-column gap-2"></div>
+        </div>
         <div class="app-shell">
             <!-- Sidebar Overlay for Mobile -->
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -1711,6 +1714,33 @@
 
             const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+            let lastNotificationCount = {{ (int) ($unreadCount ?? 0) }};
+
+            window.teleShowToast = (title, message, variant = 'primary') => {
+                const container = document.getElementById('teleToastContainer');
+                if (!container || !window.bootstrap?.Toast) {
+                    return;
+                }
+
+                const toast = document.createElement('div');
+                toast.className = 'toast align-items-center text-bg-' + variant + ' border-0';
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <div class="fw-semibold mb-1">${String(title ?? 'Notification')}</div>
+                            <div>${String(message ?? '')}</div>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                container.appendChild(toast);
+                const instance = bootstrap.Toast.getOrCreateInstance(toast, { delay: 7000 });
+                toast.addEventListener('hidden.bs.toast', () => toast.remove());
+                instance.show();
+            };
 
             const refreshNotificationCount = () => {
                 fetch('{{ route("notifications.count") }}', { cache: 'no-store' })
@@ -1720,21 +1750,34 @@
                         if (!badge) {
                             return;
                         }
-                        if (data.count > 0) {
-                            badge.textContent = data.count;
+                        const count = Number(data?.count ?? 0);
+                        if (count > 0) {
+                            badge.textContent = count;
                             badge.style.display = 'flex';
                         } else {
                             badge.style.display = 'none';
                         }
+
+                        if (count > lastNotificationCount) {
+                            window.teleShowToast?.('New notification', 'You have a new notification.', 'primary');
+                            refreshNotificationDropdown();
+                        }
+                        lastNotificationCount = count;
                     })
                     .catch(() => {});
             };
 
             const applyNotificationPayload = (data) => {
+                const incomingCount = Number(data?.count ?? 0);
+                if (incomingCount > lastNotificationCount) {
+                    window.teleShowToast?.('New notification', 'You have a new notification.', 'primary');
+                }
+                lastNotificationCount = incomingCount;
+
                 const badge = document.querySelector('.notification-badge');
                 if (badge) {
-                    if (data?.count > 0) {
-                        badge.textContent = data.count;
+                    if (incomingCount > 0) {
+                        badge.textContent = incomingCount;
                         badge.style.display = 'flex';
                     } else {
                         badge.style.display = 'none';

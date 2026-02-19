@@ -834,7 +834,7 @@
                     if (poller) {
                         return;
                     }
-                    poller = setInterval(refreshTable, 30000);
+                    poller = setInterval(refreshTable, 15000);
                 };
 
                 const refreshTable = async () => {
@@ -925,6 +925,9 @@
 
                 refreshTable();
                 subscribeTripChannels();
+                // Always keep a polling safety-net enabled (some shared-hosting / proxy setups allow
+                // websocket connections but block private channel auth or events).
+                startPollingFallback();
 
                 const historyTable = document.querySelector('.trip-history-table');
                 if (historyTable && window.jQuery && window.jQuery.fn.dataTable && !window.jQuery.fn.dataTable.isDataTable(historyTable)) {
