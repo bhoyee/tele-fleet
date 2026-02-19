@@ -190,9 +190,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr>
-                                    <td colspan="6" class="text-muted">No assigned trips found.</td>
-                                </tr>
+                                {{-- Let DataTables render its built-in empty state (prevents colspan column-count warnings). --}}
                             @endforelse
                         </tbody>
                     </table>
@@ -219,6 +217,9 @@
                         paging: true,
                         info: true,
                         responsive: true,
+                        language: {
+                            emptyTable: 'No assigned trips found.',
+                        },
                     });
 
                     const statusFilter = document.getElementById('vehicleTripLogStatusFilter');
