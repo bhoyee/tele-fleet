@@ -1545,8 +1545,8 @@
                     card.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
                 });
                 
-                // Auto-hide success alerts after 5 seconds
-                const successAlerts = document.querySelectorAll('.alert-success');
+                // Auto-hide success alerts after 5 seconds (only dismissible flash alerts)
+                const successAlerts = document.querySelectorAll('.alert-success.alert-dismissible');
                 successAlerts.forEach(alert => {
                     setTimeout(() => {
                         const bsAlert = new bootstrap.Alert(alert);
