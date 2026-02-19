@@ -80,6 +80,14 @@
                             <div class="text-muted small">Description</div>
                             <div class="fw-semibold">{{ $incident->description }}</div>
                         </div>
+                        @if (! empty($incident->resolution_notes))
+                            <div class="col-md-12">
+                                <div class="text-muted small">Resolution Notes</div>
+                                <div class="alert alert-success mb-0">
+                                    <div class="fw-semibold">{{ $incident->resolution_notes }}</div>
+                                </div>
+                            </div>
+                        @endif
                         @if (! empty($incident->cancellation_reason))
                             <div class="col-md-12">
                                 <div class="text-muted small">Cancellation Reason</div>

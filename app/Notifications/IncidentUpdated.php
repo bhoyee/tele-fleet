@@ -30,14 +30,21 @@ class IncidentUpdated extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Incident Updated: ' . $this->incident->reference)
             ->greeting('Hello ' . ($notifiable->name ?? ''))
             ->line('An incident report has been updated.')
             ->line('Reference: ' . $this->incident->reference)
-            ->line('Updated By: ' . ($this->updatedBy->name ?? 'System'))
-            ->action('View Incident', route('incidents.show', $this->incident))
+            ->line('Updated By: ' . ($this->updatedBy->name ?? 'System'));
+
+        if (! empty($this->incident->resolution_notes)) {
+            $mail->line('Resolution Notes: ' . $this->incident->resolution_notes);
+        }
+
+        $mail->action('View Incident', route('incidents.show', $this->incident))
             ->line('Please review the latest details.');
+
+        return $mail;
     }
 
     public function toArray(object $notifiable): array
@@ -47,6 +54,7 @@ class IncidentUpdated extends Notification implements ShouldQueue
             'reference' => $this->incident->reference,
             'status' => $this->incident->status,
             'updated_by' => $this->updatedBy->name ?? null,
+            'resolution_notes' => $this->incident->resolution_notes,
         ];
     }
 }
