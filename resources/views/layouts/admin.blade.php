@@ -1067,7 +1067,7 @@
                             </li>
                         @endif
 
-                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                        @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('logbooks.*')) active @endif" href="{{ route('logbooks.index') }}">
                                     <i class="bi bi-journal-text nav-icon"></i>

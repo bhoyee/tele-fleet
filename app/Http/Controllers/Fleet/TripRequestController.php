@@ -595,17 +595,27 @@ class TripRequestController extends Controller
 
     public function logbook(TripRequest $tripRequest): View
     {
+        $this->authorizeTripMutation(request()->user(), $tripRequest);
         $tripRequest->load(['assignedDriver', 'log']);
 
         return view('trips.logbook', compact('tripRequest'));
     }
 
-    public function logbookIndex(): View
+    public function logbookIndex(Request $request): View
     {
-        $trips = TripRequest::with(['branch', 'assignedVehicle', 'assignedDriver', 'log.enteredBy', 'log.editedBy'])
+        $user = $request->user();
+
+        $query = TripRequest::with(['branch', 'assignedVehicle', 'assignedDriver', 'log.enteredBy', 'log.editedBy'])
             ->whereIn('status', ['assigned', 'completed'])
-            ->latest()
-            ->get();
+            ->latest();
+
+        if ($user?->role === User::ROLE_BRANCH_ADMIN) {
+            $query->where('requested_by_user_id', $user->id);
+        } elseif ($user?->role === User::ROLE_BRANCH_HEAD && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $trips = $query->get();
 
         return view('trips.logbook-index', compact('trips'));
     }
@@ -613,6 +623,10 @@ class TripRequestController extends Controller
     public function manageLogbooks(Request $request): View
     {
         $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
+        if ($request->user()?->role !== User::ROLE_SUPER_ADMIN) {
+            $showArchived = false;
+        }
+        $user = $request->user();
 
         $query = TripLog::with([
             'tripRequest.branch',
@@ -626,6 +640,16 @@ class TripRequestController extends Controller
             $query->onlyTrashed();
         }
 
+        if ($user?->role === User::ROLE_BRANCH_ADMIN) {
+            $query->whereHas('tripRequest', function ($tripQuery) use ($user): void {
+                $tripQuery->where('requested_by_user_id', $user->id);
+            });
+        } elseif ($user?->role === User::ROLE_BRANCH_HEAD && $user->branch_id) {
+            $query->whereHas('tripRequest', function ($tripQuery) use ($user): void {
+                $tripQuery->where('branch_id', $user->branch_id);
+            });
+        }
+
         $logs = $query->get();
 
         return view('trips.logbook-manage', compact('logs', 'showArchived'));
@@ -636,6 +660,8 @@ class TripRequestController extends Controller
         $query = TripLog::with([
             'tripRequest.assignedDriver',
             'tripRequest.assignedVehicle',
+            'tripRequest.branch',
+            'tripRequest.requestedBy',
         ]);
 
         if ($request->user()?->role === User::ROLE_SUPER_ADMIN) {
@@ -644,6 +670,10 @@ class TripRequestController extends Controller
 
         $log = $query->findOrFail($tripLog);
         $tripRequest = $log->tripRequest;
+        if (! $tripRequest) {
+            abort(404);
+        }
+        $this->authorizeTripView($request->user(), $tripRequest);
         $tripRequest->setRelation('log', $log);
 
         $backUrl = route('logbooks.manage', $request->boolean('archived') ? ['archived' => 1] : []);
@@ -725,6 +755,7 @@ class TripRequestController extends Controller
 
     public function editLogbook(TripRequest $tripRequest): View
     {
+        $this->authorizeTripMutation(request()->user(), $tripRequest);
         $tripRequest->load(['assignedDriver', 'log']);
 
         if (! $tripRequest->log) {
@@ -738,6 +769,7 @@ class TripRequestController extends Controller
 
     public function updateLogbook(LogTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
+        $this->authorizeTripMutation($request->user(), $tripRequest);
         $tripRequest->load(['log']);
 
         if (! $tripRequest->log) {
@@ -911,6 +943,7 @@ class TripRequestController extends Controller
 
     public function destroyLogbook(Request $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
+        $this->authorizeTripMutation($request->user(), $tripRequest);
         $tripRequest->load('log');
 
         if (! $tripRequest->log) {
@@ -929,6 +962,10 @@ class TripRequestController extends Controller
     public function archiveLogbook(Request $request, int $tripLog, AuditLogService $auditLog): RedirectResponse
     {
         $log = TripLog::with('tripRequest')->findOrFail($tripLog);
+        if (! $log->tripRequest) {
+            abort(404);
+        }
+        $this->authorizeTripMutation($request->user(), $log->tripRequest);
 
         $this->archiveLogEntry($log, $request, $auditLog);
 
@@ -994,6 +1031,14 @@ class TripRequestController extends Controller
 
     public function storeLogbook(LogTripRequest $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
+        $this->authorizeTripMutation($request->user(), $tripRequest);
+        $tripRequest->loadMissing('log');
+        if ($tripRequest->log) {
+            return redirect()
+                ->route('trips.logbook.edit', $tripRequest)
+                ->with('error', 'A logbook already exists for this trip.');
+        }
+
         $data = $request->validated();
 
         $distance = $data['end_mileage'] - $data['start_mileage'];

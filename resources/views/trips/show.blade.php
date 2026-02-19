@@ -290,11 +290,11 @@
                         </form>
                     @endif
 
-                    @if ($tripRequest->status === 'assigned' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                    @if ($tripRequest->status === 'assigned' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                         <a href="{{ route('trips.logbook', $tripRequest) }}" class="btn btn-dark w-100" data-loading>Enter Logbook</a>
                     @endif
 
-                    @if ($tripRequest->status === 'completed' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                    @if ($tripRequest->status === 'completed' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                         <a href="{{ route('trips.logbook.edit', $tripRequest) }}" class="btn btn-outline-dark w-100" data-loading>Edit Logbook</a>
                     @endif
 
