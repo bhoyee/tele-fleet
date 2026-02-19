@@ -31,9 +31,14 @@ class TripRequestCancelled extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $tripDate = $this->tripRequest->trip_date?->format('M d, Y') ?? 'N/A';
-        $tripTime = $this->tripRequest->trip_time
-            ? \Illuminate\Support\Carbon::createFromFormat('H:i', $this->tripRequest->trip_time)->format('g:i A')
-            : 'N/A';
+        $tripTime = 'N/A';
+        if ($this->tripRequest->trip_time) {
+            try {
+                $tripTime = \Illuminate\Support\Carbon::parse($this->tripRequest->trip_time)->format('g:i A');
+            } catch (\Throwable) {
+                $tripTime = (string) $this->tripRequest->trip_time;
+            }
+        }
 
         return (new MailMessage)
             ->subject('Trip Request Cancelled - ' . $this->tripRequest->request_number)

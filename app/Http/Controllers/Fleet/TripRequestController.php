@@ -122,6 +122,15 @@ class TripRequestController extends Controller
         $trips = $query->get();
 
         $payload = $trips->map(function (TripRequest $trip): array {
+            $tripTime = 'N/A';
+            if ($trip->trip_time) {
+                try {
+                    $tripTime = Carbon::parse($trip->trip_time)->format('g:i A');
+                } catch (\Throwable) {
+                    $tripTime = (string) $trip->trip_time;
+                }
+            }
+
             return [
                 'id' => $trip->id,
                 'branch_id' => $trip->branch_id,
@@ -129,7 +138,7 @@ class TripRequestController extends Controller
                 'request_number' => $trip->request_number,
                 'purpose' => $trip->purpose,
                 'trip_date' => $trip->trip_date?->format('M d, Y') ?? '',
-                'trip_time' => $trip->trip_time ? Carbon::createFromFormat('H:i', $trip->trip_time)->format('g:i A') : 'N/A',
+                'trip_time' => $tripTime,
                 'trip_date_raw' => $trip->trip_date?->format('Y-m-d') ?? '',
                 'trip_time_raw' => $trip->trip_time ?? null,
                 'status' => $trip->status,
