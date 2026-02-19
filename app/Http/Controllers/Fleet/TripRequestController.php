@@ -25,7 +25,6 @@ use App\Notifications\TripRequestRejected;
 use App\Services\AuditLogService;
 use App\Services\SmsService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -284,7 +283,7 @@ class TripRequestController extends Controller
         return Storage::disk('public')->download($path);
     }
 
-    public function previewAttachment(TripRequest $tripRequest, string $filename): Response
+    public function previewAttachment(TripRequest $tripRequest, string $filename)
     {
         $this->authorizeTripView(request()->user(), $tripRequest);
         $path = collect($tripRequest->attachments ?? [])
