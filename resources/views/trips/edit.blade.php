@@ -9,7 +9,7 @@
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
-            <form method="POST" action="{{ route('trips.update', $tripRequest) }}">
+            <form method="POST" action="{{ route('trips.update', $tripRequest) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PATCH')
 
@@ -59,6 +59,13 @@
                     <div class="col-md-12">
                         <label class="form-label" for="additional_notes">Additional Notes</label>
                         <textarea class="form-control" id="additional_notes" name="additional_notes" rows="3">{{ old('additional_notes', $tripRequest->additional_notes) }}</textarea>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label" for="attachments">Add Attachments (optional)</label>
+                        <input class="form-control" id="attachments" name="attachments[]" type="file" multiple>
+                        <div class="form-text">Accepted: JPG, PNG, PDF (max 5MB each). Existing attachments remain.</div>
+                        @error('attachments') <div class="text-danger small">{{ $message }}</div> @enderror
+                        @error('attachments.*') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                 </div>
 

@@ -25,12 +25,14 @@ use App\Notifications\TripRequestRejected;
 use App\Services\AuditLogService;
 use App\Services\SmsService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
 use Throwable;
 
@@ -180,6 +182,13 @@ class TripRequestController extends Controller
                 ->withInput();
         }
 
+        $attachments = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments', []) as $file) {
+                $attachments[] = $file->store('trips', 'public');
+            }
+        }
+
         $tripRequest = $this->createTripRequestWithUniqueRequestNumber([
             'branch_id' => $branchId,
             'requested_by_user_id' => $user->id,
@@ -190,6 +199,7 @@ class TripRequestController extends Controller
             'estimated_distance_km' => $data['estimated_distance_km'] ?? null,
             'number_of_passengers' => $data['number_of_passengers'] ?? 1,
             'additional_notes' => $data['additional_notes'] ?? null,
+            'attachments' => $attachments ?: null,
             'status' => 'pending',
         ]);
 
@@ -258,6 +268,34 @@ class TripRequestController extends Controller
         }
 
         return view('trips.show', compact('tripRequest', 'vehicles', 'drivers'));
+    }
+
+    public function downloadAttachment(TripRequest $tripRequest, string $filename)
+    {
+        $this->authorizeTripView(request()->user(), $tripRequest);
+        $path = collect($tripRequest->attachments ?? [])
+            ->first(fn ($item) => basename($item) === $filename);
+
+        if (! $path || ! Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->download($path);
+    }
+
+    public function previewAttachment(TripRequest $tripRequest, string $filename): Response
+    {
+        $this->authorizeTripView(request()->user(), $tripRequest);
+        $path = collect($tripRequest->attachments ?? [])
+            ->first(fn ($item) => basename($item) === $filename);
+
+        if (! $path || ! Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->response($path, $filename, [
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ]);
     }
 
     public function cancel(Request $request, TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
@@ -659,6 +697,14 @@ class TripRequestController extends Controller
         if (in_array($request->user()?->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
             $data['branch_id'] = $tripRequest->branch_id;
         }
+
+        $attachments = $tripRequest->attachments ?? [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments', []) as $file) {
+                $attachments[] = $file->store('trips', 'public');
+            }
+        }
+        $data['attachments'] = $attachments ?: null;
 
         $tripRequest->update(array_merge($data, [
             'trip_time' => $data['trip_time'] ?? null,

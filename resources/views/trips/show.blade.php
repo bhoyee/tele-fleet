@@ -66,6 +66,44 @@
                             <div class="fw-semibold">{{ $tripRequest->additional_notes ?: 'N/A' }}</div>
                         </div>
                         <div class="col-md-12">
+                            <div class="text-muted small">Attachments</div>
+                            @if (! empty($tripRequest->attachments))
+                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                    @foreach ($tripRequest->attachments as $attachment)
+                                        @php
+                                            $filename = basename($attachment);
+                                            $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                                            $isImage = in_array($ext, ['jpg', 'jpeg', 'png'], true);
+                                        @endphp
+                                        <div class="border rounded-3 p-2 bg-white" style="width: 160px;">
+                                            @if ($isImage)
+                                                <a href="{{ route('trips.attachments.preview', [$tripRequest, $filename]) }}" target="_blank" rel="noopener">
+                                                    <img src="{{ route('trips.attachments.preview', [$tripRequest, $filename]) }}" alt="Attachment" style="width: 100%; height: 110px; object-fit: cover; border-radius: 8px;">
+                                                </a>
+                                            @else
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="bi bi-file-earmark-text"></i>
+                                                    <span class="small text-truncate" title="{{ $filename }}">{{ $filename }}</span>
+                                                </div>
+                                            @endif
+                                            <div class="mt-2 d-flex gap-2">
+                                                <a class="btn btn-sm btn-outline-primary w-100" href="{{ route('trips.attachments.download', [$tripRequest, $filename]) }}">
+                                                    Download
+                                                </a>
+                                                @if ($isImage)
+                                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('trips.attachments.preview', [$tripRequest, $filename]) }}" target="_blank" rel="noopener" title="Preview">
+                                                        <i class="bi bi-box-arrow-up-right"></i>
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="fw-semibold">None</div>
+                            @endif
+                        </div>
+                        <div class="col-md-12">
                             <div class="text-muted small">Trip Condition</div>
                             @if ($tripRequest->condition_notes)
                                 <div class="alert alert-warning mb-0">

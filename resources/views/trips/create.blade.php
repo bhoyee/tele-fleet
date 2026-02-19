@@ -9,7 +9,7 @@
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
-            <form method="POST" action="{{ route('trips.store') }}">
+            <form method="POST" action="{{ route('trips.store') }}" enctype="multipart/form-data">
                 @csrf
 
                 <div class="row g-3">
@@ -58,6 +58,13 @@
                     <div class="col-md-12">
                         <label class="form-label" for="additional_notes">Additional Notes</label>
                         <textarea class="form-control" id="additional_notes" name="additional_notes" rows="3">{{ old('additional_notes') }}</textarea>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label" for="attachments">Attachments (optional)</label>
+                        <input class="form-control" id="attachments" name="attachments[]" type="file" multiple>
+                        <div class="form-text">Accepted: JPG, PNG, PDF (max 5MB each).</div>
+                        @error('attachments') <div class="text-danger small">{{ $message }}</div> @enderror
+                        @error('attachments.*') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                 </div>
 

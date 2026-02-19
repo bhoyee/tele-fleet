@@ -46,6 +46,8 @@ class StoreTripRequest extends FormRequest
             'estimated_distance_km' => ['required', 'integer', 'min:1', 'max:365'],
             'number_of_passengers' => ['nullable', 'integer', 'min:1'],
             'additional_notes' => ['nullable', 'string', 'max:1000'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*' => ['file', 'max:5120', 'mimes:jpg,jpeg,png,pdf'],
         ];
     }
 }
