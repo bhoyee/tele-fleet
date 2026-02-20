@@ -1,0 +1,49 @@
+name: Deploy (FTPS)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-ftps-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to shared hosting (FTPS)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Deploys repository files to a shared-hosting account over FTPS.
+      #
+      # Required GitHub Secrets:
+      # - FTP_SERVER: e.g. ftp.example.com
+      # - FTP_USERNAME
+      # - FTP_PASSWORD
+      # - FTP_REMOTE_DIR: e.g. /tele-fleet.saptransportationandlogistics.ng/
+      #
+      # Notes:
+      # - This repository ignores /vendor (see .gitignore). Your server must already have vendor/ installed.
+      # - We exclude .env and storage/ to avoid overwriting server environment and runtime data.
+      - name: Upload via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          exclude: |
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/tests/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/bootstrap/cache/**
+            **/vendor/**
