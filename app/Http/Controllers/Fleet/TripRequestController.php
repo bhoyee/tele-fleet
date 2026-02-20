@@ -19,6 +19,7 @@ use App\Events\TripRequestChanged;
 use App\Notifications\TripRequestApproved;
 use App\Notifications\TripRequestAssigned;
 use App\Notifications\TripRequestCreated;
+use App\Notifications\TripRequestCreatedInApp;
 use App\Notifications\TripRequestCancelled;
 use App\Notifications\TripRequestReassigned;
 use App\Notifications\TripRequestRejected;
@@ -216,6 +217,7 @@ class TripRequestController extends Controller
 
         $recipients = $this->buildNotificationRecipients($tripRequest, $user);
         try {
+            Notification::send($recipients, TripRequestCreatedInApp::fromTripRequest($tripRequest));
             Notification::send($recipients, TripRequestCreated::fromTripRequest($tripRequest));
         } catch (Throwable $exception) {
             Log::warning('Trip request create notification failed.', [

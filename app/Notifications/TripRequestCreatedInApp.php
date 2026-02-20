@@ -3,21 +3,10 @@
 namespace App\Notifications;
 
 use App\Models\TripRequest;
-use App\Notifications\Concerns\QueueReliability;
-use App\Notifications\Concerns\SkipsInvalidMailRecipients;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class TripRequestCreated extends Notification implements ShouldQueue
+class TripRequestCreatedInApp extends Notification
 {
-    use Queueable;
-    use QueueReliability;
-    use SkipsInvalidMailRecipients;
-
-    public bool $deleteWhenMissingModels = true;
-
     public function __construct(
         private int $tripRequestId,
         private string $requestNumber,
@@ -25,40 +14,24 @@ class TripRequestCreated extends Notification implements ShouldQueue
         private string $purpose,
         private string $destination,
         private ?string $tripDate,
-    )
-    {
+    ) {
     }
 
     public static function fromTripRequest(TripRequest $tripRequest): self
     {
-        return (new self(
+        return new self(
             tripRequestId: (int) $tripRequest->id,
             requestNumber: (string) $tripRequest->request_number,
             status: (string) $tripRequest->status,
             purpose: (string) $tripRequest->purpose,
             destination: (string) $tripRequest->destination,
             tripDate: $tripRequest->trip_date?->toDateString(),
-        ))
-            ->onConnection('database')
-            ->onQueue('notifications');
+        );
     }
 
     public function via(object $notifiable): array
     {
-        return $this->shouldSendMailTo($notifiable)
-            ? ['mail']
-            : [];
-    }
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->subject('New Trip Request '.$this->requestNumber)
-            ->line('A new trip request has been submitted.')
-            ->line('Purpose: '.$this->purpose)
-            ->line('Destination: '.$this->destination)
-            ->action('View Trip Request', route('trips.show', $this->tripRequestId))
-            ->line('Please review and proceed with approval.');
+        return ['database'];
     }
 
     public function toArray(object $notifiable): array
@@ -73,3 +46,4 @@ class TripRequestCreated extends Notification implements ShouldQueue
         ];
     }
 }
+
