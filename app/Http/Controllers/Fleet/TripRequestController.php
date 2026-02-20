@@ -1619,7 +1619,14 @@ class TripRequestController extends Controller
             return false;
         }
 
-        $tripMoment = $tripRequest->trip_date->copy()->startOfDay();
+        $status = strtolower((string) $tripRequest->status);
+        if (! in_array($status, ['pending', 'approved', 'assigned'], true)) {
+            return false;
+        }
+
+        // If trip time is not specified, allow cancellation until end-of-day (instead of midnight),
+        // since branch admins often create trips with date only.
+        $tripMoment = $tripRequest->trip_date->copy()->endOfDay();
 
         if ($tripRequest->trip_time) {
             $date = $tripRequest->trip_date->format('Y-m-d');
@@ -1660,12 +1667,11 @@ class TripRequestController extends Controller
             }
         }
 
-        $status = strtolower((string) $tripRequest->status);
         if ($status === 'pending') {
             return true;
         }
 
-        return $status !== 'completed' && now()->lt($tripMoment);
+        return now()->lt($tripMoment);
     }
 
     private function archiveLogEntry(TripLog $log, Request $request, AuditLogService $auditLog): void

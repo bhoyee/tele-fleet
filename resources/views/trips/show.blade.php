@@ -2,7 +2,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Trip {{ $tripRequest->request_number }}</h1>
-            <p class="text-muted mb-0">Status: {{ ucfirst($tripRequest->status) }}</p>
+            <p class="text-muted mb-0">Status: <span id="tripHeaderStatus">{{ ucfirst($tripRequest->status) }}</span></p>
         </div>
         <a href="{{ route('trips.index') }}" class="btn btn-outline-secondary" data-loading>Back</a>
     </div>
@@ -186,6 +186,44 @@
                 <div class="card-body" id="tripWorkflowActions">
                     <h5 class="fw-semibold mb-3">Workflow Actions</h5>
                     <div id="tripRealtimeBanner" class="alert alert-warning border d-none mb-3"></div>
+
+                    @php
+                        $user = auth()->user();
+                        $canManageTrip = $user && (
+                            in_array($user->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true)
+                            || ($user->role === \App\Models\User::ROLE_BRANCH_ADMIN && (int) $tripRequest->requested_by_user_id === (int) $user->id)
+                            || ($user->role === \App\Models\User::ROLE_BRANCH_HEAD && $user->branch_id && (int) $tripRequest->branch_id === (int) $user->branch_id)
+                        );
+
+                        $tripStatusLower = strtolower((string) $tripRequest->status);
+                        $canCancelTrip = false;
+
+                        if ($canManageTrip && in_array($tripStatusLower, ['pending', 'approved', 'assigned'], true) && $tripRequest->trip_date) {
+                            if ($tripStatusLower === 'pending') {
+                                $canCancelTrip = true;
+                            } else {
+                                $tripMoment = $tripRequest->trip_date->copy()->endOfDay();
+                                if ($tripRequest->trip_time) {
+                                    $candidate = $tripRequest->trip_date->format('Y-m-d').' '.$tripRequest->trip_time;
+                                    try {
+                                        $tripMoment = \Illuminate\Support\Carbon::parse($candidate);
+                                    } catch (\Throwable $e) {
+                                        $tripMoment = $tripMoment;
+                                    }
+                                }
+                                $canCancelTrip = now()->lt($tripMoment);
+                            }
+                        }
+                    @endphp
+
+                    @if ($canCancelTrip)
+                        <button type="button"
+                                class="btn btn-outline-warning w-100 mb-3"
+                                data-bs-toggle="modal"
+                                data-bs-target="#cancelTripModal">
+                            Cancel Trip
+                        </button>
+                    @endif
 
                     @if ($tripRequest->status === 'pending' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
                         <form method="POST" action="{{ route('trips.approve', $tripRequest) }}" class="mb-3">
@@ -486,6 +524,35 @@
         </div>
     </div>
 
+    @if ($canCancelTrip)
+        <div class="modal fade" id="cancelTripModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cancel Trip</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="{{ route('trips.cancel', $tripRequest) }}">
+                        @csrf
+                        @method('PATCH')
+                        <div class="modal-body">
+                            <p class="mb-3">Cancel trip <strong>{{ $tripRequest->request_number }}</strong>? This cannot be undone.</p>
+                            <div class="mb-0">
+                                <label class="form-label fw-semibold" for="cancelTripReason">Cancellation reason <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="cancelTripReason" name="cancellation_reason" rows="4" required maxlength="1000"></textarea>
+                                <div class="form-text">This will be visible to all users on this trip.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-warning">Cancel Trip</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
         <div class="modal fade" id="deleteTripModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -564,6 +631,7 @@
                 window[guardKey] = true;
 
                 const statusBadge = document.getElementById('tripStatusBadge');
+                const headerStatus = document.getElementById('tripHeaderStatus');
                 const statusUpdatedAt = document.getElementById('tripStatusUpdatedAt');
                 const lastUpdatedBy = document.getElementById('tripLastUpdatedBy');
                 const lastUpdatedAt = document.getElementById('tripLastUpdatedAt');
@@ -629,6 +697,10 @@
                     if (statusBadge && incomingStatus) {
                         statusBadge.textContent = capitalize(incomingStatus);
                         statusBadge.className = 'badge ' + statusBadgeClass(incomingStatus);
+                    }
+
+                    if (headerStatus && incomingStatus) {
+                        headerStatus.textContent = capitalize(incomingStatus);
                     }
 
                     if (statusUpdatedAt) {

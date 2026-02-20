@@ -231,10 +231,11 @@
                                         $tripMoment = \Illuminate\Support\Carbon::parse($trip->trip_date->format('Y-m-d') . ' ' . $trip->trip_time);
                                     }
                                 } else {
-                                    $tripMoment = $trip->trip_date->copy()->startOfDay();
+                                    $tripMoment = $trip->trip_date->copy()->endOfDay();
                                 }
                                 $tripStatus = strtolower((string) $trip->status);
-                                $canCancel = in_array($tripStatus, ['pending', 'approved', 'assigned'], true) && now()->lt($tripMoment);
+                                $canCancel = $tripStatus === 'pending'
+                                    || (in_array($tripStatus, ['approved', 'assigned'], true) && now()->lt($tripMoment));
                             @endphp
                             <tr>
                                 <td class="dtr-control" data-label=""></td>
@@ -446,6 +447,7 @@
                                     <td class="text-muted">—</td>
                                     <td class="text-muted">—</td>
                                     <td class="text-muted">—</td>
+                                    <td class="text-muted text-end">—</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -664,8 +666,9 @@
                 const canCancelTrip = (trip) => {
                     const status = String(trip.status || '').toLowerCase();
                     if (!['pending', 'approved', 'assigned'].includes(status)) return false;
+                    if (status === 'pending') return true;
                     if (!trip.trip_date_raw) return false;
-                    const timeValue = trip.trip_time_raw ? trip.trip_time_raw : '00:00';
+                    const timeValue = trip.trip_time_raw ? trip.trip_time_raw : '23:59:59';
                     const tripMoment = new Date(`${trip.trip_date_raw}T${timeValue}`);
                     return new Date() < tripMoment;
                 };
