@@ -36,7 +36,9 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           local-dir: ./
-          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          # FTP-Deploy-Action requires server-dir to end with a trailing slash.
+          # Appending "/" here avoids failures if the secret is set without it.
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}/
           exclude: |
             **/.git*/**
             **/.github/**
