@@ -444,7 +444,7 @@
             }
 
             body.is-mobile .sidebar.active {
-                width: var(--sidebar-width);
+                width: var(--sidebar-width) !important;
             }
 
             @media (max-width: 768px) {
@@ -1477,27 +1477,19 @@
                 syncMobileClass();
             }, true);
 
-            const syncMobileClass = () => {
-                // Avoid oscillation when Bootstrap modals toggle scrollbars/padding.
-                if (document.body.classList.contains('modal-open')) {
-                    return;
-                }
+             const syncMobileClass = () => {
+                 // Avoid oscillation when Bootstrap modals toggle scrollbars/padding.
+                 if (document.body.classList.contains('modal-open')) {
+                     return;
+                 }
 
-                if (isMobileViewport()) {
-                    document.body.classList.add('is-mobile');
-                    document.documentElement.style.setProperty('--sidebar-width', '0px');
-                    if (mainContent) {
-                        mainContent.style.marginLeft = '0px';
-                    }
-                    closeSidebar();
-                } else {
-                    document.body.classList.remove('is-mobile');
-                    document.documentElement.style.setProperty('--sidebar-width', '260px');
-                    if (mainContent) {
-                        mainContent.style.marginLeft = '';
-                    }
-                }
-            };
+                 if (isMobileViewport()) {
+                     document.body.classList.add('is-mobile');
+                     closeSidebar();
+                 } else {
+                     document.body.classList.remove('is-mobile');
+                 }
+             };
 
             syncMobileClass();
             window.addEventListener('resize', syncMobileClass);
