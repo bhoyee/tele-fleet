@@ -444,7 +444,7 @@
             }
 
             body.is-mobile .sidebar.active {
-                width: var(--sidebar-width);
+                width: var(--sidebar-width) !important;
             }
 
             @media (max-width: 768px) {
