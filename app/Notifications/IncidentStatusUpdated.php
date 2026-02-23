@@ -42,7 +42,15 @@ class IncidentStatusUpdated extends Notification implements ShouldQueue
             $mail->line('Resolution Notes: ' . $this->incident->resolution_notes);
         }
 
-        $mail->action('View Incident', route('incidents.show', $this->incident))
+        $routeKey = $this->incident->uuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $incident = IncidentReport::withTrashed()->find($this->incident->getKey());
+            $routeKey = is_string($incident?->uuid ?? null) && $incident->uuid !== ''
+                ? $incident->uuid
+                : $this->incident->getKey();
+        }
+
+        $mail->action('View Incident', route('incidents.show', $routeKey))
             ->line('Thank you.');
 
         return $mail;
