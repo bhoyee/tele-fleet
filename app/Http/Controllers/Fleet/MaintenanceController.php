@@ -225,8 +225,11 @@ class MaintenanceController extends Controller
         return response()->json([
             'data' => $maintenances->map(function (VehicleMaintenance $maintenance): array {
                 $status = $maintenance->status;
+                $publicId = is_string($maintenance->uuid ?? null) && $maintenance->uuid !== '' ? $maintenance->uuid : (string) $maintenance->id;
+
                 return [
                     'id' => $maintenance->id,
+                    'public_id' => $publicId,
                     'vehicle_registration' => $maintenance->vehicle?->registration_number ?? 'N/A',
                     'vehicle_make' => $maintenance->vehicle?->make ?? '',
                     'vehicle_model' => $maintenance->vehicle?->model ?? '',

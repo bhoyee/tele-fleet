@@ -141,22 +141,26 @@ class DriverController extends Controller
             ->with('success', 'Driver archived successfully.');
     }
 
-    public function restore(int $driver, AuditLogService $auditLog): RedirectResponse
+    public function restore(Driver $driver, AuditLogService $auditLog): RedirectResponse
     {
-        $driverModel = Driver::onlyTrashed()->findOrFail($driver);
-        $driverModel->restore();
-        $auditLog->log('driver.restored', $driverModel);
+        if (! $driver->trashed()) {
+            return redirect()
+                ->route('drivers.index')
+                ->with('error', 'Driver is already active.');
+        }
+
+        $driver->restore();
+        $auditLog->log('driver.restored', $driver);
 
         return redirect()
             ->route('drivers.index', ['archived' => 1])
             ->with('success', 'Driver restored successfully.');
     }
 
-    public function forceDelete(int $driver, AuditLogService $auditLog): RedirectResponse
+    public function forceDelete(Driver $driver, AuditLogService $auditLog): RedirectResponse
     {
-        $driverModel = Driver::onlyTrashed()->findOrFail($driver);
-        $driverModel->forceDelete();
-        $auditLog->log('driver.force_deleted', $driverModel);
+        $driver->forceDelete();
+        $auditLog->log('driver.force_deleted', $driver);
 
         return redirect()
             ->route('drivers.index', ['archived' => 1])
@@ -174,8 +178,11 @@ class DriverController extends Controller
 
         return response()->json([
             'data' => $drivers->map(function (Driver $driver): array {
+                $publicId = is_string($driver->uuid ?? null) && $driver->uuid !== '' ? $driver->uuid : (string) $driver->id;
+
                 return [
                     'id' => $driver->id,
+                    'public_id' => $publicId,
                     'full_name' => $driver->full_name,
                     'license_number' => $driver->license_number,
                     'license_expiry' => $driver->license_expiry?->format('M d, Y') ?? 'N/A',

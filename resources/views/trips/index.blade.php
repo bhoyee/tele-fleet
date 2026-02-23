@@ -311,7 +311,7 @@
                                             </button>
                                         @endif
                                         @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                                            <form method="POST" action="{{ route('trips.restore', $trip->id) }}" class="d-inline">
+                                            <form method="POST" action="{{ route('trips.restore', $trip) }}" class="d-inline">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
@@ -320,7 +320,7 @@
                                                     class="btn btn-sm btn-outline-danger"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#forceDeleteTripModal"
-                                                    data-delete-action="{{ route('trips.force', $trip->id) }}"
+                                                    data-delete-action="{{ route('trips.force', $trip) }}"
                                                     data-delete-label="{{ $trip->request_number }}">
                                                 Delete Permanently
                                             </button>
@@ -359,7 +359,7 @@
                                             </button>
                                         @endif
                                         @if (($showArchived ?? false) && auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                                            <form method="POST" action="{{ route('trips.restore', $trip->id) }}" class="d-inline">
+                                            <form method="POST" action="{{ route('trips.restore', $trip) }}" class="d-inline">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="btn btn-outline-success" data-loading title="Restore">
@@ -370,7 +370,7 @@
                                                     class="btn btn-outline-danger"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#forceDeleteTripModal"
-                                                    data-delete-action="{{ route('trips.force', $trip->id) }}"
+                                                    data-delete-action="{{ route('trips.force', $trip) }}"
                                                     data-delete-label="{{ $trip->request_number }}"
                                                     title="Delete permanently">
                                                 <i class="bi bi-x-octagon"></i>
@@ -705,7 +705,7 @@
                             : '';
                         const restoreHtml = showArchived && currentUser.role === 'super_admin'
                             ? `
-                                <form method="POST" action="${restoreUrlTemplate.replace('__ID__', trip.id)}" class="d-inline">
+                                <form method="POST" action="${restoreUrlTemplate.replace('__ID__', trip.public_id)}" class="d-inline">
                                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="_method" value="PATCH">
                                     <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
@@ -714,7 +714,7 @@
                                         class="btn btn-sm btn-outline-danger"
                                         data-bs-toggle="modal"
                                         data-bs-target="#forceDeleteTripModal"
-                                        data-delete-action="${forceDeleteUrlTemplate.replace('__ID__', trip.id)}"
+                                        data-delete-action="${forceDeleteUrlTemplate.replace('__ID__', trip.public_id)}"
                                         data-delete-label="${escapeHtml(trip.request_number)}">
                                     Delete Permanently
                                 </button>
@@ -756,7 +756,7 @@
                             : '';
                         const restoreIcon = showArchived && currentUser.role === 'super_admin'
                             ? `
-                                <form method="POST" action="${restoreUrlTemplate.replace('__ID__', trip.id)}" class="d-inline">
+                                <form method="POST" action="${restoreUrlTemplate.replace('__ID__', trip.public_id)}" class="d-inline">
                                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="_method" value="PATCH">
                                     <button type="submit" class="btn btn-outline-success" data-loading title="Restore">
@@ -767,7 +767,7 @@
                                         class="btn btn-outline-danger"
                                         data-bs-toggle="modal"
                                         data-bs-target="#forceDeleteTripModal"
-                                        data-delete-action="${forceDeleteUrlTemplate.replace('__ID__', trip.id)}"
+                                        data-delete-action="${forceDeleteUrlTemplate.replace('__ID__', trip.public_id)}"
                                         data-delete-label="${escapeHtml(trip.request_number)}"
                                         title="Delete permanently">
                                     <i class="bi bi-x-octagon"></i>

@@ -59,7 +59,7 @@
                                 <td>{{ $log->enteredBy?->name ?? 'N/A' }}</td>
                                 <td>{{ $log->editedBy?->name ?? 'N/A' }}</td>
                                 <td class="text-end">
-                                    <a href="{{ route('logbooks.show', $log->id) }}@if($showArchived){{ '?archived=1' }}@endif" class="btn btn-sm btn-outline-primary" data-loading>View</a>
+                                    <a href="{{ route('logbooks.show', $log) }}@if($showArchived){{ '?archived=1' }}@endif" class="btn btn-sm btn-outline-primary" data-loading>View</a>
                                     @if (! $showArchived && $trip)
                                         @if ($canEditLogbook)
                                             <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>
@@ -68,7 +68,7 @@
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#archiveLogbookModal"
-                                                data-delete-action="{{ route('logbooks.archive', $log->id) }}"
+                                                data-delete-action="{{ route('logbooks.archive', $log) }}"
                                                 data-delete-label="{{ $trip?->request_number ?? 'Logbook' }}">
                                             Delete
                                         </button>
@@ -77,7 +77,7 @@
                                                 class="btn btn-sm btn-outline-success"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#restoreLogbookModal"
-                                                data-restore-action="{{ route('logbooks.restore', $log->id) }}"
+                                                data-restore-action="{{ route('logbooks.restore', $log) }}"
                                                 data-restore-label="{{ $trip?->request_number ?? 'Logbook' }}">
                                             Restore
                                         </button>
@@ -85,7 +85,7 @@
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#forceDeleteLogbookModal"
-                                                data-force-action="{{ route('logbooks.force', $log->id) }}"
+                                                data-force-action="{{ route('logbooks.force', $log) }}"
                                                 data-force-label="{{ $trip?->request_number ?? 'Logbook' }}">
                                             Delete
                                         </button>

@@ -66,7 +66,7 @@
                                             </button>
                                         @endif
                                     @else
-                                        <form method="POST" action="{{ route('admin.users.restore', $user->id) }}" class="d-inline">
+                                        <form method="POST" action="{{ route('admin.users.restore', $user) }}" class="d-inline">
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit" class="btn btn-sm btn-outline-success">Restore</button>
@@ -76,7 +76,7 @@
                                                     class="btn btn-sm btn-outline-danger"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#forceDeleteUserModal"
-                                                    data-force-action="{{ route('admin.users.force', $user->id) }}"
+                                                    data-force-action="{{ route('admin.users.force', $user) }}"
                                                     data-force-name="{{ $user->name }}">
                                                 Delete Permanently
                                             </button>

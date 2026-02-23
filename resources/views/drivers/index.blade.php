@@ -55,8 +55,8 @@
                                             Delete
                                         </button>
                                     @elseif (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                                        <a href="{{ route('drivers.show', $driver->id) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                        <form method="POST" action="{{ route('drivers.restore', $driver->id) }}" class="d-inline">
+                                        <a href="{{ route('drivers.show', $driver) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <form method="POST" action="{{ route('drivers.restore', $driver) }}" class="d-inline">
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
@@ -65,7 +65,7 @@
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#forceDeleteDriverModal"
-                                                data-action="{{ route('drivers.force', $driver->id) }}"
+                                                data-action="{{ route('drivers.force', $driver) }}"
                                                 data-name="{{ $driver->full_name }}">
                                             Delete Permanently
                                         </button>
@@ -341,8 +341,8 @@
 
                     tbody.innerHTML = rows.map((driver) => {
                         const archivedActions = `
-                            <a href="${showUrlTemplate.replace('__ID__', driver.id)}" class="btn btn-sm btn-outline-primary">View</a>
-                            <form method="POST" action="${restoreUrlTemplate.replace('__ID__', driver.id)}" class="d-inline">
+                            <a href="${showUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-primary">View</a>
+                            <form method="POST" action="${restoreUrlTemplate.replace('__ID__', driver.public_id)}" class="d-inline">
                                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="_method" value="PATCH">
                                 <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
@@ -351,19 +351,19 @@
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#forceDeleteDriverModal"
-                                    data-action="${forceDeleteUrlTemplate.replace('__ID__', driver.id)}"
+                                    data-action="${forceDeleteUrlTemplate.replace('__ID__', driver.public_id)}"
                                     data-name="${escapeHtml(driver.full_name)}">
                                 Delete Permanently
                             </button>
                         `;
                         const activeActions = `
-                            <a href="${showUrlTemplate.replace('__ID__', driver.id)}" class="btn btn-sm btn-outline-primary">View</a>
-                            <a href="${editUrlTemplate.replace('__ID__', driver.id)}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a href="${showUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-primary">View</a>
+                            <a href="${editUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-secondary">Edit</a>
                             <button type="button"
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#archiveDriverModal"
-                                    data-action="${deleteUrlTemplate.replace('__ID__', driver.id)}"
+                                    data-action="${deleteUrlTemplate.replace('__ID__', driver.public_id)}"
                                     data-name="${escapeHtml(driver.full_name)}">
                                 Delete
                             </button>
