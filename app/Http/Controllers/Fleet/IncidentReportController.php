@@ -103,7 +103,8 @@ class IncidentReportController extends Controller
 
         if (! empty($data['trip_request_id'])) {
             $trip = TripRequest::with(['assignedVehicle', 'assignedDriver'])->find($data['trip_request_id']);
-            if ($trip && $data['branch_id'] && $trip->branch_id !== $data['branch_id']) {
+
+            if ($trip && in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true) && $user->branch_id && $trip->branch_id !== $user->branch_id) {
                 return redirect()
                     ->back()
                     ->withErrors(['trip_request_id' => 'Selected trip does not belong to your branch.'])
@@ -116,6 +117,9 @@ class IncidentReportController extends Controller
                     ->withErrors(['trip_request_id' => 'You can only select trips you requested.'])
                     ->withInput();
             }
+
+            // When linking to a trip, always derive the branch from that trip.
+            $data['branch_id'] = $trip?->branch_id;
 
             // Always derive vehicle/driver from the selected trip (read-only for branch roles).
             $data['vehicle_id'] = $trip?->assigned_vehicle_id;
@@ -220,11 +224,17 @@ class IncidentReportController extends Controller
 
         if (! empty($data['trip_request_id'])) {
             $trip = TripRequest::find($data['trip_request_id']);
-            if ($trip && $data['branch_id'] && $trip->branch_id !== $data['branch_id']) {
+
+            if ($trip && in_array($request->user()?->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true) && $request->user()?->branch_id && $trip->branch_id !== $request->user()?->branch_id) {
                 return redirect()
                     ->back()
-                    ->withErrors(['trip_request_id' => 'Selected trip does not belong to this branch.'])
+                    ->withErrors(['trip_request_id' => 'Selected trip does not belong to your branch.'])
                     ->withInput();
+            }
+
+            // When linking to a trip, always derive the branch from that trip.
+            if ($trip) {
+                $data['branch_id'] = $trip->branch_id;
             }
         }
 
