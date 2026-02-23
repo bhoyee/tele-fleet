@@ -54,7 +54,13 @@ class TripRequestCreated extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $routeKey = $this->tripRequestUuid ?: $this->tripRequestId;
+        $routeKey = $this->tripRequestUuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $trip = TripRequest::withTrashed()->find($this->tripRequestId);
+            $routeKey = is_string($trip?->uuid ?? null) && $trip->uuid !== ''
+                ? $trip->uuid
+                : $this->tripRequestId;
+        }
 
         return (new MailMessage)
             ->subject('New Trip Request '.$this->requestNumber)

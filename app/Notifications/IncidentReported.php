@@ -51,7 +51,13 @@ class IncidentReported extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $routeKey = $this->incidentUuid ?: $this->incidentId;
+        $routeKey = $this->incidentUuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $incident = IncidentReport::withTrashed()->find($this->incidentId);
+            $routeKey = is_string($incident?->uuid ?? null) && $incident->uuid !== ''
+                ? $incident->uuid
+                : $this->incidentId;
+        }
 
         return (new MailMessage())
             ->subject('Incident Reported: ' . $this->reference)
