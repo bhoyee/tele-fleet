@@ -137,29 +137,41 @@
 
     @push('scripts')
         <script>
-            const deleteUserModal = document.getElementById('deleteUserModal');
-            if (deleteUserModal) {
-                document.querySelectorAll('[data-delete-action]').forEach((button) => {
-                    button.addEventListener('click', () => {
-                        const action = button.getAttribute('data-delete-action');
-                        const name = button.getAttribute('data-delete-name');
-                        document.getElementById('deleteUserForm').setAttribute('action', action);
-                        document.getElementById('deleteUserName').textContent = name;
-                    });
-                });
-            }
+            // Use delegated handlers so DataTables redraws/pagination don't break button wiring.
+            document.addEventListener('click', (event) => {
+                const archiveButton = event.target.closest('[data-delete-action]');
+                if (archiveButton) {
+                    const action = archiveButton.getAttribute('data-delete-action');
+                    const name = archiveButton.getAttribute('data-delete-name');
 
-            const forceDeleteUserModal = document.getElementById('forceDeleteUserModal');
-            if (forceDeleteUserModal) {
-                document.querySelectorAll('[data-force-action]').forEach((button) => {
-                    button.addEventListener('click', () => {
-                        const action = button.getAttribute('data-force-action');
-                        const name = button.getAttribute('data-force-name');
-                        document.getElementById('forceDeleteUserForm').setAttribute('action', action);
-                        document.getElementById('forceDeleteUserName').textContent = name;
-                    });
-                });
-            }
+                    const form = document.getElementById('deleteUserForm');
+                    if (form && action) {
+                        form.setAttribute('action', action);
+                    }
+
+                    const nameEl = document.getElementById('deleteUserName');
+                    if (nameEl && name) {
+                        nameEl.textContent = name;
+                    }
+                    return;
+                }
+
+                const forceButton = event.target.closest('[data-force-action]');
+                if (forceButton) {
+                    const action = forceButton.getAttribute('data-force-action');
+                    const name = forceButton.getAttribute('data-force-name');
+
+                    const form = document.getElementById('forceDeleteUserForm');
+                    if (form && action) {
+                        form.setAttribute('action', action);
+                    }
+
+                    const nameEl = document.getElementById('forceDeleteUserName');
+                    if (nameEl && name) {
+                        nameEl.textContent = name;
+                    }
+                }
+            });
         </script>
     @endpush
 </x-admin-layout>
