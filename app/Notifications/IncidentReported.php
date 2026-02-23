@@ -21,6 +21,7 @@ class IncidentReported extends Notification implements ShouldQueue
 
     public function __construct(
         private int $incidentId,
+        private ?string $incidentUuid,
         private string $reference,
         private string $severity,
         private string $status,
@@ -32,6 +33,7 @@ class IncidentReported extends Notification implements ShouldQueue
     {
         return (new self(
             incidentId: (int) $incident->id,
+            incidentUuid: is_string($incident->uuid ?? null) ? $incident->uuid : null,
             reference: (string) $incident->reference,
             severity: (string) $incident->severity,
             status: (string) $incident->status,
@@ -49,13 +51,15 @@ class IncidentReported extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $routeKey = $this->incidentUuid ?: $this->incidentId;
+
         return (new MailMessage())
             ->subject('Incident Reported: ' . $this->reference)
             ->greeting('Hello ' . ($notifiable->name ?? '') . ',')
             ->line('A new incident has been reported.')
             ->line('Reference: ' . $this->reference)
             ->line('Severity: ' . ucfirst($this->severity))
-            ->action('View Incident', route('incidents.show', $this->incidentId))
+            ->action('View Incident', route('incidents.show', $routeKey))
             ->line('Please review and take action as needed.');
     }
 
@@ -63,6 +67,7 @@ class IncidentReported extends Notification implements ShouldQueue
     {
         return [
             'incident_id' => $this->incidentId,
+            'incident_uuid' => $this->incidentUuid,
             'reference' => $this->reference,
             'severity' => $this->severity,
             'status' => $this->status,

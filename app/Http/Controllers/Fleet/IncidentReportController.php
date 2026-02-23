@@ -45,6 +45,8 @@ class IncidentReportController extends Controller
         $payload = $incidents->map(function (IncidentReport $incident): array {
             return [
                 'id' => $incident->id,
+                'uuid' => $incident->uuid ?? null,
+                'public_id' => $incident->uuid ?: (string) $incident->id,
                 'reference' => $incident->reference,
                 'severity' => $incident->severity,
                 'status' => $incident->status,
@@ -148,6 +150,17 @@ class IncidentReportController extends Controller
         return redirect()
             ->route('incidents.show', $incident)
             ->with('success', 'Incident report submitted.');
+    }
+
+    public function showById(int $incident): View|RedirectResponse
+    {
+        $incidentModel = IncidentReport::withTrashed()->findOrFail($incident);
+
+        if (is_string($incidentModel->uuid ?? null) && $incidentModel->uuid !== '') {
+            return redirect()->route('incidents.show', $incidentModel->uuid);
+        }
+
+        return $this->show($incidentModel);
     }
 
     public function show(IncidentReport $incident): View

@@ -134,6 +134,8 @@ class TripRequestController extends Controller
 
             return [
                 'id' => $trip->id,
+                'uuid' => $trip->uuid ?? null,
+                'public_id' => $trip->uuid ?: (string) $trip->id,
                 'branch_id' => $trip->branch_id,
                 'requested_by_user_id' => $trip->requested_by_user_id,
                 'request_number' => $trip->request_number,
@@ -230,6 +232,17 @@ class TripRequestController extends Controller
         return redirect()
             ->route('trips.show', $tripRequest)
             ->with('success', 'Trip request submitted successfully.');
+    }
+
+    public function showById(int $tripRequest): View|RedirectResponse
+    {
+        $trip = TripRequest::withTrashed()->findOrFail($tripRequest);
+
+        if (is_string($trip->uuid ?? null) && $trip->uuid !== '') {
+            return redirect()->route('trips.show', $trip->uuid);
+        }
+
+        return $this->show($trip);
     }
 
     public function show(TripRequest $tripRequest): View
@@ -407,7 +420,7 @@ class TripRequestController extends Controller
         $this->broadcastTripChange($tripRequest, 'approved');
 
         return redirect()
-            ->route('trips.show', ['tripRequest' => $tripRequest->id, 'condition_prompt' => 1])
+            ->route('trips.show', ['tripRequest' => $tripRequest, 'condition_prompt' => 1])
             ->with('success', 'Trip request approved.');
     }
 

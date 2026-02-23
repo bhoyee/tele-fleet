@@ -8,10 +8,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class TripRequest extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected static ?bool $uuidColumnExists = null;
 
     protected $fillable = [
         'request_number',
@@ -64,6 +68,39 @@ class TripRequest extends Model
         'assignment_reminder_notified_at' => 'datetime',
         'assignment_conflict_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (TripRequest $tripRequest): void {
+            if (! static::hasUuidColumn()) {
+                return;
+            }
+
+            if (! is_string($tripRequest->uuid) || $tripRequest->uuid === '') {
+                $tripRequest->uuid = (string) Str::uuid();
+            }
+        });
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return static::hasUuidColumn() ? 'uuid' : $this->getKeyName();
+    }
+
+    private static function hasUuidColumn(): bool
+    {
+        if (static::$uuidColumnExists !== null) {
+            return static::$uuidColumnExists;
+        }
+
+        try {
+            static::$uuidColumnExists = Schema::hasColumn((new static())->getTable(), 'uuid');
+        } catch (\Throwable) {
+            static::$uuidColumnExists = false;
+        }
+
+        return static::$uuidColumnExists;
+    }
 
     public function branch(): BelongsTo
     {

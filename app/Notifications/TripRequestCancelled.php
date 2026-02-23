@@ -59,6 +59,7 @@ class TripRequestCancelled extends Notification implements ShouldQueue
     {
         return [
             'trip_request_id' => $this->tripRequest->id,
+            'trip_request_uuid' => $this->tripRequest->uuid ?? null,
             'request_number' => $this->tripRequest->request_number,
             'purpose' => $this->tripRequest->purpose,
             'destination' => $this->tripRequest->destination,

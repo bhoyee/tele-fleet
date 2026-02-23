@@ -53,6 +53,7 @@ class TripRequestRejected extends Notification
     {
         return [
             'trip_request_id' => $this->tripRequest->id,
+            'trip_request_uuid' => $this->tripRequest->uuid ?? null,
             'request_number' => $this->tripRequest->request_number,
             'status' => $this->tripRequest->status,
             'purpose' => $this->tripRequest->purpose,

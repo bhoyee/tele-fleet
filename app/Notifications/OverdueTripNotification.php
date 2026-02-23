@@ -34,6 +34,7 @@ class OverdueTripNotification extends Notification
     {
         return [
             'trip_request_id' => $this->trip->id,
+            'trip_request_uuid' => $this->trip->uuid ?? null,
             'request_number' => $this->trip->request_number,
             'type' => 'overdue_trip',
         ];

@@ -70,6 +70,7 @@ class TripRequestReassigned extends Notification
     {
         return [
             'trip_request_id' => $this->tripRequest->id,
+            'trip_request_uuid' => $this->tripRequest->uuid ?? null,
             'request_number' => $this->tripRequest->request_number,
             'status' => $this->tripRequest->status,
             'from_vehicle' => $this->fromVehicle?->registration_number,

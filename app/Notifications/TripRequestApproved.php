@@ -19,6 +19,7 @@ class TripRequestApproved extends Notification implements ShouldQueue
 
     public function __construct(
         private int $tripRequestId,
+        private ?string $tripRequestUuid,
         private string $requestNumber,
         private string $status,
         private string $purpose,
@@ -32,6 +33,7 @@ class TripRequestApproved extends Notification implements ShouldQueue
     {
         return (new self(
             tripRequestId: (int) $tripRequest->id,
+            tripRequestUuid: is_string($tripRequest->uuid ?? null) ? $tripRequest->uuid : null,
             requestNumber: (string) $tripRequest->request_number,
             status: (string) $tripRequest->status,
             purpose: (string) ($tripRequest->purpose ?? ''),
@@ -51,18 +53,21 @@ class TripRequestApproved extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $routeKey = $this->tripRequestUuid ?: $this->tripRequestId;
+
         return (new MailMessage)
             ->subject('Trip Approved '.$this->requestNumber)
             ->line('Your trip request has been approved.')
             ->line('Purpose: '.$this->purpose)
             ->line('Destination: '.$this->destination)
-            ->action('View Trip Request', route('trips.show', $this->tripRequestId));
+            ->action('View Trip Request', route('trips.show', $routeKey));
     }
 
     public function toArray(object $notifiable): array
     {
         return [
             'trip_request_id' => $this->tripRequestId,
+            'trip_request_uuid' => $this->tripRequestUuid,
             'request_number' => $this->requestNumber,
             'status' => $this->status,
             'approved_at' => $this->approvedAt,

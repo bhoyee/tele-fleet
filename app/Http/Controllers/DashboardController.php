@@ -69,6 +69,8 @@ class DashboardController extends Controller
             }
             return [
                 'id' => $trip->id,
+                'uuid' => $trip->uuid ?? null,
+                'public_id' => $trip->uuid ?: (string) $trip->id,
                 'request_number' => $trip->request_number,
                 'trip_date' => $trip->trip_date?->format('M d') ?? '',
                 'trip_day' => $trip->trip_date?->format('D') ?? '',

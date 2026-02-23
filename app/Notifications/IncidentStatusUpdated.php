@@ -52,6 +52,7 @@ class IncidentStatusUpdated extends Notification implements ShouldQueue
     {
         return [
             'incident_id' => $this->incident->id,
+            'incident_uuid' => $this->incident->uuid ?? null,
             'reference' => $this->incident->reference,
             'status' => $this->incident->status,
             'updated_by' => $this->updatedBy->name ?? null,
