@@ -417,11 +417,7 @@ class TripRequestController extends Controller
             'cancellation_reason' => ['required', 'string', 'max:1000'],
         ]);
 
-        if ($tripRequest->assignedVehicle) {
-            if ($tripRequest->assignedVehicle->status === 'in_use') {
-                $tripRequest->assignedVehicle->update(['status' => 'available']);
-            }
-        }
+        $previousVehicleId = $tripRequest->assigned_vehicle_id ? (int) $tripRequest->assigned_vehicle_id : null;
 
         $tripRequest->update([
             'status' => 'cancelled',
@@ -431,6 +427,10 @@ class TripRequestController extends Controller
             'cancellation_reason' => $data['cancellation_reason'],
             'updated_by_user_id' => $request->user()->id,
         ]);
+
+        if ($previousVehicleId) {
+            $this->releaseVehicleIfNotNeededNow($previousVehicleId);
+        }
 
         $auditLog->log('trip_request.cancelled', $tripRequest, [], $tripRequest->toArray());
         $this->broadcastTripChange($tripRequest, 'cancelled');
@@ -1004,6 +1004,7 @@ class TripRequestController extends Controller
         $this->authorizeTripMutation(request()->user(), $tripRequest);
 
         $tripRequest->load('log');
+        $previousVehicleId = $tripRequest->assigned_vehicle_id ? (int) $tripRequest->assigned_vehicle_id : null;
         $tripRequest->update([
             'updated_by_user_id' => request()->user()->id,
         ]);
@@ -1014,6 +1015,10 @@ class TripRequestController extends Controller
         }
 
         $tripRequest->delete();
+
+        if ($previousVehicleId) {
+            $this->releaseVehicleIfNotNeededNow($previousVehicleId);
+        }
 
         $auditLog->log('trip_request.deleted', $tripRequest, $oldValues, [
             'trip_request_id' => $tripRequest->id,
@@ -1040,9 +1045,14 @@ class TripRequestController extends Controller
     public function forceDelete(int $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
         $trip = TripRequest::onlyTrashed()->findOrFail($tripRequest);
+        $previousVehicleId = $trip->assigned_vehicle_id ? (int) $trip->assigned_vehicle_id : null;
 
         $auditLog->log('trip_request.force_deleted', $trip, [], $trip->toArray());
         $trip->forceDelete();
+
+        if ($previousVehicleId) {
+            $this->releaseVehicleIfNotNeededNow($previousVehicleId);
+        }
 
         return redirect()
             ->route('trips.index', ['archived' => 1])
@@ -1488,6 +1498,24 @@ class TripRequestController extends Controller
         }
 
         return ! $this->activeAssignedVehicleIds()->contains($vehicleId);
+    }
+
+    private function releaseVehicleIfNotNeededNow(int $vehicleId): void
+    {
+        $vehicle = Vehicle::find($vehicleId);
+        if (! $vehicle) {
+            return;
+        }
+
+        if ($vehicle->status !== 'in_use') {
+            return;
+        }
+
+        if (! $this->isVehicleAvailableNow($vehicleId)) {
+            return;
+        }
+
+        $vehicle->update(['status' => 'available']);
     }
 
     private function isVehicleAvailableForTripWindow(int $vehicleId, TripRequest $tripRequest): bool
