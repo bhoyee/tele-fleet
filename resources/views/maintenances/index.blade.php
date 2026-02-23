@@ -186,15 +186,15 @@
                                 <td>${escapeHtml(maintenance.description)}</td>
                                 <td>${escapeHtml(maintenance.cost)}</td>
                                 <td class="text-end">
-                                    <a href="${showUrlTemplate.replace('__ID__', maintenance.id)}" class="btn btn-sm btn-outline-primary">View</a>
+                                    <a href="${showUrlTemplate.replace('__ID__', maintenance.public_id ?? maintenance.id)}" class="btn btn-sm btn-outline-primary">View</a>
                                     ${maintenance.status !== 'completed'
-                                        ? `<a href="${editUrlTemplate.replace('__ID__', maintenance.id)}" class="btn btn-sm btn-outline-secondary">Edit</a>`
+                                        ? `<a href="${editUrlTemplate.replace('__ID__', maintenance.public_id ?? maintenance.id)}" class="btn btn-sm btn-outline-secondary">Edit</a>`
                                         : ''}
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"
                                             data-bs-toggle="modal"
                                             data-bs-target="#deleteMaintenanceModal"
-                                            data-action="${deleteUrlTemplate.replace('__ID__', maintenance.id)}"
+                                            data-action="${deleteUrlTemplate.replace('__ID__', maintenance.public_id ?? maintenance.id)}"
                                             data-label="${escapeHtml(maintenance.vehicle_registration)}">
                                         Delete
                                     </button>

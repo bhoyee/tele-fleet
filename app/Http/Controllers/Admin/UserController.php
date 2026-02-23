@@ -139,36 +139,32 @@ class UserController extends Controller
             ->with('success', 'User archived successfully.');
     }
 
-    public function restore(int $user, AuditLogService $auditLog): RedirectResponse
+    public function restore(User $user, AuditLogService $auditLog): RedirectResponse
     {
-        $userModel = User::withTrashed()->findOrFail($user);
-
-        if (! $userModel->trashed()) {
+        if (! $user->trashed()) {
             return redirect()
                 ->route('admin.users.index')
                 ->with('error', 'User is already active.');
         }
 
-        $userModel->restore();
-        $auditLog->log('user.restored', $userModel);
+        $user->restore();
+        $auditLog->log('user.restored', $user);
 
         return redirect()
             ->route('admin.users.index', ['archived' => 1])
             ->with('success', 'User restored successfully.');
     }
 
-    public function forceDelete(int $user, AuditLogService $auditLog): RedirectResponse
+    public function forceDelete(User $user, AuditLogService $auditLog): RedirectResponse
     {
-        $userModel = User::withTrashed()->findOrFail($user);
-
-        if ($userModel->id === auth()->id()) {
+        if ($user->id === auth()->id()) {
             return redirect()
                 ->route('admin.users.index', ['archived' => 1])
                 ->with('error', 'You cannot delete your own account.');
         }
 
-        $userModel->forceDelete();
-        $auditLog->log('user.force_deleted', $userModel);
+        $user->forceDelete();
+        $auditLog->log('user.force_deleted', $user);
 
         return redirect()
             ->route('admin.users.index', ['archived' => 1])

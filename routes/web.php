@@ -187,8 +187,8 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
 
 Route::middleware(['auth', 'role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('users', UserController::class);
-    Route::patch('users/{user}/restore', [UserController::class, 'restore'])->name('users.restore');
-    Route::delete('users/{user}/force', [UserController::class, 'forceDelete'])->name('users.force');
+    Route::patch('users/{user}/restore', [UserController::class, 'restore'])->withTrashed()->name('users.restore');
+    Route::delete('users/{user}/force', [UserController::class, 'forceDelete'])->withTrashed()->name('users.force');
     Route::get('maintenance-settings', [MaintenanceSettingsController::class, 'edit'])->name('maintenance-settings.edit');
     Route::patch('maintenance-settings', [MaintenanceSettingsController::class, 'update'])->name('maintenance-settings.update');
     Route::get('chats', [ChatManagementController::class, 'index'])->name('chats.index');
@@ -216,10 +216,10 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
 });
 
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
-    Route::patch('vehicles/{vehicle}/restore', [VehicleController::class, 'restore'])->name('vehicles.restore');
-    Route::delete('vehicles/{vehicle}/force', [VehicleController::class, 'forceDelete'])->name('vehicles.force');
-    Route::patch('drivers/{driver}/restore', [DriverController::class, 'restore'])->name('drivers.restore');
-    Route::delete('drivers/{driver}/force', [DriverController::class, 'forceDelete'])->name('drivers.force');
+    Route::patch('vehicles/{vehicle}/restore', [VehicleController::class, 'restore'])->withTrashed()->name('vehicles.restore');
+    Route::delete('vehicles/{vehicle}/force', [VehicleController::class, 'forceDelete'])->withTrashed()->name('vehicles.force');
+    Route::patch('drivers/{driver}/restore', [DriverController::class, 'restore'])->withTrashed()->name('drivers.restore');
+    Route::delete('drivers/{driver}/force', [DriverController::class, 'forceDelete'])->withTrashed()->name('drivers.force');
 });
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
@@ -248,8 +248,8 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
 });
 
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
-    Route::patch('incidents/{incident}/restore', [IncidentReportController::class, 'restore'])->name('incidents.restore');
-    Route::delete('incidents/{incident}/force', [IncidentReportController::class, 'forceDelete'])->name('incidents.force');
+    Route::patch('incidents/{incident}/restore', [IncidentReportController::class, 'restore'])->withTrashed()->name('incidents.restore');
+    Route::delete('incidents/{incident}/force', [IncidentReportController::class, 'forceDelete'])->withTrashed()->name('incidents.force');
     Route::get('incidents/export/csv', [IncidentReportController::class, 'exportCsv'])->name('incidents.export.csv');
     Route::get('incidents/export/pdf', [IncidentReportController::class, 'exportPdf'])->name('incidents.export.pdf');
 });
@@ -299,7 +299,7 @@ Route::middleware(['auth', 'role:branch_admin,branch_head'])->group(function () 
 Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::get('logbooks', [TripRequestController::class, 'logbookIndex'])->name('logbooks.index');
     Route::get('logbooks/manage', [TripRequestController::class, 'manageLogbooks'])->name('logbooks.manage');
-    Route::get('logbooks/{tripLog}', [TripRequestController::class, 'showLogbook'])->name('logbooks.show');
+    Route::get('logbooks/{tripLog}', [TripRequestController::class, 'showLogbook'])->withTrashed()->name('logbooks.show');
     Route::delete('logbooks/{tripLog}', [TripRequestController::class, 'archiveLogbook'])->name('logbooks.archive');
 
     Route::get('trips/{tripRequest}/logbook', [TripRequestController::class, 'logbook'])->name('trips.logbook');
@@ -323,10 +323,10 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_h
 });
 
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
-    Route::patch('trips/{tripRequest}/restore', [TripRequestController::class, 'restore'])->name('trips.restore');
-    Route::delete('trips/{tripRequest}/force', [TripRequestController::class, 'forceDelete'])->name('trips.force');
-    Route::patch('logbooks/{tripLog}/restore', [TripRequestController::class, 'restoreLogbook'])->name('logbooks.restore');
-    Route::delete('logbooks/{tripLog}/force', [TripRequestController::class, 'forceDeleteLogbook'])->name('logbooks.force');
+    Route::patch('trips/{tripRequest}/restore', [TripRequestController::class, 'restore'])->withTrashed()->name('trips.restore');
+    Route::delete('trips/{tripRequest}/force', [TripRequestController::class, 'forceDelete'])->withTrashed()->name('trips.force');
+    Route::patch('logbooks/{tripLog}/restore', [TripRequestController::class, 'restoreLogbook'])->withTrashed()->name('logbooks.restore');
+    Route::delete('logbooks/{tripLog}/force', [TripRequestController::class, 'forceDeleteLogbook'])->withTrashed()->name('logbooks.force');
     Route::get('system/backups', [\App\Http\Controllers\Admin\SystemToolsController::class, 'backups'])->name('system.backups');
     Route::post('system/backups/run', [\App\Http\Controllers\Admin\SystemToolsController::class, 'runBackup'])->name('system.backups.run');
     Route::get('system/backups/download/{filename}', [\App\Http\Controllers\Admin\SystemToolsController::class, 'downloadBackup'])->name('system.backups.download');

@@ -98,8 +98,11 @@ class VehicleController extends Controller
                 $displayStatus = $activeAssignedIds->contains($vehicle->id) ? 'in_use' : 'available';
             }
 
+            $publicId = is_string($vehicle->uuid ?? null) && $vehicle->uuid !== '' ? $vehicle->uuid : (string) $vehicle->id;
+
             return [
                 'id' => $vehicle->id,
+                'public_id' => $publicId,
                 'registration_number' => $vehicle->registration_number,
                 'make' => $vehicle->make,
                 'model' => $vehicle->model,
@@ -233,22 +236,26 @@ class VehicleController extends Controller
             ->with('success', 'Vehicle deleted successfully.');
     }
 
-    public function restore(int $vehicle, AuditLogService $auditLog): RedirectResponse
+    public function restore(Vehicle $vehicle, AuditLogService $auditLog): RedirectResponse
     {
-        $vehicleModel = Vehicle::onlyTrashed()->findOrFail($vehicle);
-        $vehicleModel->restore();
-        $auditLog->log('vehicle.restored', $vehicleModel);
+        if (! $vehicle->trashed()) {
+            return redirect()
+                ->route('vehicles.index')
+                ->with('error', 'Vehicle is already active.');
+        }
+
+        $vehicle->restore();
+        $auditLog->log('vehicle.restored', $vehicle);
 
         return redirect()
             ->route('vehicles.index', ['archived' => 1])
             ->with('success', 'Vehicle restored successfully.');
     }
 
-    public function forceDelete(int $vehicle, AuditLogService $auditLog): RedirectResponse
+    public function forceDelete(Vehicle $vehicle, AuditLogService $auditLog): RedirectResponse
     {
-        $vehicleModel = Vehicle::onlyTrashed()->findOrFail($vehicle);
-        $vehicleModel->forceDelete();
-        $auditLog->log('vehicle.force_deleted', $vehicleModel);
+        $vehicle->forceDelete();
+        $auditLog->log('vehicle.force_deleted', $vehicle);
 
         return redirect()
             ->route('vehicles.index', ['archived' => 1])

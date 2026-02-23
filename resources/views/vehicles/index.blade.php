@@ -66,8 +66,8 @@
                                             Delete
                                         </button>
                                     @elseif (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                                        <a href="{{ route('vehicles.show', $vehicle->id) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                        <form method="POST" action="{{ route('vehicles.restore', $vehicle->id) }}" class="d-inline">
+                                        <a href="{{ route('vehicles.show', $vehicle) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <form method="POST" action="{{ route('vehicles.restore', $vehicle) }}" class="d-inline">
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
@@ -76,7 +76,7 @@
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#forceDeleteVehicleModal"
-                                                data-action="{{ route('vehicles.force', $vehicle->id) }}"
+                                                data-action="{{ route('vehicles.force', $vehicle) }}"
                                                 data-name="{{ $vehicle->registration_number }}">
                                             Delete Permanently
                                         </button>
@@ -360,8 +360,8 @@
                             ? `<span class="badge bg-${maintenanceState === 'overdue' ? 'danger' : 'warning'} ms-1">Maintenance ${escapeHtml(maintenanceState)}</span>`
                             : '';
                         const archivedActions = `
-                            <a href="${showUrlTemplate.replace('__ID__', vehicle.id)}" class="btn btn-sm btn-outline-primary">View</a>
-                            <form method="POST" action="${restoreUrlTemplate.replace('__ID__', vehicle.id)}" class="d-inline">
+                            <a href="${showUrlTemplate.replace('__ID__', vehicle.public_id ?? vehicle.id)}" class="btn btn-sm btn-outline-primary">View</a>
+                            <form method="POST" action="${restoreUrlTemplate.replace('__ID__', vehicle.public_id ?? vehicle.id)}" class="d-inline">
                                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="_method" value="PATCH">
                                 <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
@@ -370,19 +370,19 @@
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#forceDeleteVehicleModal"
-                                    data-action="${forceDeleteUrlTemplate.replace('__ID__', vehicle.id)}"
+                                    data-action="${forceDeleteUrlTemplate.replace('__ID__', vehicle.public_id ?? vehicle.id)}"
                                     data-name="${escapeHtml(vehicle.registration_number)}">
                                 Delete Permanently
                             </button>
                         `;
                         const activeActions = `
-                            <a href="${showUrlTemplate.replace('__ID__', vehicle.id)}" class="btn btn-sm btn-outline-primary">View</a>
-                            <a href="${editUrlTemplate.replace('__ID__', vehicle.id)}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a href="${showUrlTemplate.replace('__ID__', vehicle.public_id ?? vehicle.id)}" class="btn btn-sm btn-outline-primary">View</a>
+                            <a href="${editUrlTemplate.replace('__ID__', vehicle.public_id ?? vehicle.id)}" class="btn btn-sm btn-outline-secondary">Edit</a>
                             <button type="button"
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#archiveVehicleModal"
-                                    data-action="${deleteUrlTemplate.replace('__ID__', vehicle.id)}"
+                                    data-action="${deleteUrlTemplate.replace('__ID__', vehicle.public_id ?? vehicle.id)}"
                                     data-name="${escapeHtml(vehicle.registration_number)}">
                                 Delete
                             </button>

@@ -794,26 +794,25 @@ class TripRequestController extends Controller
         return view('trips.logbook-manage', compact('logs', 'showArchived'));
     }
 
-    public function showLogbook(Request $request, int $tripLog): View
+    public function showLogbook(Request $request, TripLog $tripLog): View
     {
-        $query = TripLog::with([
+        if ($tripLog->trashed() && $request->user()?->role !== User::ROLE_SUPER_ADMIN) {
+            abort(404);
+        }
+
+        $tripLog->load([
             'tripRequest.assignedDriver',
             'tripRequest.assignedVehicle',
             'tripRequest.branch',
             'tripRequest.requestedBy',
         ]);
 
-        if ($request->user()?->role === User::ROLE_SUPER_ADMIN) {
-            $query->withTrashed();
-        }
-
-        $log = $query->findOrFail($tripLog);
-        $tripRequest = $log->tripRequest;
+        $tripRequest = $tripLog->tripRequest;
         if (! $tripRequest) {
             abort(404);
         }
         $this->authorizeTripView($request->user(), $tripRequest);
-        $tripRequest->setRelation('log', $log);
+        $tripRequest->setRelation('log', $tripLog);
 
         $backUrl = route('logbooks.manage', $request->boolean('archived') ? ['archived' => 1] : []);
 
@@ -1030,25 +1029,28 @@ class TripRequestController extends Controller
             ->with('success', 'Trip deleted.');
     }
 
-    public function restore(int $tripRequest, AuditLogService $auditLog): RedirectResponse
+    public function restore(TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
-        $trip = TripRequest::onlyTrashed()->findOrFail($tripRequest);
+        if (! $tripRequest->trashed()) {
+            return redirect()
+                ->route('trips.index')
+                ->with('error', 'Trip is already active.');
+        }
 
-        $trip->restore();
-        $auditLog->log('trip_request.restored', $trip, [], $trip->toArray());
+        $tripRequest->restore();
+        $auditLog->log('trip_request.restored', $tripRequest, [], $tripRequest->toArray());
 
         return redirect()
             ->route('trips.index', ['archived' => 1])
             ->with('success', 'Trip restored.');
     }
 
-    public function forceDelete(int $tripRequest, AuditLogService $auditLog): RedirectResponse
+    public function forceDelete(TripRequest $tripRequest, AuditLogService $auditLog): RedirectResponse
     {
-        $trip = TripRequest::onlyTrashed()->findOrFail($tripRequest);
-        $previousVehicleId = $trip->assigned_vehicle_id ? (int) $trip->assigned_vehicle_id : null;
+        $previousVehicleId = $tripRequest->assigned_vehicle_id ? (int) $tripRequest->assigned_vehicle_id : null;
 
-        $auditLog->log('trip_request.force_deleted', $trip, [], $trip->toArray());
-        $trip->forceDelete();
+        $auditLog->log('trip_request.force_deleted', $tripRequest, [], $tripRequest->toArray());
+        $tripRequest->forceDelete();
 
         if ($previousVehicleId) {
             $this->releaseVehicleIfNotNeededNow($previousVehicleId);
@@ -1132,46 +1134,44 @@ class TripRequestController extends Controller
             ->with('success', 'Logbook archived.');
     }
 
-    public function archiveLogbook(Request $request, int $tripLog, AuditLogService $auditLog): RedirectResponse
+    public function archiveLogbook(Request $request, TripLog $tripLog, AuditLogService $auditLog): RedirectResponse
     {
-        $log = TripLog::with('tripRequest')->findOrFail($tripLog);
-        if (! $log->tripRequest) {
+        if (! $tripLog->tripRequest) {
             abort(404);
         }
-        $this->authorizeTripMutation($request->user(), $log->tripRequest);
+        $this->authorizeTripMutation($request->user(), $tripLog->tripRequest);
 
-        $this->archiveLogEntry($log, $request, $auditLog);
+        $this->archiveLogEntry($tripLog, $request, $auditLog);
 
         return redirect()
             ->route('logbooks.manage')
             ->with('success', 'Logbook archived.');
     }
 
-    public function restoreLogbook(Request $request, int $tripLog, AuditLogService $auditLog): RedirectResponse
+    public function restoreLogbook(Request $request, TripLog $tripLog, AuditLogService $auditLog): RedirectResponse
     {
-        $log = TripLog::withTrashed()->with('tripRequest')->findOrFail($tripLog);
-
-        if (! $log->trashed()) {
+        if (! $tripLog->trashed()) {
             return redirect()
                 ->route('logbooks.manage')
                 ->with('error', 'Logbook is already active.');
         }
 
-        $log->restore();
+        $tripLog->loadMissing('tripRequest');
+        $tripLog->restore();
 
-        $tripRequest = $log->tripRequest;
+        $tripRequest = $tripLog->tripRequest;
         if ($tripRequest) {
             $tripRequest->update([
                 'status' => 'completed',
                 'is_completed' => true,
-                'logbook_entered_by' => $log->entered_by_user_id ?? $request->user()->id,
-                'logbook_entered_at' => $log->created_at ?? now(),
+                'logbook_entered_by' => $tripLog->entered_by_user_id ?? $request->user()->id,
+                'logbook_entered_at' => $tripLog->created_at ?? now(),
                 'updated_by_user_id' => $request->user()->id,
             ]);
         }
 
         $auditLog->log('trip_request.logbook_restored', $tripRequest, [], [
-            'trip_log_id' => $log->id,
+            'trip_log_id' => $tripLog->id,
         ]);
         $this->broadcastTripChange($tripRequest, 'logbook_restored');
 
@@ -1180,17 +1180,17 @@ class TripRequestController extends Controller
             ->with('success', 'Logbook restored.');
     }
 
-    public function forceDeleteLogbook(Request $request, int $tripLog, AuditLogService $auditLog): RedirectResponse
+    public function forceDeleteLogbook(Request $request, TripLog $tripLog, AuditLogService $auditLog): RedirectResponse
     {
-        $log = TripLog::withTrashed()->with('tripRequest')->findOrFail($tripLog);
-        $tripRequest = $log->tripRequest;
-        $logId = $log->id;
+        $tripLog->loadMissing('tripRequest');
+        $tripRequest = $tripLog->tripRequest;
+        $logId = $tripLog->id;
 
         if ($tripRequest) {
             $this->resetTripAfterLogRemoval($tripRequest, $request);
         }
 
-        $log->forceDelete();
+        $tripLog->forceDelete();
 
         $auditLog->log('trip_request.logbook_deleted_permanently', $tripRequest, [], [
             'trip_log_id' => $logId,

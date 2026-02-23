@@ -71,7 +71,7 @@
                                 @endif
                                 <td class="text-end">
                                     @if ($trip->log)
-                                        <a href="{{ route('logbooks.show', $trip->log->id) }}" class="btn btn-sm btn-outline-primary" data-loading>View Logbook</a>
+                                        <a href="{{ route('logbooks.show', $trip->log) }}" class="btn btn-sm btn-outline-primary" data-loading>View Logbook</a>
                                         @if ($canEditLogbook)
                                             <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit Logbook</a>
                                         @endif

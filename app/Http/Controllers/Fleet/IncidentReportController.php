@@ -358,30 +358,39 @@ class IncidentReportController extends Controller
             ->with('success', 'Incident report deleted.');
     }
 
-    public function restore(int $incident, AuditLogService $auditLog): RedirectResponse
+    public function restore(IncidentReport $incident, AuditLogService $auditLog): RedirectResponse
     {
-        $incidentModel = IncidentReport::onlyTrashed()->findOrFail($incident);
-        $incidentModel->restore();
-        $auditLog->log('incident.restored', $incidentModel);
-        $this->broadcastIncidentChangeData($incidentModel->id, $incidentModel->branch_id, $incidentModel->reported_by_user_id, 'restored');
+        $this->authorizeIncidentMutation($incident, request()->user());
+
+        if (! $incident->trashed()) {
+            return redirect()
+                ->route('incidents.index')
+                ->with('error', 'Incident is already active.');
+        }
+
+        $incident->restore();
+        $auditLog->log('incident.restored', $incident);
+        $this->broadcastIncidentChangeData($incident->id, $incident->branch_id, $incident->reported_by_user_id, 'restored');
 
         return redirect()
             ->route('incidents.index', ['archived' => 1])
             ->with('success', 'Incident report restored.');
     }
 
-    public function forceDelete(int $incident, AuditLogService $auditLog): RedirectResponse
+    public function forceDelete(IncidentReport $incident, AuditLogService $auditLog): RedirectResponse
     {
-        $incidentModel = IncidentReport::onlyTrashed()->findOrFail($incident);
-        if (! empty($incidentModel->attachments)) {
-            foreach ($incidentModel->attachments as $attachment) {
+        $this->authorizeIncidentMutation($incident, request()->user());
+
+        if (! empty($incident->attachments)) {
+            foreach ($incident->attachments as $attachment) {
                 Storage::disk('local')->delete($attachment);
                 Storage::disk('public')->delete($attachment);
             }
         }
-        $incidentModel->forceDelete();
-        $auditLog->log('incident.force_deleted', $incidentModel);
-        $this->broadcastIncidentChangeData($incidentModel->id, $incidentModel->branch_id, $incidentModel->reported_by_user_id, 'force_deleted');
+
+        $incident->forceDelete();
+        $auditLog->log('incident.force_deleted', $incident);
+        $this->broadcastIncidentChangeData($incident->id, $incident->branch_id, $incident->reported_by_user_id, 'force_deleted');
 
         return redirect()
             ->route('incidents.index', ['archived' => 1])
