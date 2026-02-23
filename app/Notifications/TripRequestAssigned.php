@@ -31,13 +31,21 @@ class TripRequestAssigned extends Notification
         $driverPhone = $this->tripRequest->assignedDriver?->phone ?? 'N/A';
         $condition = trim((string) ($this->tripRequest->condition_notes ?? ''));
 
+        $routeKey = $this->tripRequest->uuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $trip = TripRequest::withTrashed()->find($this->tripRequest->getKey());
+            $routeKey = is_string($trip?->uuid ?? null) && $trip->uuid !== ''
+                ? $trip->uuid
+                : $this->tripRequest->getKey();
+        }
+
         $mail = (new MailMessage)
             ->subject('Trip Assigned '.$this->tripRequest->request_number)
             ->line('Your trip request has been assigned.')
             ->line('Vehicle: '.$vehicle)
             ->line('Driver: '.$driver)
             ->line('Driver Phone: '.$driverPhone)
-            ->action('View Trip Request', route('trips.show', $this->tripRequest));
+            ->action('View Trip Request', route('trips.show', $routeKey));
 
         if ($condition !== '') {
             $mail->line('Condition: '.$condition);
@@ -50,6 +58,7 @@ class TripRequestAssigned extends Notification
     {
         return [
             'trip_request_id' => $this->tripRequest->id,
+            'trip_request_uuid' => $this->tripRequest->uuid ?? null,
             'request_number' => $this->tripRequest->request_number,
             'status' => $this->tripRequest->status,
             'assigned_vehicle' => $this->tripRequest->assignedVehicle?->registration_number,

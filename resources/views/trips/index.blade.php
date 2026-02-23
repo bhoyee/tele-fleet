@@ -688,17 +688,17 @@
                             ? '<span class="badge bg-primary">Assigned</span>'
                             : '<span class="badge bg-secondary">Unassigned</span>';
                         const editHtml = canEditTrip(trip) && !showArchived
-                            ? `<a href="${editUrlTemplate.replace('__ID__', trip.id)}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>`
+                            ? `<a href="${editUrlTemplate.replace('__ID__', trip.public_id)}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>`
                             : '';
                         const viewHtml = canViewTrip(trip)
-                            ? `<a href="${showUrlTemplate.replace('__ID__', trip.id)}" class="btn btn-sm btn-outline-primary" data-loading>View</a>`
+                            ? `<a href="${showUrlTemplate.replace('__ID__', trip.public_id)}" class="btn btn-sm btn-outline-primary" data-loading>View</a>`
                             : '';
                         const deleteHtml = canManageTrip(trip) && !showArchived
                             ? `<button type="button"
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#deleteTripModal"
-                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', trip.id)}"
+                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', trip.public_id)}"
                                     data-delete-label="${escapeHtml(trip.request_number)}">
                                 Delete
                                </button>`
@@ -725,7 +725,7 @@
                                     class="btn btn-sm btn-outline-warning"
                                     data-bs-toggle="modal"
                                     data-bs-target="#cancelTripModal"
-                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', trip.id)}"
+                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', trip.public_id)}"
                                     data-cancel-label="${escapeHtml(trip.request_number)}">
                                 Cancel
                                </button>`
@@ -738,17 +738,17 @@
                             ? `<span class="badge bg-${trip.due_status === 'overdue' ? 'danger' : 'warning'} ms-1">${escapeHtml(trip.due_status.charAt(0).toUpperCase() + trip.due_status.slice(1))}</span>`
                             : '';
                         const editIcon = canEditTrip(trip) && !showArchived
-                            ? `<a href="${editUrlTemplate.replace('__ID__', trip.id)}" class="btn btn-outline-secondary" data-loading title="Edit"><i class="bi bi-pencil"></i></a>`
+                            ? `<a href="${editUrlTemplate.replace('__ID__', trip.public_id)}" class="btn btn-outline-secondary" data-loading title="Edit"><i class="bi bi-pencil"></i></a>`
                             : '';
                         const viewIcon = canViewTrip(trip)
-                            ? `<a href="${showUrlTemplate.replace('__ID__', trip.id)}" class="btn btn-outline-primary" data-loading title="View"><i class="bi bi-eye"></i></a>`
+                            ? `<a href="${showUrlTemplate.replace('__ID__', trip.public_id)}" class="btn btn-outline-primary" data-loading title="View"><i class="bi bi-eye"></i></a>`
                             : '';
                         const deleteIcon = canManageTrip(trip) && !showArchived
                             ? `<button type="button"
                                     class="btn btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#deleteTripModal"
-                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', trip.id)}"
+                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', trip.public_id)}"
                                     data-delete-label="${escapeHtml(trip.request_number)}"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
@@ -779,7 +779,7 @@
                                     class="btn btn-outline-warning"
                                     data-bs-toggle="modal"
                                     data-bs-target="#cancelTripModal"
-                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', trip.id)}"
+                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', trip.public_id)}"
                                     data-cancel-label="${escapeHtml(trip.request_number)}"
                                     title="Cancel">
                                 <i class="bi bi-x-circle"></i>

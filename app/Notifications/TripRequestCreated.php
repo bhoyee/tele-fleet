@@ -20,6 +20,7 @@ class TripRequestCreated extends Notification implements ShouldQueue
 
     public function __construct(
         private int $tripRequestId,
+        private ?string $tripRequestUuid,
         private string $requestNumber,
         private string $status,
         private string $purpose,
@@ -33,6 +34,7 @@ class TripRequestCreated extends Notification implements ShouldQueue
     {
         return (new self(
             tripRequestId: (int) $tripRequest->id,
+            tripRequestUuid: is_string($tripRequest->uuid ?? null) ? $tripRequest->uuid : null,
             requestNumber: (string) $tripRequest->request_number,
             status: (string) $tripRequest->status,
             purpose: (string) $tripRequest->purpose,
@@ -52,12 +54,20 @@ class TripRequestCreated extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $routeKey = $this->tripRequestUuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $trip = TripRequest::withTrashed()->find($this->tripRequestId);
+            $routeKey = is_string($trip?->uuid ?? null) && $trip->uuid !== ''
+                ? $trip->uuid
+                : $this->tripRequestId;
+        }
+
         return (new MailMessage)
             ->subject('New Trip Request '.$this->requestNumber)
             ->line('A new trip request has been submitted.')
             ->line('Purpose: '.$this->purpose)
             ->line('Destination: '.$this->destination)
-            ->action('View Trip Request', route('trips.show', $this->tripRequestId))
+            ->action('View Trip Request', route('trips.show', $routeKey))
             ->line('Please review and proceed with approval.');
     }
 
@@ -65,6 +75,7 @@ class TripRequestCreated extends Notification implements ShouldQueue
     {
         return [
             'trip_request_id' => $this->tripRequestId,
+            'trip_request_uuid' => $this->tripRequestUuid,
             'request_number' => $this->requestNumber,
             'status' => $this->status,
             'purpose' => $this->purpose,

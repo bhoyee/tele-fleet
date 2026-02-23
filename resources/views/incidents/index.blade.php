@@ -412,16 +412,16 @@
                     }
 
                     tbody.innerHTML = rows.map((incident) => {
-                        const viewHtml = `<a href="${showUrlTemplate.replace('__ID__', incident.id)}" class="btn btn-sm btn-outline-primary" data-loading>View</a>`;
+                        const viewHtml = `<a href="${showUrlTemplate.replace('__ID__', incident.public_id)}" class="btn btn-sm btn-outline-primary" data-loading>View</a>`;
                         const editHtml = canEdit(incident)
-                            ? `<a href="${editUrlTemplate.replace('__ID__', incident.id)}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>`
+                            ? `<a href="${editUrlTemplate.replace('__ID__', incident.public_id)}" class="btn btn-sm btn-outline-secondary" data-loading>Edit</a>`
                             : '';
                         const cancelHtml = canEdit(incident)
                             ? `<button type="button"
                                     class="btn btn-sm btn-outline-warning"
                                     data-bs-toggle="modal"
                                     data-bs-target="#cancelIncidentModal"
-                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', incident.id)}"
+                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', incident.public_id)}"
                                     data-cancel-label="${escapeHtml(incident.reference)}">
                                 Cancel
                                </button>`
@@ -431,7 +431,7 @@
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#deleteIncidentModal"
-                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', incident.id)}"
+                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', incident.public_id)}"
                                     data-delete-label="${escapeHtml(incident.reference)}">
                                 Delete
                                </button>`
@@ -454,16 +454,16 @@
                               `
                             : '';
 
-                        const viewIcon = `<a href="${showUrlTemplate.replace('__ID__', incident.id)}" class="btn btn-outline-primary" data-loading title="View"><i class="bi bi-eye"></i></a>`;
+                        const viewIcon = `<a href="${showUrlTemplate.replace('__ID__', incident.public_id)}" class="btn btn-outline-primary" data-loading title="View"><i class="bi bi-eye"></i></a>`;
                         const editIcon = canEdit(incident)
-                            ? `<a href="${editUrlTemplate.replace('__ID__', incident.id)}" class="btn btn-outline-secondary" data-loading title="Edit"><i class="bi bi-pencil"></i></a>`
+                            ? `<a href="${editUrlTemplate.replace('__ID__', incident.public_id)}" class="btn btn-outline-secondary" data-loading title="Edit"><i class="bi bi-pencil"></i></a>`
                             : '';
                         const cancelIcon = canEdit(incident)
                             ? `<button type="button"
                                     class="btn btn-outline-warning"
                                     data-bs-toggle="modal"
                                     data-bs-target="#cancelIncidentModal"
-                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', incident.id)}"
+                                    data-cancel-action="${cancelUrlTemplate.replace('__ID__', incident.public_id)}"
                                     data-cancel-label="${escapeHtml(incident.reference)}"
                                     title="Cancel">
                                 <i class="bi bi-x-circle"></i>
@@ -474,7 +474,7 @@
                                     class="btn btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#deleteIncidentModal"
-                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', incident.id)}"
+                                    data-delete-action="${deleteUrlTemplate.replace('__ID__', incident.public_id)}"
                                     data-delete-label="${escapeHtml(incident.reference)}"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>

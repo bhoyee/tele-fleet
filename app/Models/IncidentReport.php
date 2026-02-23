@@ -6,11 +6,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class IncidentReport extends Model
 {
     use HasFactory;
     use SoftDeletes;
+
+    protected static ?bool $uuidColumnExists = null;
 
     public const STATUS_OPEN = 'open';
     public const STATUS_REVIEW = 'under_review';
@@ -49,6 +53,39 @@ class IncidentReport extends Model
         'attachments' => 'array',
         'closed_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (IncidentReport $incidentReport): void {
+            if (! static::hasUuidColumn()) {
+                return;
+            }
+
+            if (! is_string($incidentReport->uuid) || $incidentReport->uuid === '') {
+                $incidentReport->uuid = (string) Str::uuid();
+            }
+        });
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return static::hasUuidColumn() ? 'uuid' : $this->getKeyName();
+    }
+
+    private static function hasUuidColumn(): bool
+    {
+        if (static::$uuidColumnExists !== null) {
+            return static::$uuidColumnExists;
+        }
+
+        try {
+            static::$uuidColumnExists = Schema::hasColumn((new static())->getTable(), 'uuid');
+        } catch (\Throwable) {
+            static::$uuidColumnExists = false;
+        }
+
+        return static::$uuidColumnExists;
+    }
 
     public function tripRequest(): BelongsTo
     {

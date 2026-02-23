@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\TripRequest;
 use App\Notifications\Concerns\QueueReliability;
 use App\Notifications\Concerns\SkipsInvalidMailRecipients;
 use Illuminate\Bus\Queueable;
@@ -19,6 +20,7 @@ class TripRequestApproved extends Notification implements ShouldQueue
 
     public function __construct(
         private int $tripRequestId,
+        private ?string $tripRequestUuid,
         private string $requestNumber,
         private string $status,
         private string $purpose,
@@ -32,6 +34,7 @@ class TripRequestApproved extends Notification implements ShouldQueue
     {
         return (new self(
             tripRequestId: (int) $tripRequest->id,
+            tripRequestUuid: is_string($tripRequest->uuid ?? null) ? $tripRequest->uuid : null,
             requestNumber: (string) $tripRequest->request_number,
             status: (string) $tripRequest->status,
             purpose: (string) ($tripRequest->purpose ?? ''),
@@ -51,18 +54,27 @@ class TripRequestApproved extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $routeKey = $this->tripRequestUuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $trip = TripRequest::withTrashed()->find($this->tripRequestId);
+            $routeKey = is_string($trip?->uuid ?? null) && $trip->uuid !== ''
+                ? $trip->uuid
+                : $this->tripRequestId;
+        }
+
         return (new MailMessage)
             ->subject('Trip Approved '.$this->requestNumber)
             ->line('Your trip request has been approved.')
             ->line('Purpose: '.$this->purpose)
             ->line('Destination: '.$this->destination)
-            ->action('View Trip Request', route('trips.show', $this->tripRequestId));
+            ->action('View Trip Request', route('trips.show', $routeKey));
     }
 
     public function toArray(object $notifiable): array
     {
         return [
             'trip_request_id' => $this->tripRequestId,
+            'trip_request_uuid' => $this->tripRequestUuid,
             'request_number' => $this->requestNumber,
             'status' => $this->status,
             'approved_at' => $this->approvedAt,

@@ -289,9 +289,15 @@
                             @csrf
                             @method('PATCH')
 
+                            @if (!empty($assignmentAlert))
+                                <div class="alert {{ $assignmentBlocked ? 'alert-warning' : 'alert-info' }}">
+                                    {{ $assignmentAlert }}
+                                </div>
+                            @endif
+
                             <div class="mb-3">
                                 <label class="form-label" for="assigned_vehicle_id">Vehicle</label>
-                                <select class="form-select" id="assigned_vehicle_id" name="assigned_vehicle_id" @required(! $tripRequest->assigned_vehicle_id)>
+                                <select class="form-select" id="assigned_vehicle_id" name="assigned_vehicle_id" @disabled($assignmentBlocked) @required(! $tripRequest->assigned_vehicle_id)>
                                     <option value="">Select vehicle</option>
                                     @foreach ($vehicles as $vehicle)
                                         <option value="{{ $vehicle->id }}" @selected((string) $tripRequest->assigned_vehicle_id === (string) $vehicle->id)>
@@ -304,7 +310,7 @@
 
                             <div class="mb-3">
                                 <label class="form-label" for="assigned_driver_id">Driver</label>
-                                <select class="form-select" id="assigned_driver_id" name="assigned_driver_id" @required(! $tripRequest->assigned_driver_id)>
+                                <select class="form-select" id="assigned_driver_id" name="assigned_driver_id" @disabled($assignmentBlocked) @required(! $tripRequest->assigned_driver_id)>
                                     <option value="">Select driver</option>
                                     @foreach ($drivers as $driver)
                                         <option value="{{ $driver->id }}" @selected((string) $tripRequest->assigned_driver_id === (string) $driver->id)>
@@ -315,11 +321,26 @@
                                 @error('assigned_driver_id') <div class="text-danger small">{{ $message }}</div> @enderror
                             </div>
 
-                            @if ($tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id)
+                            @if ($assignmentOverrideAvailable)
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" name="force_assign" id="force_assign" value="1" @checked(old('force_assign'))>
+                                    <label class="form-check-label" for="force_assign">
+                                        Override and assign despite trip date/time passed
+                                    </label>
+                                </div>
+                            @endif
+
+                            @if ($tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id || $assignmentOverrideAvailable)
                                 <div class="mb-3">
-                                    <label class="form-label" for="assignment_reason">Reason for reassignment</label>
-                                    <textarea class="form-control" id="assignment_reason" name="reason" rows="3" required>{{ old('reason') }}</textarea>
-                                    <div class="form-text">Required whenever you change the assigned vehicle or driver.</div>
+                                    <label class="form-label" for="assignment_reason">
+                                        {{ $tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id ? 'Reason for reassignment' : 'Reason (required for override)' }}
+                                    </label>
+                                    <textarea class="form-control" id="assignment_reason" name="reason" rows="3" @required($tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id)>{{ old('reason') }}</textarea>
+                                    <div class="form-text">
+                                        {{ $tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id
+                                            ? 'Required whenever you change the assigned vehicle or driver.'
+                                            : 'Required only if you enable override for a past trip.' }}
+                                    </div>
                                     @error('reason') <div class="text-danger small">{{ $message }}</div> @enderror
                                 </div>
                             @endif
@@ -330,10 +351,31 @@
                                 </div>
                             @endif
 
-                            <button class="btn btn-primary w-100" type="submit">
+                            <button class="btn btn-primary w-100" type="submit" @disabled($assignmentBlocked)>
                                 {{ $tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id ? 'Reassign Vehicle & Driver' : 'Assign Vehicle & Driver' }}
                             </button>
                         </form>
+
+                        @if ($assignmentOverrideAvailable)
+                            @push('scripts')
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', () => {
+                                        const overrideCheckbox = document.getElementById('force_assign');
+                                        const reasonField = document.getElementById('assignment_reason');
+                                        if (!overrideCheckbox || !reasonField) {
+                                            return;
+                                        }
+
+                                        const syncReasonRequired = () => {
+                                            reasonField.required = overrideCheckbox.checked;
+                                        };
+
+                                        syncReasonRequired();
+                                        overrideCheckbox.addEventListener('change', syncReasonRequired);
+                                    });
+                                </script>
+                            @endpush
+                        @endif
                     @endif
 
                     @if ($tripRequest->status === 'assigned' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))

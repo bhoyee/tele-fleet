@@ -9,6 +9,7 @@ class TripRequestCreatedInApp extends Notification
 {
     public function __construct(
         private int $tripRequestId,
+        private ?string $tripRequestUuid,
         private string $requestNumber,
         private string $status,
         private string $purpose,
@@ -21,6 +22,7 @@ class TripRequestCreatedInApp extends Notification
     {
         return new self(
             tripRequestId: (int) $tripRequest->id,
+            tripRequestUuid: is_string($tripRequest->uuid ?? null) ? $tripRequest->uuid : null,
             requestNumber: (string) $tripRequest->request_number,
             status: (string) $tripRequest->status,
             purpose: (string) $tripRequest->purpose,
@@ -38,6 +40,7 @@ class TripRequestCreatedInApp extends Notification
     {
         return [
             'trip_request_id' => $this->tripRequestId,
+            'trip_request_uuid' => $this->tripRequestUuid,
             'request_number' => $this->requestNumber,
             'status' => $this->status,
             'purpose' => $this->purpose,
@@ -46,4 +49,3 @@ class TripRequestCreatedInApp extends Notification
         ];
     }
 }
-

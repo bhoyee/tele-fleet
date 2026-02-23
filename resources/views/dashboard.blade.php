@@ -1824,7 +1824,7 @@
                                         ${escaped(trip.driver)}
                                     </td>
                                     <td class="text-end" data-label="Action">
-                                        ${canView ? `<a class="btn btn-sm btn-outline-primary" href="${tripShowUrlTemplate.replace('__ID__', trip.id)}" data-loading>View</a>` : '<span class="text-muted">—</span>'}
+                                        ${canView ? `<a class="btn btn-sm btn-outline-primary" href="${tripShowUrlTemplate.replace('__ID__', trip.public_id)}" data-loading>View</a>` : '<span class="text-muted">—</span>'}
                                     </td>
                                 </tr>
                             `;

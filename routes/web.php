@@ -230,6 +230,7 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_h
 Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::get('incidents', [IncidentReportController::class, 'index'])->name('incidents.index');
     Route::get('incidents/data', [IncidentReportController::class, 'indexData'])->name('incidents.data');
+    Route::get('incidents/{incident}', [IncidentReportController::class, 'showById'])->whereNumber('incident')->name('incidents.showById');
     Route::get('incidents/{incident}', [IncidentReportController::class, 'show'])->name('incidents.show');
     Route::get('incidents/{incident}/edit', [IncidentReportController::class, 'edit'])->name('incidents.edit');
     Route::patch('incidents/{incident}', [IncidentReportController::class, 'update'])->name('incidents.update');
@@ -267,6 +268,7 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_h
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::get('trips', [TripRequestController::class, 'index'])->name('trips.index');
+    Route::get('trips/{tripRequest}', [TripRequestController::class, 'showById'])->whereNumber('tripRequest')->name('trips.showById');
     Route::get('trips/{tripRequest}', [TripRequestController::class, 'show'])->name('trips.show');
     Route::get('trips/{tripRequest}/status', [TripRequestController::class, 'statusData'])->name('trips.status');
     Route::get('trips/{tripRequest}/attachments/{filename}/preview', [TripRequestController::class, 'previewAttachment'])->name('trips.attachments.preview');

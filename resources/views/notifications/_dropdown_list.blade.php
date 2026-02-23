@@ -63,10 +63,20 @@
                 : ($notificationData['purpose'] ?? 'Trip update received.'),
         };
 
-        $viewUrl = ! empty($notificationData['trip_request_id'])
-            ? route('trips.show', $notificationData['trip_request_id'])
-            : (! empty($notificationData['incident_id'])
-                ? route('incidents.show', $notificationData['incident_id'])
+        $tripRouteKey = $notificationData['trip_request_uuid']
+            ?? $notificationData['trip_request_key']
+            ?? $notificationData['trip_request_id']
+            ?? null;
+
+        $incidentRouteKey = $notificationData['incident_uuid']
+            ?? $notificationData['incident_key']
+            ?? $notificationData['incident_id']
+            ?? null;
+
+        $viewUrl = ! empty($tripRouteKey)
+            ? route('trips.show', $tripRouteKey)
+            : (! empty($incidentRouteKey)
+                ? route('incidents.show', $incidentRouteKey)
                 : (! empty($notificationData['ticket_id'])
                     ? route('helpdesk.show', $notificationData['ticket_id'])
                     : ($isChat && ! empty($notificationData['conversation_id'])
