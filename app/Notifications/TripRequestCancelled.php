@@ -40,6 +40,14 @@ class TripRequestCancelled extends Notification implements ShouldQueue
             }
         }
 
+        $routeKey = $this->tripRequest->uuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $trip = TripRequest::withTrashed()->find($this->tripRequest->getKey());
+            $routeKey = is_string($trip?->uuid ?? null) && $trip->uuid !== ''
+                ? $trip->uuid
+                : $this->tripRequest->getKey();
+        }
+
         return (new MailMessage)
             ->subject('Trip Request Cancelled - ' . $this->tripRequest->request_number)
             ->greeting('Hello ' . ($notifiable->name ?? ''))
@@ -51,7 +59,7 @@ class TripRequestCancelled extends Notification implements ShouldQueue
             ->line('Trip Time: ' . $tripTime)
             ->line('Cancellation Reason: ' . ($this->tripRequest->cancellation_reason ?? 'N/A'))
             ->line('Cancelled By: ' . ($this->cancelledBy->name ?? 'System'))
-            ->action('View Trip', route('trips.show', $this->tripRequest))
+            ->action('View Trip', route('trips.show', $routeKey))
             ->line('If you have questions, please contact your fleet manager.');
     }
 

@@ -35,6 +35,14 @@ class TripRequestRejected extends Notification
             }
         }
 
+        $routeKey = $this->tripRequest->uuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $trip = TripRequest::withTrashed()->find($this->tripRequest->getKey());
+            $routeKey = is_string($trip?->uuid ?? null) && $trip->uuid !== ''
+                ? $trip->uuid
+                : $this->tripRequest->getKey();
+        }
+
         return (new MailMessage)
             ->subject('Trip Request Rejected '.$this->tripRequest->request_number)
             ->greeting('Hello '.$notifiable->name.',')
@@ -45,7 +53,7 @@ class TripRequestRejected extends Notification
             ->line('Trip Date: '.$this->tripRequest->trip_date?->format('M d, Y'))
             ->line('Trip Time: '.$tripTime)
             ->line('Reason: '.$this->tripRequest->rejection_reason)
-            ->action('View Trip Request', route('trips.show', $this->tripRequest))
+            ->action('View Trip Request', route('trips.show', $routeKey))
             ->line('If you need clarification, please contact the fleet team.');
     }
 

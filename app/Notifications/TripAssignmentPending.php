@@ -27,12 +27,20 @@ class TripAssignmentPending extends Notification
             ? \Illuminate\Support\Carbon::parse($this->tripRequest->trip_time)->format('g:i A')
             : 'N/A';
 
+        $routeKey = $this->tripRequest->uuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $trip = TripRequest::withTrashed()->find($this->tripRequest->getKey());
+            $routeKey = is_string($trip?->uuid ?? null) && $trip->uuid !== ''
+                ? $trip->uuid
+                : $this->tripRequest->getKey();
+        }
+
         return (new MailMessage)
             ->subject('Trip Pending Assignment '.$this->tripRequest->request_number)
             ->line('This trip is approved but has no driver or vehicle assigned.')
             ->line('Trip Date: '.$tripDate)
             ->line('Trip Time: '.$tripTime)
-            ->action('Review Trip Request', route('trips.show', $this->tripRequest));
+            ->action('Review Trip Request', route('trips.show', $routeKey));
     }
 
     public function toArray(object $notifiable): array

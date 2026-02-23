@@ -48,6 +48,14 @@ class TripRequestReassigned extends Notification
         $toDriverPhone = $this->tripRequest->assignedDriver?->phone ?? 'N/A';
         $condition = trim((string) ($this->tripRequest->condition_notes ?? ''));
 
+        $routeKey = $this->tripRequest->uuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $trip = TripRequest::withTrashed()->find($this->tripRequest->getKey());
+            $routeKey = is_string($trip?->uuid ?? null) && $trip->uuid !== ''
+                ? $trip->uuid
+                : $this->tripRequest->getKey();
+        }
+
         $mail = (new MailMessage)
             ->subject('Trip Reassigned '.$this->tripRequest->request_number)
             ->line('A trip assignment has been changed.')
@@ -57,7 +65,7 @@ class TripRequestReassigned extends Notification
             ->line('New Driver: '.$toDriver)
             ->line('New Driver Phone: '.$toDriverPhone)
             ->line('Reason: '.$this->reason)
-            ->action('View Trip Request', route('trips.show', $this->tripRequest));
+            ->action('View Trip Request', route('trips.show', $routeKey));
 
         if ($condition !== '') {
             $mail->line('Condition: '.$condition);

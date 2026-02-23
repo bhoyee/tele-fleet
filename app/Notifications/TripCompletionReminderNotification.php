@@ -22,12 +22,20 @@ class TripCompletionReminderNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $routeKey = $this->trip->uuid;
+        if (! is_string($routeKey) || $routeKey === '') {
+            $trip = TripRequest::withTrashed()->find($this->trip->getKey());
+            $routeKey = is_string($trip?->uuid ?? null) && $trip->uuid !== ''
+                ? $trip->uuid
+                : $this->trip->getKey();
+        }
+
         return (new MailMessage())
             ->subject('Trip Completion Reminder')
             ->greeting('Hello ' . $notifiable->name . ',')
             ->line('A trip assignment is still open 24 hours after its trip date.')
             ->line('Trip: ' . ($this->trip->request_number ?? 'N/A'))
-            ->action('Review Trip', route('trips.show', $this->trip));
+            ->action('Review Trip', route('trips.show', $routeKey));
     }
 
     public function toArray(object $notifiable): array
