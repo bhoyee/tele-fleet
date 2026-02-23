@@ -428,9 +428,6 @@ class DashboardController extends Controller
         $windowAssigned = [];
         foreach ($assignedTrips as $trip) {
             $tripMoment = Carbon::parse($trip->trip_date);
-            if ($tripMoment->gt($now->copy()->subDay())) {
-                continue;
-            }
             $tripDate = $tripMoment->copy()->startOfDay();
             $windowEndDate = $tripDate->copy()->addDays(7);
             $rangeStart = $tripDate->greaterThan($monthStart) ? $tripDate : $monthStart->copy();
