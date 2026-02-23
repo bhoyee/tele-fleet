@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Trip;
 
 use App\Models\TripRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AssignTripRequest extends FormRequest
@@ -29,6 +30,11 @@ class AssignTripRequest extends FormRequest
             || ($requestedDriverId && $requestedDriverId !== $currentDriverId)
         );
 
+        $forceAssign = $this->boolean('force_assign');
+        $assignmentWindowStarted = $tripRequest ? $this->assignmentWindowStarted($tripRequest) : false;
+        $requiresReason = ($hasExistingAssignment && $isChangingAssignment)
+            || ($forceAssign && $assignmentWindowStarted && ! $hasExistingAssignment);
+
         $vehicleRule = $currentVehicleId
             ? ['nullable', 'exists:vehicles,id']
             : ['required', 'exists:vehicles,id'];
@@ -41,7 +47,28 @@ class AssignTripRequest extends FormRequest
             // Missing values will be treated as "keep current" in the controller.
             'assigned_vehicle_id' => $vehicleRule,
             'assigned_driver_id' => $driverRule,
-            'reason' => [$hasExistingAssignment && $isChangingAssignment ? 'required' : 'nullable', 'string', 'max:1000'],
+            'force_assign' => ['nullable', 'boolean'],
+            'reason' => [$requiresReason ? 'required' : 'nullable', 'string', 'max:1000'],
         ];
+    }
+
+    private function assignmentWindowStarted(TripRequest $tripRequest): bool
+    {
+        if (! $tripRequest->trip_date) {
+            return false;
+        }
+
+        $time = $tripRequest->trip_time;
+        if (! is_string($time) || trim($time) === '') {
+            $time = '23:59';
+        }
+
+        try {
+            $start = Carbon::createFromFormat('Y-m-d H:i', $tripRequest->trip_date->format('Y-m-d').' '.$time);
+        } catch (\Throwable) {
+            $start = Carbon::parse($tripRequest->trip_date->format('Y-m-d').' '.$time);
+        }
+
+        return now()->greaterThanOrEqualTo($start);
     }
 }

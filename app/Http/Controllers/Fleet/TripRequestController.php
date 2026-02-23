@@ -38,6 +38,34 @@ use Throwable;
 
 class TripRequestController extends Controller
 {
+    private function tripStartForAssignment(TripRequest $tripRequest): ?Carbon
+    {
+        if (! $tripRequest->trip_date) {
+            return null;
+        }
+
+        $time = $tripRequest->trip_time;
+        if (! is_string($time) || trim($time) === '') {
+            $time = '23:59';
+        }
+
+        try {
+            return Carbon::createFromFormat('Y-m-d H:i', $tripRequest->trip_date->format('Y-m-d').' '.$time);
+        } catch (\Throwable) {
+            return Carbon::parse($tripRequest->trip_date->format('Y-m-d').' '.$time);
+        }
+    }
+
+    private function tripAssignmentWindowHasStarted(TripRequest $tripRequest): bool
+    {
+        $start = $this->tripStartForAssignment($tripRequest);
+        if (! $start) {
+            return false;
+        }
+
+        return now()->greaterThanOrEqualTo($start);
+    }
+
     public function index(Request $request): View
     {
         $user = $request->user();
@@ -291,7 +319,34 @@ class TripRequestController extends Controller
             }
         }
 
-        return view('trips.show', compact('tripRequest', 'vehicles', 'drivers'));
+        $user = request()->user();
+        $hasExistingAssignment = (bool) ($tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id);
+        $assignmentWindowStarted = $this->tripAssignmentWindowHasStarted($tripRequest);
+        $assignmentBlocked = $assignmentWindowStarted
+            && ! $hasExistingAssignment
+            && $user
+            && $user->role !== User::ROLE_SUPER_ADMIN;
+
+        $assignmentOverrideAvailable = $assignmentWindowStarted
+            && ! $hasExistingAssignment
+            && $user
+            && $user->role === User::ROLE_SUPER_ADMIN;
+
+        $assignmentAlert = null;
+        if ($assignmentBlocked) {
+            $assignmentAlert = 'Trip date/time has passed. Please reschedule the trip before assigning a driver and vehicle.';
+        } elseif ($assignmentOverrideAvailable) {
+            $assignmentAlert = 'Trip date/time has passed. You can still assign this trip using an override, but a reason is required.';
+        }
+
+        return view('trips.show', [
+            'tripRequest' => $tripRequest,
+            'vehicles' => $vehicles,
+            'drivers' => $drivers,
+            'assignmentBlocked' => $assignmentBlocked,
+            'assignmentOverrideAvailable' => $assignmentOverrideAvailable,
+            'assignmentAlert' => $assignmentAlert,
+        ]);
     }
 
     public function statusData(Request $request, TripRequest $tripRequest): JsonResponse
@@ -506,6 +561,30 @@ class TripRequestController extends Controller
 
         $fromVehicleId = $tripRequest->assigned_vehicle_id;
         $fromDriverId = $tripRequest->assigned_driver_id;
+        $hasExistingAssignment = (bool) ($fromVehicleId || $fromDriverId);
+        $assignmentWindowStarted = $this->tripAssignmentWindowHasStarted($tripRequest);
+        $forceAssign = $request->boolean('force_assign') && request()->user()?->role === User::ROLE_SUPER_ADMIN;
+        $overrideReason = trim((string) $request->input('reason', ''));
+
+        if ($assignmentWindowStarted && ! $hasExistingAssignment) {
+            if (! $forceAssign) {
+                $message = request()->user()?->role === User::ROLE_SUPER_ADMIN
+                    ? 'Trip date/time has passed. To assign anyway, enable override and provide a reason.'
+                    : 'Trip date/time has passed. Please reschedule the trip before assigning a driver and vehicle.';
+
+                return redirect()
+                    ->back()
+                    ->with('error', $message);
+            }
+
+            if ($overrideReason === '') {
+                return redirect()
+                    ->back()
+                    ->withErrors(['reason' => 'Reason is required when assigning a past trip.'])
+                    ->withInput();
+            }
+        }
+
         $toVehicleId = $request->filled('assigned_vehicle_id')
             ? (int) $request->assigned_vehicle_id
             : (int) ($fromVehicleId ?? 0);
@@ -577,6 +656,7 @@ class TripRequestController extends Controller
         $isReassignment = $hasExistingAssignment && ($isChangingVehicle || $isChangingDriver);
         $hasAnyChange = (! $hasExistingAssignment) || $isReassignment;
 
+        $assignmentReason = null;
         if ($isReassignment) {
             $reason = (string) $request->input('reason', '');
             if (trim($reason) === '') {
@@ -585,6 +665,9 @@ class TripRequestController extends Controller
                     ->withErrors(['reason' => 'Reason is required for reassignment.'])
                     ->withInput();
             }
+            $assignmentReason = (string) $request->input('reason');
+        } elseif ($forceAssign) {
+            $assignmentReason = $overrideReason !== '' ? $overrideReason : null;
         }
 
         if (! $hasAnyChange) {
@@ -618,7 +701,7 @@ class TripRequestController extends Controller
             'from_driver_id' => $fromDriverId,
             'to_driver_id' => $toDriverId,
             'changed_by_user_id' => request()->user()->id,
-            'reason' => $isReassignment ? (string) $request->input('reason') : null,
+            'reason' => $assignmentReason,
         ]);
 
         if ($this->tripHasStarted($tripRequest)) {
@@ -627,7 +710,13 @@ class TripRequestController extends Controller
             }
         }
 
-        $auditLog->log($isReassignment ? 'trip_request.reassigned' : 'trip_request.assigned', $tripRequest, [], $tripRequest->toArray());
+        $auditAction = $isReassignment
+            ? 'trip_request.reassigned'
+            : ($forceAssign ? 'trip_request.assigned_override' : 'trip_request.assigned');
+        $auditLog->log($auditAction, $tripRequest, [], array_merge($tripRequest->toArray(), [
+            'assignment_reason' => $assignmentReason,
+            'forced' => $forceAssign,
+        ]));
 
         ProcessTripAssignmentSideEffects::dispatch(
             tripRequestId: (int) $tripRequest->id,
@@ -1182,6 +1271,26 @@ class TripRequestController extends Controller
 
     public function assignmentForm(TripRequest $tripRequest): View
     {
+        $user = request()->user();
+        $hasExistingAssignment = (bool) ($tripRequest->assigned_vehicle_id || $tripRequest->assigned_driver_id);
+        $assignmentWindowStarted = $this->tripAssignmentWindowHasStarted($tripRequest);
+        $assignmentBlocked = $assignmentWindowStarted
+            && ! $hasExistingAssignment
+            && $user
+            && $user->role !== User::ROLE_SUPER_ADMIN;
+
+        $assignmentOverrideAvailable = $assignmentWindowStarted
+            && ! $hasExistingAssignment
+            && $user
+            && $user->role === User::ROLE_SUPER_ADMIN;
+
+        $assignmentAlert = null;
+        if ($assignmentBlocked) {
+            $assignmentAlert = 'Trip date/time has passed. Please reschedule the trip before assigning a driver and vehicle.';
+        } elseif ($assignmentOverrideAvailable) {
+            $assignmentAlert = 'Trip date/time has passed. You can still assign this trip using an override, but a reason is required.';
+        }
+
         [$conflictingDriverIds, $conflictingVehicleIds] = $this->tripAssignmentConflictIdsForTripWindow($tripRequest);
 
         $vehicles = $this->availableVehiclesForTripWindow($tripRequest)
@@ -1196,7 +1305,14 @@ class TripRequestController extends Controller
             ->orderBy('full_name')
             ->get();
 
-        return view('trips.assign', compact('tripRequest', 'vehicles', 'drivers'));
+        return view('trips.assign', [
+            'tripRequest' => $tripRequest,
+            'vehicles' => $vehicles,
+            'drivers' => $drivers,
+            'assignmentBlocked' => $assignmentBlocked,
+            'assignmentOverrideAvailable' => $assignmentOverrideAvailable,
+            'assignmentAlert' => $assignmentAlert,
+        ]);
     }
 
     private function generateRequestNumber(): string
