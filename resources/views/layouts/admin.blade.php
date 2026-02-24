@@ -1550,6 +1550,17 @@
                 });
 
                 if (window.jQuery && $('.datatable').length) {
+                    const initTeleTooltips = (root = document) => {
+                        if (!window.bootstrap?.Tooltip) {
+                            return;
+                        }
+                        root.querySelectorAll?.('[data-tele-tooltip]')?.forEach((el) => {
+                            bootstrap.Tooltip.getOrCreateInstance(el);
+                        });
+                    };
+
+                    initTeleTooltips();
+
                     $('.datatable').DataTable({
                         pageLength: 10,
                         lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
@@ -1558,6 +1569,9 @@
                         paging: true,
                         info: true,
                         responsive: true,
+                        drawCallback: function () {
+                            initTeleTooltips(this.api().table().container());
+                        },
                     });
                 }
 
@@ -1649,9 +1663,12 @@
 
             // Initialize tooltips
             document.addEventListener('DOMContentLoaded', function() {
-                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"], [data-tele-tooltip]'));
+                tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                    if (!window.bootstrap?.Tooltip) {
+                        return;
+                    }
+                    bootstrap.Tooltip.getOrCreateInstance(tooltipTriggerEl);
                 });
             });
 

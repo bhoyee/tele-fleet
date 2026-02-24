@@ -34,15 +34,21 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    <a href="{{ route('branches.show', $branch) }}" class="btn btn-sm btn-outline-secondary">View</a>
-                                    <a href="{{ route('branches.edit', $branch) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a href="{{ route('branches.show', $branch) }}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ route('branches.edit', $branch) }}" class="btn btn-sm btn-outline-secondary" data-tele-tooltip title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"
                                             data-bs-toggle="modal"
                                             data-bs-target="#deleteBranchModal"
                                             data-action="{{ route('branches.destroy', $branch) }}"
-                                            data-name="{{ $branch->name }}">
-                                        Delete
+                                            data-name="{{ $branch->name }}"
+                                            data-tele-tooltip
+                                            title="Delete">
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
                             </tr>

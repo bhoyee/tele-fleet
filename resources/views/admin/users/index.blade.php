@@ -53,23 +53,31 @@
                                 @endif
                                 <td class="text-end">
                                     @if (!($showArchived ?? false))
-                                        <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-secondary">View</a>
-                                        <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-secondary" data-tele-tooltip title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
                                         @if ($user->id !== auth()->id())
                                             <button type="button"
                                                     class="btn btn-sm btn-outline-danger"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#deleteUserModal"
                                                     data-delete-action="{{ route('admin.users.destroy', $user) }}"
-                                                    data-delete-name="{{ $user->name }}">
-                                                Archive
+                                                    data-delete-name="{{ $user->name }}"
+                                                    data-tele-tooltip
+                                                    title="Archive">
+                                                <i class="bi bi-trash"></i>
                                             </button>
                                         @endif
                                     @else
                                         <form method="POST" action="{{ route('admin.users.restore', $user) }}" class="d-inline">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit" class="btn btn-sm btn-outline-success">Restore</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-success" data-tele-tooltip title="Restore">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
                                         </form>
                                         @if ($user->id !== auth()->id())
                                             <button type="button"
@@ -77,8 +85,10 @@
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#forceDeleteUserModal"
                                                     data-force-action="{{ route('admin.users.force', $user) }}"
-                                                    data-force-name="{{ $user->name }}">
-                                                Delete Permanently
+                                                    data-force-name="{{ $user->name }}"
+                                                    data-tele-tooltip
+                                                    title="Delete permanently">
+                                                <i class="bi bi-x-octagon"></i>
                                             </button>
                                         @endif
                                     @endif

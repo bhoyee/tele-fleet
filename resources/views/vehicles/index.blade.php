@@ -55,30 +55,42 @@
                                 </td>
                                 <td class="text-end">
                                     @if (!($showArchived ?? false))
-                                        <a href="{{ route('vehicles.show', $vehicle) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a href="{{ route('vehicles.edit', $vehicle) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        <a href="{{ route('vehicles.show', $vehicle) }}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ route('vehicles.edit', $vehicle) }}" class="btn btn-sm btn-outline-secondary" data-tele-tooltip title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#archiveVehicleModal"
                                                 data-action="{{ route('vehicles.destroy', $vehicle) }}"
-                                                data-name="{{ $vehicle->registration_number }}">
-                                            Delete
+                                                data-name="{{ $vehicle->registration_number }}"
+                                                data-tele-tooltip
+                                                title="Archive">
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     @elseif (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                                        <a href="{{ route('vehicles.show', $vehicle) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="{{ route('vehicles.show', $vehicle) }}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
                                         <form method="POST" action="{{ route('vehicles.restore', $vehicle) }}" class="d-inline">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-success" data-loading data-tele-tooltip title="Restore">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
                                         </form>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#forceDeleteVehicleModal"
                                                 data-action="{{ route('vehicles.force', $vehicle) }}"
-                                                data-name="{{ $vehicle->registration_number }}">
-                                            Delete Permanently
+                                                data-name="{{ $vehicle->registration_number }}"
+                                                data-tele-tooltip
+                                                title="Delete permanently">
+                                            <i class="bi bi-x-octagon"></i>
                                         </button>
                                     @endif
                                 </td>
@@ -360,31 +372,43 @@
                             ? `<span class="badge bg-${maintenanceState === 'overdue' ? 'danger' : 'warning'} ms-1">Maintenance ${escapeHtml(maintenanceState)}</span>`
                             : '';
                         const archivedActions = `
-                            <a href="${showUrlTemplate.replace('__ID__', vehicle.public_id)}" class="btn btn-sm btn-outline-primary">View</a>
+                            <a href="${showUrlTemplate.replace('__ID__', vehicle.public_id)}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
                             <form method="POST" action="${restoreUrlTemplate.replace('__ID__', vehicle.public_id)}" class="d-inline">
                                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="_method" value="PATCH">
-                                <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                                <button type="submit" class="btn btn-sm btn-outline-success" data-loading data-tele-tooltip title="Restore">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
                             </form>
                             <button type="button"
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#forceDeleteVehicleModal"
                                     data-action="${forceDeleteUrlTemplate.replace('__ID__', vehicle.public_id)}"
-                                    data-name="${escapeHtml(vehicle.registration_number)}">
-                                Delete Permanently
+                                    data-name="${escapeHtml(vehicle.registration_number)}"
+                                    data-tele-tooltip
+                                    title="Delete permanently">
+                                <i class="bi bi-x-octagon"></i>
                             </button>
                         `;
                         const activeActions = `
-                            <a href="${showUrlTemplate.replace('__ID__', vehicle.public_id)}" class="btn btn-sm btn-outline-primary">View</a>
-                            <a href="${editUrlTemplate.replace('__ID__', vehicle.public_id)}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a href="${showUrlTemplate.replace('__ID__', vehicle.public_id)}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="${editUrlTemplate.replace('__ID__', vehicle.public_id)}" class="btn btn-sm btn-outline-secondary" data-tele-tooltip title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
                             <button type="button"
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#archiveVehicleModal"
                                     data-action="${deleteUrlTemplate.replace('__ID__', vehicle.public_id)}"
-                                    data-name="${escapeHtml(vehicle.registration_number)}">
-                                Delete
+                                    data-name="${escapeHtml(vehicle.registration_number)}"
+                                    data-tele-tooltip
+                                    title="Archive">
+                                <i class="bi bi-trash"></i>
                             </button>
                         `;
 
@@ -412,6 +436,12 @@
                             searching: true,
                             paging: true,
                             info: true,
+                        });
+                    }
+
+                    if (window.bootstrap?.Tooltip) {
+                        table.querySelectorAll('[data-tele-tooltip]').forEach((el) => {
+                            bootstrap.Tooltip.getOrCreateInstance(el);
                         });
                     }
                 };
