@@ -71,12 +71,18 @@
                                 @endif
                                 <td class="text-end">
                                     @if ($trip->log)
-                                        <a href="{{ route('logbooks.show', $trip->log) }}" class="btn btn-sm btn-outline-primary" data-loading>View Logbook</a>
+                                        <a href="{{ route('logbooks.show', $trip->log) }}" class="btn btn-sm btn-outline-primary" data-loading data-tele-tooltip title="View logbook">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
                                         @if ($canEditLogbook)
-                                            <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading>Edit Logbook</a>
+                                            <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading data-tele-tooltip title="Edit logbook">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
                                         @endif
                                     @else
-                                        <a href="{{ route('trips.logbook', $trip) }}" class="btn btn-sm btn-dark" data-loading>Enter Logbook</a>
+                                        <a href="{{ route('trips.logbook', $trip) }}" class="btn btn-sm btn-dark" data-loading data-tele-tooltip title="Enter logbook">
+                                            <i class="bi bi-journal-plus"></i>
+                                        </a>
                                     @endif
                                 </td>
                             </tr>

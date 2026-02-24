@@ -44,30 +44,42 @@
                                 </td>
                                 <td class="text-end">
                                     @if (!($showArchived ?? false))
-                                        <a href="{{ route('drivers.show', $driver) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a href="{{ route('drivers.edit', $driver) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        <a href="{{ route('drivers.show', $driver) }}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ route('drivers.edit', $driver) }}" class="btn btn-sm btn-outline-secondary" data-tele-tooltip title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#archiveDriverModal"
                                                 data-action="{{ route('drivers.destroy', $driver) }}"
-                                                data-name="{{ $driver->full_name }}">
-                                            Delete
+                                                data-name="{{ $driver->full_name }}"
+                                                data-tele-tooltip
+                                                title="Archive">
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     @elseif (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                                        <a href="{{ route('drivers.show', $driver) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="{{ route('drivers.show', $driver) }}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
                                         <form method="POST" action="{{ route('drivers.restore', $driver) }}" class="d-inline">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-success" data-loading data-tele-tooltip title="Restore">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
                                         </form>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#forceDeleteDriverModal"
                                                 data-action="{{ route('drivers.force', $driver) }}"
-                                                data-name="{{ $driver->full_name }}">
-                                            Delete Permanently
+                                                data-name="{{ $driver->full_name }}"
+                                                data-tele-tooltip
+                                                title="Delete permanently">
+                                            <i class="bi bi-x-octagon"></i>
                                         </button>
                                     @endif
                                 </td>

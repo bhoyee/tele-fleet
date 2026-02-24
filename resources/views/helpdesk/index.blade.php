@@ -72,7 +72,9 @@
                                 @endif
                                 <td>{{ $ticket->created_at?->format('M d, Y H:i') }}</td>
                                 <td class="text-end">
-                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('helpdesk.show', $ticket) }}" data-loading>View</a>
+                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('helpdesk.show', $ticket) }}" data-loading data-tele-tooltip title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
                                 </td>
                             </tr>
                         @endforeach

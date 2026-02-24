@@ -1550,6 +1550,17 @@
                 });
 
                 if (window.jQuery && $('.datatable').length) {
+                    const initTeleTooltips = (root = document) => {
+                        if (!window.bootstrap?.Tooltip) {
+                            return;
+                        }
+                        root.querySelectorAll?.('[data-tele-tooltip]')?.forEach((el) => {
+                            bootstrap.Tooltip.getOrCreateInstance(el);
+                        });
+                    };
+
+                    initTeleTooltips();
+
                     $('.datatable').DataTable({
                         pageLength: 10,
                         lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
@@ -1558,6 +1569,9 @@
                         paging: true,
                         info: true,
                         responsive: true,
+                        drawCallback: function () {
+                            initTeleTooltips(this.api().table().container());
+                        },
                     });
                 }
 
