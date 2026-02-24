@@ -1,7 +1,7 @@
 <x-admin-layout>
     <style>
         .trip-action-icons {
-            display: none;
+            display: inline-flex;
             gap: 0.5rem;
             flex-wrap: wrap;
             align-items: center;
@@ -11,13 +11,13 @@
             padding: 0.35rem 0.5rem;
         }
 
-        @media (max-width: 767px) {
-            .trip-action-buttons {
-                display: none !important;
-            }
+        .trip-action-buttons {
+            display: none !important;
+        }
 
+        @media (max-width: 767px) {
             .trip-action-icons {
-                display: inline-flex !important;
+                gap: 0.45rem;
             }
         }
     </style>
@@ -97,11 +97,11 @@
                                     </div>
                                     <div class="trip-action-icons">
                                         @if ($trip->status === 'pending')
-                                            <a href="{{ route('trips.edit', $trip) }}" class="btn btn-outline-secondary" data-loading title="Edit">
+                                            <a href="{{ route('trips.edit', $trip) }}" class="btn btn-outline-secondary" data-loading data-tele-tooltip title="Edit">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                         @endif
-                                        <a href="{{ route('trips.show', $trip) }}" class="btn btn-outline-primary" data-loading title="View">
+                                        <a href="{{ route('trips.show', $trip) }}" class="btn btn-outline-primary" data-loading data-tele-tooltip title="View">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <button type="button"
@@ -110,6 +110,7 @@
                                                 data-bs-target="#deleteTripModal"
                                                 data-delete-action="{{ route('trips.destroy', $trip) }}"
                                                 data-delete-label="{{ $trip->request_number }}"
+                                                data-tele-tooltip
                                                 title="Delete">
                                             <i class="bi bi-trash"></i>
                                         </button>
@@ -147,19 +148,22 @@
 
     @push('scripts')
         <script>
-            document.querySelectorAll('[data-delete-action]').forEach((button) => {
-                button.addEventListener('click', () => {
-                    const action = button.getAttribute('data-delete-action');
-                    const label = button.getAttribute('data-delete-label');
-                    const form = document.getElementById('deleteTripForm');
-                    if (form) {
-                        form.setAttribute('action', action);
-                    }
-                    const labelEl = document.getElementById('deleteTripLabel');
-                    if (labelEl) {
-                        labelEl.textContent = label;
-                    }
-                });
+            document.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-delete-action]');
+                if (!button) {
+                    return;
+                }
+
+                const action = button.getAttribute('data-delete-action');
+                const label = button.getAttribute('data-delete-label');
+                const form = document.getElementById('deleteTripForm');
+                if (form && action) {
+                    form.setAttribute('action', action);
+                }
+                const labelEl = document.getElementById('deleteTripLabel');
+                if (labelEl) {
+                    labelEl.textContent = label;
+                }
             });
         </script>
     @endpush
