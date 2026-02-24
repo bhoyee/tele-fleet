@@ -3,7 +3,8 @@
         .logbook-action-icons {
             display: inline-flex;
             gap: 0.5rem;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            white-space: nowrap;
             justify-content: flex-end;
             align-items: center;
         }
