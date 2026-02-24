@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Incident;
 
+use App\Support\TextNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreIncidentReportRequest extends FormRequest
@@ -9,6 +10,15 @@ class StoreIncidentReportRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'title' => TextNormalizer::titleText($this->input('title')),
+            'location' => TextNormalizer::titleText($this->input('location')),
+            'description' => TextNormalizer::collapseWhitespace($this->input('description')),
+        ]);
     }
 
     public function rules(): array

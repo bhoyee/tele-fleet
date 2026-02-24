@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Trip;
 
+use App\Support\TextNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LogTripRequest extends FormRequest
@@ -9,6 +10,17 @@ class LogTripRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'driver_name' => TextNormalizer::personName($this->input('driver_name')),
+            'driver_license_number' => TextNormalizer::upper($this->input('driver_license_number')),
+            'paper_logbook_ref_number' => TextNormalizer::upper($this->input('paper_logbook_ref_number')),
+            'driver_notes' => TextNormalizer::collapseWhitespace($this->input('driver_notes')),
+            'remarks' => TextNormalizer::collapseWhitespace($this->input('remarks')),
+        ]);
     }
 
     public function rules(): array

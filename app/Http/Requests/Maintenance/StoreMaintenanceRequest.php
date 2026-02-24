@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Maintenance;
 
 use App\Models\VehicleMaintenance;
+use App\Support\TextNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -11,6 +12,14 @@ class StoreMaintenanceRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'description' => TextNormalizer::titleText($this->input('description')),
+            'notes' => TextNormalizer::collapseWhitespace($this->input('notes')),
+        ]);
     }
 
     public function rules(): array

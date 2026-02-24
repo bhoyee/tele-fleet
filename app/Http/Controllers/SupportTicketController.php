@@ -11,6 +11,7 @@ use App\Notifications\DeveloperSupportTicketMessage;
 use App\Notifications\DeveloperSupportTicketCreated;
 use App\Notifications\SupportTicketCreated;
 use App\Notifications\SupportTicketReply;
+use App\Support\TextNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -79,6 +80,8 @@ class SupportTicketController extends Controller
             'attachments' => ['nullable', 'array'],
             'attachments.*' => ['file', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx', 'max:10240'],
         ]);
+
+        $data['subject'] = TextNormalizer::titleText($data['subject'] ?? null) ?? '';
 
         $description = $this->sanitizeDescription($data['description']);
         $descriptionPlain = trim(preg_replace('/\s+/', ' ', strip_tags($description)));

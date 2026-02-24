@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUuidRouteKey;
+use App\Support\TextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -48,6 +49,31 @@ class TripLog extends Model
         'branch_head_verified_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    public function setDriverNameAttribute($value): void
+    {
+        $this->attributes['driver_name'] = TextNormalizer::personName(is_string($value) ? $value : null) ?? '';
+    }
+
+    public function setDriverLicenseNumberAttribute($value): void
+    {
+        $this->attributes['driver_license_number'] = TextNormalizer::upper(is_string($value) ? $value : null) ?? '';
+    }
+
+    public function setPaperLogbookRefNumberAttribute($value): void
+    {
+        $this->attributes['paper_logbook_ref_number'] = TextNormalizer::upper(is_string($value) ? $value : null);
+    }
+
+    public function setDriverNotesAttribute($value): void
+    {
+        $this->attributes['driver_notes'] = TextNormalizer::collapseWhitespace(is_string($value) ? $value : null);
+    }
+
+    public function setRemarksAttribute($value): void
+    {
+        $this->attributes['remarks'] = TextNormalizer::collapseWhitespace(is_string($value) ? $value : null);
+    }
 
     public function tripRequest(): BelongsTo
     {

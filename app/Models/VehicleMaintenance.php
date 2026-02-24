@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUuidRouteKey;
+use App\Support\TextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +38,16 @@ class VehicleMaintenance extends Model
         'cost' => 'decimal:2',
         'odometer' => 'integer',
     ];
+
+    public function setDescriptionAttribute($value): void
+    {
+        $this->attributes['description'] = TextNormalizer::titleText(is_string($value) ? $value : null) ?? '';
+    }
+
+    public function setNotesAttribute($value): void
+    {
+        $this->attributes['notes'] = TextNormalizer::collapseWhitespace(is_string($value) ? $value : null);
+    }
 
     public function vehicle(): BelongsTo
     {
