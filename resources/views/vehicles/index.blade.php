@@ -41,7 +41,10 @@
                             @endphp
                             <tr>
                                 <td>{{ $vehicle->registration_number }}</td>
-                                <td>{{ $vehicle->make }} {{ $vehicle->model }}</td>
+                                <td>
+                                    {{ \App\Support\TextNormalizer::titlePreserveAcronyms($vehicle->make, 3) }}
+                                    {{ \App\Support\TextNormalizer::titlePreserveAcronyms($vehicle->model, 3) }}
+                                </td>
                                 <td>{{ number_format($vehicle->current_mileage) }} km</td>
                                 <td>
                                     <span class="badge bg-{{ $displayStatus === 'available' ? 'success' : ($displayStatus === 'in_use' ? 'primary' : ($displayStatus === 'maintenance' ? 'warning' : 'secondary')) }}">

@@ -39,10 +39,10 @@
                     <tbody>
                         @foreach ($users as $user)
                             <tr>
-                                <td>{{ $user->name }}</td>
+                                <td>{{ \App\Support\TextNormalizer::personName($user->name) }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td class="text-capitalize">{{ str_replace('_', ' ', $user->role) }}</td>
-                                <td>{{ $user->branch?->name ?? 'N/A' }}</td>
+                                <td>{{ $user->branch?->name ? \App\Support\TextNormalizer::titleText($user->branch->name) : 'N/A' }}</td>
                                 <td>
                                     <span class="badge {{ $user->status === 'active' ? 'bg-success' : 'bg-secondary' }}">
                                         {{ ucfirst($user->status) }}
@@ -65,7 +65,7 @@
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#deleteUserModal"
                                                     data-delete-action="{{ route('admin.users.destroy', $user) }}"
-                                                    data-delete-name="{{ $user->name }}"
+                                                    data-delete-name="{{ \App\Support\TextNormalizer::personName($user->name) }}"
                                                     data-tele-tooltip
                                                     title="Archive">
                                                 <i class="bi bi-trash"></i>

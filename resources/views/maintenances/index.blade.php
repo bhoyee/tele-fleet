@@ -69,7 +69,7 @@
                                         {{ ucfirst(str_replace('_', ' ', $status)) }}
                                     </span>
                                 </td>
-                                <td>{{ $maintenance->description }}</td>
+                                <td>{{ \App\Support\TextNormalizer::titleText($maintenance->description) }}</td>
                                 <td>{{ $maintenance->cost !== null ? number_format($maintenance->cost, 2) : '—' }}</td>
                                 <td class="text-end">
                                     <a href="{{ route('maintenances.show', $maintenance) }}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">

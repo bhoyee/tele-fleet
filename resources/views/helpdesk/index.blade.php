@@ -62,13 +62,13 @@
                             @endphp
                             <tr>
                                 <td class="fw-semibold">TCK-{{ str_pad($ticket->id, 5, '0', STR_PAD_LEFT) }}</td>
-                                <td>{{ $ticket->subject }}</td>
+                                <td>{{ \App\Support\TextNormalizer::titleText($ticket->subject) }}</td>
                                 <td>{{ $categoryLabel }}</td>
                                 <td><span class="badge {{ $priorityClass }}">{{ ucfirst($ticket->priority) }}</span></td>
                                 <td><span class="badge {{ $statusClass }}">{{ ucfirst(str_replace('_', ' ', $ticket->status)) }}</span></td>
                                 @if ($isManager)
-                                    <td>{{ $ticket->user?->name ?? 'N/A' }}</td>
-                                    <td>{{ $ticket->branch?->name ?? 'N/A' }}</td>
+                                    <td>{{ $ticket->user?->name ? \App\Support\TextNormalizer::personName($ticket->user->name) : 'N/A' }}</td>
+                                    <td>{{ $ticket->branch?->name ? \App\Support\TextNormalizer::titleText($ticket->branch->name) : 'N/A' }}</td>
                                 @endif
                                 <td>{{ $ticket->created_at?->format('M d, Y H:i') }}</td>
                                 <td class="text-end">

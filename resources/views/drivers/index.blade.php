@@ -33,7 +33,7 @@
                     <tbody>
                         @foreach ($drivers as $driver)
                             <tr>
-                                <td>{{ $driver->full_name }}</td>
+                                <td>{{ \App\Support\TextNormalizer::personName($driver->full_name) }}</td>
                                 <td>{{ $driver->license_number }}</td>
                                 <td>{{ $driver->license_expiry?->format('M d, Y') ?? 'N/A' }}</td>
                                 <td>{{ $driver->phone }}</td>
@@ -55,7 +55,7 @@
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#archiveDriverModal"
                                                 data-action="{{ route('drivers.destroy', $driver) }}"
-                                                data-name="{{ $driver->full_name }}"
+                                                data-name="{{ \App\Support\TextNormalizer::personName($driver->full_name) }}"
                                                 data-tele-tooltip
                                                 title="Archive">
                                             <i class="bi bi-trash"></i>
@@ -335,6 +335,22 @@
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;');
 
+                const normalizePersonName = (value) => {
+                    const input = String(value ?? '').trim().replace(/\s+/g, ' ');
+                    if (!input) {
+                        return '';
+                    }
+                    return input.split(' ').map((token) => {
+                        return token.split('-').map((part) => {
+                            if (/^[A-Z0-9]{2,3}$/.test(part)) {
+                                return part;
+                            }
+                            const lowered = part.toLowerCase();
+                            return lowered.replace(/(^|[’'])[a-z]/g, (match) => match.toUpperCase());
+                        }).join('-');
+                    }).join(' ');
+                };
+
                 const statusBadge = (status) => {
                     switch ((status || '').toLowerCase()) {
                         case 'active':
@@ -368,7 +384,7 @@
                                     data-bs-toggle="modal"
                                     data-bs-target="#forceDeleteDriverModal"
                                     data-action="${forceDeleteUrlTemplate.replace('__ID__', driver.public_id)}"
-                                    data-name="${escapeHtml(driver.full_name)}"
+                                    data-name="${escapeHtml(normalizePersonName(driver.full_name))}"
                                     data-tele-tooltip
                                     title="Delete permanently">
                                 <i class="bi bi-x-octagon"></i>
@@ -386,7 +402,7 @@
                                     data-bs-toggle="modal"
                                     data-bs-target="#archiveDriverModal"
                                     data-action="${deleteUrlTemplate.replace('__ID__', driver.public_id)}"
-                                    data-name="${escapeHtml(driver.full_name)}"
+                                    data-name="${escapeHtml(normalizePersonName(driver.full_name))}"
                                     data-tele-tooltip
                                     title="Archive">
                                 <i class="bi bi-trash"></i>
@@ -395,7 +411,7 @@
 
                         return `
                             <tr>
-                                <td>${escapeHtml(driver.full_name)}</td>
+                                <td>${escapeHtml(normalizePersonName(driver.full_name))}</td>
                                 <td>${escapeHtml(driver.license_number)}</td>
                                 <td>${escapeHtml(driver.license_expiry)}</td>
                                 <td>${escapeHtml(driver.phone)}</td>
