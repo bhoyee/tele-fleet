@@ -690,8 +690,8 @@
                                 @foreach ($tables['trips'] as $trip)
                                     <tr>
                                         <td class="text-truncate" style="max-width: 100px;">{{ $trip->request_number }}</td>
-                                        <td class="text-truncate" style="max-width: 100px;">{{ $trip->branch?->name ?? 'N/A' }}</td>
-                                        <td class="text-truncate" style="max-width: 100px;">{{ $trip->requestedBy?->name ?? 'N/A' }}</td>
+                                        <td class="text-truncate" style="max-width: 100px;">{{ $trip->branch?->name ? \App\Support\TextNormalizer::titleText($trip->branch->name) : 'N/A' }}</td>
+                                        <td class="text-truncate" style="max-width: 100px;">{{ $trip->requestedBy?->name ? \App\Support\TextNormalizer::personName($trip->requestedBy->name) : 'N/A' }}</td>
                                         <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
                                         @php
                                             $tripStatusClass = match ($trip->status) {
@@ -770,8 +770,8 @@
                                 @foreach ($tables['vehicles'] as $vehicle)
                                     <tr>
                                         <td class="text-truncate" style="max-width: 100px;">{{ $vehicle->registration_number }}</td>
-                                        <td class="text-truncate" style="max-width: 80px;">{{ $vehicle->make }}</td>
-                                        <td class="text-truncate" style="max-width: 80px;">{{ $vehicle->model }}</td>
+                                        <td class="text-truncate" style="max-width: 80px;">{{ \App\Support\TextNormalizer::titlePreserveAcronyms($vehicle->make, 3) }}</td>
+                                        <td class="text-truncate" style="max-width: 80px;">{{ \App\Support\TextNormalizer::titlePreserveAcronyms($vehicle->model, 3) }}</td>
                                         @php
                                             $vehicleStatusClass = match ($vehicle->report_status) {
                                                 'available' => 'success',
@@ -842,7 +842,7 @@
                             <tbody>
                                 @foreach ($tables['drivers'] as $driverRow)
                                     <tr>
-                                        <td class="text-truncate" style="max-width: 120px;">{{ $driverRow['driver']?->full_name ?? 'N/A' }}</td>
+                                        <td class="text-truncate" style="max-width: 120px;">{{ $driverRow['driver']?->full_name ? \App\Support\TextNormalizer::personName($driverRow['driver']->full_name) : 'N/A' }}</td>
                                         @php
                                             $driverStatus = $driverRow['driver']?->status ?? 'unknown';
                                             $driverStatusClass = match ($driverStatus) {
@@ -918,7 +918,7 @@
                                 @foreach ($tables['incidents'] as $incident)
                                     <tr>
                                         <td class="text-truncate" style="max-width: 100px;">{{ $incident->reference }}</td>
-                                        <td class="text-truncate" style="max-width: 100px;">{{ $incident->branch?->name ?? 'N/A' }}</td>
+                                        <td class="text-truncate" style="max-width: 100px;">{{ $incident->branch?->name ? \App\Support\TextNormalizer::titleText($incident->branch->name) : 'N/A' }}</td>
                                         @php
                                             $incidentSeverityClass = match ($incident->severity) {
                                                 'minor' => 'warning',

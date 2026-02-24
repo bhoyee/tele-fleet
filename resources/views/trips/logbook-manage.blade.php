@@ -64,14 +64,14 @@
                             @endphp
                             <tr>
                                 <td>{{ $trip?->request_number ?? 'N/A' }}</td>
-                                <td>{{ $trip?->branch?->name ?? 'N/A' }}</td>
+                                <td>{{ $trip?->branch?->name ? \App\Support\TextNormalizer::titleText($trip->branch->name) : 'N/A' }}</td>
                                 <td>{{ $trip?->trip_date?->format('M d, Y') ?? 'N/A' }}</td>
                                 <td>{{ $trip?->assignedVehicle?->registration_number ?? 'N/A' }}</td>
-                                <td>{{ $trip?->assignedDriver?->full_name ?? 'N/A' }}</td>
+                                <td>{{ $trip?->assignedDriver?->full_name ? \App\Support\TextNormalizer::personName($trip->assignedDriver->full_name) : 'N/A' }}</td>
                                 <td>{{ $log->log_date?->format('M d, Y') ?? 'N/A' }}</td>
                                 <td><span class="badge bg-{{ $statusClass }}">{{ ucfirst($status) }}</span></td>
-                                <td>{{ $log->enteredBy?->name ?? 'N/A' }}</td>
-                                <td>{{ $log->editedBy?->name ?? 'N/A' }}</td>
+                                <td>{{ $log->enteredBy?->name ? \App\Support\TextNormalizer::personName($log->enteredBy->name) : 'N/A' }}</td>
+                                <td>{{ $log->editedBy?->name ? \App\Support\TextNormalizer::personName($log->editedBy->name) : 'N/A' }}</td>
                                 <td class="text-end">
                                     <div class="logbook-action-icons">
                                         <a href="{{ route('logbooks.show', $log) }}@if($showArchived){{ '?archived=1' }}@endif" class="btn btn-sm btn-outline-primary" data-loading data-tele-tooltip title="View">

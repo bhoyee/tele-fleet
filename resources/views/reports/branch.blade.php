@@ -100,8 +100,8 @@
                         @foreach ($trips as $trip)
                             <tr>
                                 <td>{{ $trip->request_number }}</td>
-                                <td>{{ $trip->requestedBy?->name ?? 'N/A' }}</td>
-                                <td>{{ $trip->destination }}</td>
+                                <td>{{ $trip->requestedBy?->name ? \App\Support\TextNormalizer::personName($trip->requestedBy->name) : 'N/A' }}</td>
+                                <td>{{ \App\Support\TextNormalizer::titleText($trip->destination) }}</td>
                                 <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
                                 <td>
                                     @php
