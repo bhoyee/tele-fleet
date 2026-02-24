@@ -249,7 +249,7 @@
                                     @if ($shouldBlurPurpose)
                                         <span class="text-muted">Restricted</span>
                                     @else
-                                        {{ $trip->purpose }}
+                                        {{ \App\Support\TextNormalizer::titleText($trip->purpose) }}
                                     @endif
                                 </td>
                                 <td data-label="Trip Date">

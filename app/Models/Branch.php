@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUuidRouteKey;
+use App\Support\TextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -27,6 +28,26 @@ class Branch extends Model
     protected $casts = [
         'is_head_office' => 'boolean',
     ];
+
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['name'] = TextNormalizer::titleText(is_string($value) ? $value : null) ?? '';
+    }
+
+    public function setCodeAttribute($value): void
+    {
+        $this->attributes['code'] = TextNormalizer::branchCode(is_string($value) ? $value : null) ?? '';
+    }
+
+    public function setCityAttribute($value): void
+    {
+        $this->attributes['city'] = TextNormalizer::titlePreserveAcronyms(is_string($value) ? $value : null, 3);
+    }
+
+    public function setStateAttribute($value): void
+    {
+        $this->attributes['state'] = TextNormalizer::titlePreserveAcronyms(is_string($value) ? $value : null, 3);
+    }
 
     public function manager(): BelongsTo
     {

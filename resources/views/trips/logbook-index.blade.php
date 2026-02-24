@@ -51,10 +51,10 @@
                         @foreach ($trips as $trip)
                             <tr>
                                 <td>{{ $trip->request_number }}</td>
-                                <td>{{ $trip->branch?->name ?? 'N/A' }}</td>
+                                <td>{{ $trip->branch?->name ? \App\Support\TextNormalizer::titleText($trip->branch->name) : 'N/A' }}</td>
                                 <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
                                 <td>{{ $trip->assignedVehicle?->registration_number ?? 'N/A' }}</td>
-                                <td>{{ $trip->assignedDriver?->full_name ?? 'N/A' }}</td>
+                                <td>{{ $trip->assignedDriver?->full_name ? \App\Support\TextNormalizer::personName($trip->assignedDriver->full_name) : 'N/A' }}</td>
                                 <td>
                                     <span class="badge bg-{{ $trip->status === 'completed' ? 'dark' : 'primary' }}">
                                         {{ ucfirst($trip->status) }}
@@ -80,8 +80,8 @@
                                     @endif
                                 </td>
                                 @if ($isSuperAdmin)
-                                    <td>{{ $trip->log?->enteredBy?->name ?? 'N/A' }}</td>
-                                    <td>{{ $trip->log?->editedBy?->name ?? 'N/A' }}</td>
+                                    <td>{{ $trip->log?->enteredBy?->name ? \App\Support\TextNormalizer::personName($trip->log->enteredBy->name) : 'N/A' }}</td>
+                                    <td>{{ $trip->log?->editedBy?->name ? \App\Support\TextNormalizer::personName($trip->log->editedBy->name) : 'N/A' }}</td>
                                 @endif
                                 <td class="text-end">
                                     <div class="logbook-action-icons">

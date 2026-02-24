@@ -47,7 +47,7 @@
                         <option value="">All Branches</option>
                         @foreach ($branches as $branch)
                             <option value="{{ $branch->id }}" @selected((string) request('branch_id') === (string) $branch->id)>
-                                {{ $branch->name }}
+                                {{ \App\Support\TextNormalizer::titleText($branch->name) }}
                             </option>
                         @endforeach
                     </select>
@@ -113,7 +113,20 @@
                                             <span class="badge bg-{{ $statusClass }}">{{ $cell }}</span>
                                         </td>
                                     @else
-                                        <td>{{ $cell }}</td>
+                                        @php
+                                            $columnName = (string) ($columns[$index] ?? '');
+                                            $formattedCell = $cell;
+                                            if (is_string($cell) && trim($cell) !== '') {
+                                                if (in_array($columnName, ['Requester', 'Driver', 'User'], true)) {
+                                                    $formattedCell = \App\Support\TextNormalizer::personName($cell);
+                                                } elseif (in_array($columnName, ['Branch', 'Destination', 'Location', 'Title', 'Subject'], true)) {
+                                                    $formattedCell = \App\Support\TextNormalizer::titleText($cell);
+                                                } elseif ($columnName === 'Make' || $columnName === 'Model') {
+                                                    $formattedCell = \App\Support\TextNormalizer::titlePreserveAcronyms($cell, 3);
+                                                }
+                                            }
+                                        @endphp
+                                        <td>{{ $formattedCell }}</td>
                                     @endif
                                 @endforeach
                             </tr>

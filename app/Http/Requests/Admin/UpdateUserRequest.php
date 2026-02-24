@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\User;
+use App\Support\TextNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -12,6 +13,13 @@ class UpdateUserRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => TextNormalizer::personName($this->input('name')),
+        ]);
     }
 
     public function rules(): array

@@ -23,9 +23,18 @@
                     <tbody>
                         @foreach ($branches as $branch)
                             <tr>
-                                <td>{{ $branch->name }}</td>
-                                <td>{{ $branch->code }}</td>
-                                <td>{{ trim($branch->city . ', ' . $branch->state, ', ') ?: 'N/A' }}</td>
+                                <td>{{ \App\Support\TextNormalizer::titleText($branch->name) }}</td>
+                                <td>{{ \App\Support\TextNormalizer::branchCode($branch->code) }}</td>
+                                <td>
+                                    {{
+                                        trim(
+                                            (\App\Support\TextNormalizer::titlePreserveAcronyms($branch->city, 3) ?? '')
+                                            . ', '
+                                            . (\App\Support\TextNormalizer::titlePreserveAcronyms($branch->state, 3) ?? ''),
+                                            ', '
+                                        ) ?: 'N/A'
+                                    }}
+                                </td>
                                 <td>
                                     @if ($branch->is_head_office)
                                         <span class="badge bg-primary">Yes</span>
@@ -45,7 +54,7 @@
                                             data-bs-toggle="modal"
                                             data-bs-target="#deleteBranchModal"
                                             data-action="{{ route('branches.destroy', $branch) }}"
-                                            data-name="{{ $branch->name }}"
+                                            data-name="{{ \App\Support\TextNormalizer::titleText($branch->name) }}"
                                             data-tele-tooltip
                                             title="Delete">
                                         <i class="bi bi-trash"></i>

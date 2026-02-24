@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -65,6 +66,31 @@ class IncidentReport extends Model
                 $incidentReport->uuid = (string) Str::uuid();
             }
         });
+    }
+
+    public function setTitleAttribute($value): void
+    {
+        $this->attributes['title'] = TextNormalizer::titleText(is_string($value) ? $value : null) ?? '';
+    }
+
+    public function setLocationAttribute($value): void
+    {
+        $this->attributes['location'] = TextNormalizer::titleText(is_string($value) ? $value : null);
+    }
+
+    public function setDescriptionAttribute($value): void
+    {
+        $this->attributes['description'] = TextNormalizer::collapseWhitespace(is_string($value) ? $value : null) ?? '';
+    }
+
+    public function setResolutionNotesAttribute($value): void
+    {
+        $this->attributes['resolution_notes'] = TextNormalizer::collapseWhitespace(is_string($value) ? $value : null);
+    }
+
+    public function setCancellationReasonAttribute($value): void
+    {
+        $this->attributes['cancellation_reason'] = TextNormalizer::collapseWhitespace(is_string($value) ? $value : null);
     }
 
     public function getRouteKeyName(): string

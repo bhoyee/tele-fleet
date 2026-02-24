@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -80,6 +81,21 @@ class TripRequest extends Model
                 $tripRequest->uuid = (string) Str::uuid();
             }
         });
+    }
+
+    public function setPurposeAttribute($value): void
+    {
+        $this->attributes['purpose'] = TextNormalizer::titleText(is_string($value) ? $value : null) ?? '';
+    }
+
+    public function setDestinationAttribute($value): void
+    {
+        $this->attributes['destination'] = TextNormalizer::titleText(is_string($value) ? $value : null) ?? '';
+    }
+
+    public function setAdditionalNotesAttribute($value): void
+    {
+        $this->attributes['additional_notes'] = TextNormalizer::collapseWhitespace(is_string($value) ? $value : null);
     }
 
     public function getRouteKeyName(): string

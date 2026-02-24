@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUuidRouteKey;
+use App\Support\TextNormalizer;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -64,6 +65,11 @@ class User extends Authenticatable
             'password' => 'hashed',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['name'] = TextNormalizer::personName(is_string($value) ? $value : null) ?? '';
     }
 
     public function branch(): BelongsTo

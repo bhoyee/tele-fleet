@@ -65,7 +65,7 @@
                                         {{ ucfirst($displayStatus) }}
                                     </span>
                                 </td>
-                                <td>{{ $trip->destination }}</td>
+                                <td>{{ \App\Support\TextNormalizer::titleText($trip->destination) }}</td>
                                 <td>
                                     <div>{{ $trip->trip_date?->format('M d, Y') }}</div>
                                     @php

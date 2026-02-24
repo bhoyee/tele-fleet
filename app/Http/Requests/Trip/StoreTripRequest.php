@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Trip;
 
+use App\Support\TextNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTripRequest extends FormRequest
@@ -30,8 +31,11 @@ class StoreTripRequest extends FormRequest
         }
 
         $this->merge([
+            'purpose' => TextNormalizer::titleText($this->input('purpose')),
+            'destination' => TextNormalizer::titleText($this->input('destination')),
             'trip_time' => $tripTime !== '' ? $tripTime : null,
             'estimated_distance_km' => $estimatedDays,
+            'additional_notes' => TextNormalizer::collapseWhitespace($this->input('additional_notes')),
         ]);
     }
 
