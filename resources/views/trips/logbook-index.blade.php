@@ -1,4 +1,17 @@
 <x-admin-layout>
+    <style>
+        .logbook-action-icons {
+            display: inline-flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .logbook-action-icons .btn {
+            padding: 0.35rem 0.5rem;
+        }
+    </style>
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="h3 mb-1">Logbooks</h1>
@@ -70,20 +83,22 @@
                                     <td>{{ $trip->log?->editedBy?->name ?? 'N/A' }}</td>
                                 @endif
                                 <td class="text-end">
-                                    @if ($trip->log)
-                                        <a href="{{ route('logbooks.show', $trip->log) }}" class="btn btn-sm btn-outline-primary" data-loading data-tele-tooltip title="View logbook">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        @if ($canEditLogbook)
-                                            <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading data-tele-tooltip title="Edit logbook">
-                                                <i class="bi bi-pencil"></i>
+                                    <div class="logbook-action-icons">
+                                        @if ($trip->log)
+                                            <a href="{{ route('logbooks.show', $trip->log) }}" class="btn btn-sm btn-outline-primary" data-loading data-tele-tooltip title="View logbook">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            @if ($canEditLogbook)
+                                                <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading data-tele-tooltip title="Edit logbook">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            @endif
+                                        @else
+                                            <a href="{{ route('trips.logbook', $trip) }}" class="btn btn-sm btn-dark" data-loading data-tele-tooltip title="Enter logbook">
+                                                <i class="bi bi-journal-plus"></i>
                                             </a>
                                         @endif
-                                    @else
-                                        <a href="{{ route('trips.logbook', $trip) }}" class="btn btn-sm btn-dark" data-loading data-tele-tooltip title="Enter logbook">
-                                            <i class="bi bi-journal-plus"></i>
-                                        </a>
-                                    @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

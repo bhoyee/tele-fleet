@@ -1,4 +1,17 @@
 <x-admin-layout>
+    <style>
+        .logbook-action-icons {
+            display: inline-flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .logbook-action-icons .btn {
+            padding: 0.35rem 0.5rem;
+        }
+    </style>
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="h3 mb-1">Manage Logbooks</h1>
@@ -59,47 +72,49 @@
                                 <td>{{ $log->enteredBy?->name ?? 'N/A' }}</td>
                                 <td>{{ $log->editedBy?->name ?? 'N/A' }}</td>
                                 <td class="text-end">
-                                    <a href="{{ route('logbooks.show', $log) }}@if($showArchived){{ '?archived=1' }}@endif" class="btn btn-sm btn-outline-primary" data-loading data-tele-tooltip title="View">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    @if (! $showArchived && $trip)
-                                        @if ($canEditLogbook)
-                                            <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading data-tele-tooltip title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
+                                    <div class="logbook-action-icons">
+                                        <a href="{{ route('logbooks.show', $log) }}@if($showArchived){{ '?archived=1' }}@endif" class="btn btn-sm btn-outline-primary" data-loading data-tele-tooltip title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        @if (! $showArchived && $trip)
+                                            @if ($canEditLogbook)
+                                                <a href="{{ route('trips.logbook.edit', $trip) }}" class="btn btn-sm btn-outline-secondary" data-loading data-tele-tooltip title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            @endif
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#archiveLogbookModal"
+                                                    data-delete-action="{{ route('logbooks.archive', $log) }}"
+                                                    data-delete-label="{{ $trip?->request_number ?? 'Logbook' }}"
+                                                    data-tele-tooltip
+                                                    title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        @elseif ($isSuperAdmin)
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-success"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#restoreLogbookModal"
+                                                    data-restore-action="{{ route('logbooks.restore', $log) }}"
+                                                    data-restore-label="{{ $trip?->request_number ?? 'Logbook' }}"
+                                                    data-tele-tooltip
+                                                    title="Restore">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#forceDeleteLogbookModal"
+                                                    data-force-action="{{ route('logbooks.force', $log) }}"
+                                                    data-force-label="{{ $trip?->request_number ?? 'Logbook' }}"
+                                                    data-tele-tooltip
+                                                    title="Delete permanently">
+                                                <i class="bi bi-x-octagon"></i>
+                                            </button>
                                         @endif
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#archiveLogbookModal"
-                                                data-delete-action="{{ route('logbooks.archive', $log) }}"
-                                                data-delete-label="{{ $trip?->request_number ?? 'Logbook' }}"
-                                                data-tele-tooltip
-                                                title="Delete">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    @elseif ($isSuperAdmin)
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-success"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#restoreLogbookModal"
-                                                data-restore-action="{{ route('logbooks.restore', $log) }}"
-                                                data-restore-label="{{ $trip?->request_number ?? 'Logbook' }}"
-                                                data-tele-tooltip
-                                                title="Restore">
-                                            <i class="bi bi-arrow-counterclockwise"></i>
-                                        </button>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#forceDeleteLogbookModal"
-                                                data-force-action="{{ route('logbooks.force', $log) }}"
-                                                data-force-label="{{ $trip?->request_number ?? 'Logbook' }}"
-                                                data-tele-tooltip
-                                                title="Delete permanently">
-                                            <i class="bi bi-x-octagon"></i>
-                                        </button>
-                                    @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
