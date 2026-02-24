@@ -22,7 +22,7 @@
         }
 
         .trip-action-icons {
-            display: none;
+            display: inline-flex;
             gap: 0.5rem;
             flex-wrap: wrap;
             align-items: center;
@@ -34,6 +34,10 @@
 
         .dataTables_wrapper .row {
             align-items: center;
+        }
+
+        .trip-action-buttons {
+            display: none !important;
         }
 
         @media (max-width: 767px) {
@@ -104,12 +108,8 @@
                 gap: 0.35rem;
             }
 
-            .trip-action-buttons {
-                display: none !important;
-            }
-
             .trip-action-icons {
-                display: inline-flex !important;
+                gap: 0.45rem;
             }
 
         }
@@ -338,12 +338,12 @@
                                     </div>
                                     <div class="trip-action-icons">
                                         @if ($canEdit && !($showArchived ?? false))
-                                            <a href="{{ route('trips.edit', $trip) }}" class="btn btn-outline-secondary" data-loading title="Edit">
+                                            <a href="{{ route('trips.edit', $trip) }}" class="btn btn-outline-secondary" data-loading data-tele-tooltip title="Edit">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                         @endif
                                         @if (! ($user?->role === \App\Models\User::ROLE_BRANCH_ADMIN && $trip->requested_by_user_id !== $user->id))
-                                            <a href="{{ route('trips.show', $trip) }}" class="btn btn-outline-primary" data-loading title="View">
+                                            <a href="{{ route('trips.show', $trip) }}" class="btn btn-outline-primary" data-loading data-tele-tooltip title="View">
                                                 <i class="bi bi-eye"></i>
                                             </a>
                                         @endif
@@ -354,6 +354,7 @@
                                                     data-bs-target="#deleteTripModal"
                                                     data-delete-action="{{ route('trips.destroy', $trip) }}"
                                                     data-delete-label="{{ $trip->request_number }}"
+                                                    data-tele-tooltip
                                                     title="Delete">
                                                 <i class="bi bi-trash"></i>
                                             </button>
@@ -362,7 +363,7 @@
                                             <form method="POST" action="{{ route('trips.restore', $trip) }}" class="d-inline">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="btn btn-outline-success" data-loading title="Restore">
+                                                <button type="submit" class="btn btn-outline-success" data-loading data-tele-tooltip title="Restore">
                                                     <i class="bi bi-arrow-counterclockwise"></i>
                                                 </button>
                                             </form>
@@ -372,6 +373,7 @@
                                                     data-bs-target="#forceDeleteTripModal"
                                                     data-delete-action="{{ route('trips.force', $trip) }}"
                                                     data-delete-label="{{ $trip->request_number }}"
+                                                    data-tele-tooltip
                                                     title="Delete permanently">
                                                 <i class="bi bi-x-octagon"></i>
                                             </button>
@@ -383,6 +385,7 @@
                                                     data-bs-target="#cancelTripModal"
                                                     data-cancel-action="{{ route('trips.cancel', $trip) }}"
                                                     data-cancel-label="{{ $trip->request_number }}"
+                                                    data-tele-tooltip
                                                     title="Cancel">
                                                 <i class="bi bi-x-circle"></i>
                                             </button>
@@ -828,6 +831,14 @@
                                 { responsivePriority: 2, targets: 4 },
                                 { responsivePriority: 100, targets: -1 },
                             ],
+                        });
+                    }
+
+                    if (window.bootstrap?.Tooltip) {
+                        table.querySelectorAll('[title]').forEach((el) => {
+                            if (el.closest('.trip-action-icons')) {
+                                bootstrap.Tooltip.getOrCreateInstance(el);
+                            }
                         });
                     }
                 };

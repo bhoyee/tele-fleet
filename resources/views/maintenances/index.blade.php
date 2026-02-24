@@ -186,17 +186,21 @@
                                 <td>${escapeHtml(maintenance.description)}</td>
                                 <td>${escapeHtml(maintenance.cost)}</td>
                                 <td class="text-end">
-                                    <a href="${showUrlTemplate.replace('__ID__', maintenance.public_id)}" class="btn btn-sm btn-outline-primary">View</a>
+                                    <a href="${showUrlTemplate.replace('__ID__', maintenance.public_id)}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
                                     ${maintenance.status !== 'completed'
-                                        ? `<a href="${editUrlTemplate.replace('__ID__', maintenance.public_id)}" class="btn btn-sm btn-outline-secondary">Edit</a>`
+                                        ? `<a href="${editUrlTemplate.replace('__ID__', maintenance.public_id)}" class="btn btn-sm btn-outline-secondary" data-tele-tooltip title="Edit"><i class="bi bi-pencil"></i></a>`
                                         : ''}
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"
                                             data-bs-toggle="modal"
                                             data-bs-target="#deleteMaintenanceModal"
                                             data-action="${deleteUrlTemplate.replace('__ID__', maintenance.public_id)}"
-                                            data-label="${escapeHtml(maintenance.vehicle_registration)}">
-                                        Delete
+                                            data-label="${escapeHtml(maintenance.vehicle_registration)}"
+                                            data-tele-tooltip
+                                            title="Delete">
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -211,6 +215,12 @@
                             searching: true,
                             paging: true,
                             info: true,
+                        });
+                    }
+
+                    if (window.bootstrap?.Tooltip) {
+                        table.querySelectorAll('[data-tele-tooltip]').forEach((el) => {
+                            bootstrap.Tooltip.getOrCreateInstance(el);
                         });
                     }
                 };

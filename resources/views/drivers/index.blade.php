@@ -341,31 +341,43 @@
 
                     tbody.innerHTML = rows.map((driver) => {
                         const archivedActions = `
-                            <a href="${showUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-primary">View</a>
+                            <a href="${showUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
                             <form method="POST" action="${restoreUrlTemplate.replace('__ID__', driver.public_id)}" class="d-inline">
                                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="_method" value="PATCH">
-                                <button type="submit" class="btn btn-sm btn-outline-success" data-loading>Restore</button>
+                                <button type="submit" class="btn btn-sm btn-outline-success" data-loading data-tele-tooltip title="Restore">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
                             </form>
                             <button type="button"
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#forceDeleteDriverModal"
                                     data-action="${forceDeleteUrlTemplate.replace('__ID__', driver.public_id)}"
-                                    data-name="${escapeHtml(driver.full_name)}">
-                                Delete Permanently
+                                    data-name="${escapeHtml(driver.full_name)}"
+                                    data-tele-tooltip
+                                    title="Delete permanently">
+                                <i class="bi bi-x-octagon"></i>
                             </button>
                         `;
                         const activeActions = `
-                            <a href="${showUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-primary">View</a>
-                            <a href="${editUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a href="${showUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="${editUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-secondary" data-tele-tooltip title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
                             <button type="button"
                                     class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#archiveDriverModal"
                                     data-action="${deleteUrlTemplate.replace('__ID__', driver.public_id)}"
-                                    data-name="${escapeHtml(driver.full_name)}">
-                                Delete
+                                    data-name="${escapeHtml(driver.full_name)}"
+                                    data-tele-tooltip
+                                    title="Archive">
+                                <i class="bi bi-trash"></i>
                             </button>
                         `;
 
@@ -393,6 +405,12 @@
                             searching: true,
                             paging: true,
                             info: true,
+                        });
+                    }
+
+                    if (window.bootstrap?.Tooltip) {
+                        table.querySelectorAll('[data-tele-tooltip]').forEach((el) => {
+                            bootstrap.Tooltip.getOrCreateInstance(el);
                         });
                     }
                 };

@@ -1,7 +1,7 @@
 <x-admin-layout>
     <style>
         .incident-action-icons {
-            display: none;
+            display: inline-flex;
             gap: 0.5rem;
             flex-wrap: wrap;
             align-items: center;
@@ -11,13 +11,13 @@
             padding: 0.35rem 0.5rem;
         }
 
-        @media (max-width: 767px) {
-            .incident-action-buttons {
-                display: none !important;
-            }
+        .incident-action-buttons {
+            display: none !important;
+        }
 
+        @media (max-width: 767px) {
             .incident-action-icons {
-                display: inline-flex !important;
+                gap: 0.45rem;
             }
         }
     </style>
@@ -121,11 +121,11 @@
                                         @endif
                                     </div>
                                     <div class="incident-action-icons">
-                                        <a href="{{ route('incidents.show', $incident) }}" class="btn btn-outline-primary" data-loading title="View">
+                                        <a href="{{ route('incidents.show', $incident) }}" class="btn btn-outline-primary" data-loading data-tele-tooltip title="View">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         @if ($incident->status === \App\Models\IncidentReport::STATUS_OPEN && !($showArchived ?? false))
-                                            <a href="{{ route('incidents.edit', $incident) }}" class="btn btn-outline-secondary" data-loading title="Edit">
+                                            <a href="{{ route('incidents.edit', $incident) }}" class="btn btn-outline-secondary" data-loading data-tele-tooltip title="Edit">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             <button type="button"
@@ -134,6 +134,7 @@
                                                     data-bs-target="#cancelIncidentModal"
                                                     data-cancel-action="{{ route('incidents.cancel', $incident) }}"
                                                     data-cancel-label="{{ $incident->reference }}"
+                                                    data-tele-tooltip
                                                     title="Cancel">
                                                 <i class="bi bi-x-circle"></i>
                                             </button>
@@ -145,6 +146,7 @@
                                                     data-bs-target="#deleteIncidentModal"
                                                     data-delete-action="{{ route('incidents.destroy', $incident) }}"
                                                     data-delete-label="{{ $incident->reference }}"
+                                                    data-tele-tooltip
                                                     title="Delete">
                                                 <i class="bi bi-trash"></i>
                                             </button>
@@ -153,7 +155,7 @@
                                             <form method="POST" action="{{ route('incidents.restore', $incident) }}" class="d-inline">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="btn btn-outline-success" data-loading title="Restore">
+                                                <button type="submit" class="btn btn-outline-success" data-loading data-tele-tooltip title="Restore">
                                                     <i class="bi bi-arrow-counterclockwise"></i>
                                                 </button>
                                             </form>
@@ -163,6 +165,7 @@
                                                     data-bs-target="#forceDeleteIncidentModal"
                                                     data-delete-action="{{ route('incidents.force', $incident) }}"
                                                     data-delete-label="{{ $incident->reference }}"
+                                                    data-tele-tooltip
                                                     title="Delete permanently">
                                                 <i class="bi bi-x-octagon"></i>
                                             </button>
@@ -544,6 +547,14 @@
                                 { responsivePriority: 2, targets: 2 },
                                 { responsivePriority: 100, targets: -1 },
                             ],
+                        });
+                    }
+
+                    if (window.bootstrap?.Tooltip) {
+                        table.querySelectorAll('[title]').forEach((el) => {
+                            if (el.closest('.incident-action-icons')) {
+                                bootstrap.Tooltip.getOrCreateInstance(el);
+                            }
                         });
                     }
                 };
