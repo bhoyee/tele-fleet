@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUuidRouteKey;
+use App\Support\TextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -40,6 +41,16 @@ class Vehicle extends Model
         'maintenance_due_notified_at' => 'datetime',
         'maintenance_overdue_notified_at' => 'datetime',
     ];
+
+    public function setMakeAttribute($value): void
+    {
+        $this->attributes['make'] = TextNormalizer::titlePreserveAcronyms(is_string($value) ? $value : null, 3) ?? '';
+    }
+
+    public function setModelAttribute($value): void
+    {
+        $this->attributes['model'] = TextNormalizer::titlePreserveAcronyms(is_string($value) ? $value : null, 3) ?? '';
+    }
 
     public function branch(): BelongsTo
     {

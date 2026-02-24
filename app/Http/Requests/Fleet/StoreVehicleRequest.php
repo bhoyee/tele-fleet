@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Fleet;
 
+use App\Support\TextNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,6 +11,14 @@ class StoreVehicleRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'make' => TextNormalizer::titlePreserveAcronyms($this->input('make'), 3),
+            'model' => TextNormalizer::titlePreserveAcronyms($this->input('model'), 3),
+        ]);
     }
 
     public function rules(): array

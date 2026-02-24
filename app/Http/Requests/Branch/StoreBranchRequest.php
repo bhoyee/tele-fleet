@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Branch;
 
+use App\Support\TextNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,6 +11,17 @@ class StoreBranchRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => TextNormalizer::titleText($this->input('name')),
+            'code' => TextNormalizer::branchCode($this->input('code')),
+            'address' => TextNormalizer::collapseWhitespace($this->input('address')),
+            'city' => TextNormalizer::titlePreserveAcronyms($this->input('city'), 3),
+            'state' => TextNormalizer::titlePreserveAcronyms($this->input('state'), 3),
+        ]);
     }
 
     public function rules(): array

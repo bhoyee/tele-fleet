@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUuidRouteKey;
+use App\Support\TextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +30,11 @@ class Driver extends Model
         'license_expiry' => 'date',
         'license_expiry_notified_at' => 'datetime',
     ];
+
+    public function setFullNameAttribute($value): void
+    {
+        $this->attributes['full_name'] = TextNormalizer::personName(is_string($value) ? $value : null) ?? '';
+    }
 
     public function branch(): BelongsTo
     {

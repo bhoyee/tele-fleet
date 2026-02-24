@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Fleet;
 
+use App\Support\TextNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,6 +11,13 @@ class UpdateDriverRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'full_name' => TextNormalizer::personName($this->input('full_name')),
+        ]);
     }
 
     public function rules(): array
