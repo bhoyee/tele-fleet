@@ -598,14 +598,31 @@ class IncidentReportController extends Controller
         $start = Carbon::now()->startOfMonth()->toDateString();
         $end = Carbon::now()->endOfMonth()->toDateString();
 
-        $counts = $this->buildIncidentStatsQuery($request, $showArchived)
+        $baseQuery = $this->buildIncidentStatsQuery($request, $showArchived)
             ->whereBetween('incident_date', [$start, $end])
+            ->toBase();
+
+        $counts = (clone $baseQuery)
             ->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status')
             ->toArray();
 
+        $severityCounts = (clone $baseQuery)
+            ->select('severity', DB::raw('count(*) as total'))
+            ->groupBy('severity')
+            ->pluck('total', 'severity')
+            ->toArray();
+
         $total = (int) array_sum($counts);
+
+        $severityTotal = (int) array_sum($severityCounts);
+        $pct = function (int $count) use ($severityTotal): int {
+            if ($severityTotal <= 0) {
+                return 0;
+            }
+            return (int) round(($count / $severityTotal) * 100);
+        };
 
         return [
             'month_label' => Carbon::now()->format('F Y'),
@@ -613,6 +630,20 @@ class IncidentReportController extends Controller
             'open' => (int) ($counts[IncidentReport::STATUS_OPEN] ?? 0),
             'under_review' => (int) ($counts[IncidentReport::STATUS_REVIEW] ?? 0),
             'resolved' => (int) ($counts[IncidentReport::STATUS_RESOLVED] ?? 0),
+            'severity' => [
+                'critical' => [
+                    'count' => (int) ($severityCounts[IncidentReport::SEVERITY_CRITICAL] ?? 0),
+                    'percent' => $pct((int) ($severityCounts[IncidentReport::SEVERITY_CRITICAL] ?? 0)),
+                ],
+                'major' => [
+                    'count' => (int) ($severityCounts[IncidentReport::SEVERITY_MAJOR] ?? 0),
+                    'percent' => $pct((int) ($severityCounts[IncidentReport::SEVERITY_MAJOR] ?? 0)),
+                ],
+                'minor' => [
+                    'count' => (int) ($severityCounts[IncidentReport::SEVERITY_MINOR] ?? 0),
+                    'percent' => $pct((int) ($severityCounts[IncidentReport::SEVERITY_MINOR] ?? 0)),
+                ],
+            ],
         ];
     }
 

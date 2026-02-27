@@ -47,7 +47,11 @@
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span>Incident Analytics (<span data-incident-month>{{ $incidentAnalytics['month_label'] ?? now()->format('F Y') }}</span>)</span>
-            <span class="text-muted small">Current month</span>
+            <span class="text-muted small" data-incident-severity>
+                Critical <span data-incident-severity-pct="critical">{{ $incidentAnalytics['severity']['critical']['percent'] ?? 0 }}</span>% â€¢
+                Major <span data-incident-severity-pct="major">{{ $incidentAnalytics['severity']['major']['percent'] ?? 0 }}</span>% â€¢
+                Minor <span data-incident-severity-pct="minor">{{ $incidentAnalytics['severity']['minor']['percent'] ?? 0 }}</span>%
+            </span>
         </div>
         <div class="card-body">
             <div class="row g-3" id="incidentStatsCards">
@@ -457,6 +461,14 @@
                         const el = document.querySelector(`[data-incident-stat="${key}"]`);
                         if (el) {
                             el.textContent = String(stats[key] ?? 0);
+                        }
+                    });
+
+                    const severity = stats.severity || {};
+                    ['critical', 'major', 'minor'].forEach((key) => {
+                        const el = document.querySelector(`[data-incident-severity-pct="${key}"]`);
+                        if (el) {
+                            el.textContent = String(severity?.[key]?.percent ?? 0);
                         }
                     });
                 };
