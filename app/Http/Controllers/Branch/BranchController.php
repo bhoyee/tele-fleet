@@ -16,7 +16,13 @@ class BranchController extends Controller
     {
         $branches = Branch::with('manager')->orderByDesc('is_head_office')->orderBy('name')->get();
 
-        return view('branches.index', compact('branches'));
+        $branchStats = [
+            'total' => $branches->count(),
+            'head_office' => $branches->where('is_head_office', true)->count(),
+            'regular' => $branches->where('is_head_office', false)->count(),
+        ];
+
+        return view('branches.index', compact('branches', 'branchStats'));
     }
 
     public function create(): View
