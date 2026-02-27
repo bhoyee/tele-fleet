@@ -456,14 +456,30 @@ class SupportTicketController extends Controller
         $start = Carbon::now()->startOfMonth();
         $end = Carbon::now()->endOfMonth();
 
-        $counts = $this->buildHelpDeskStatsQuery($request)
+        $baseQuery = $this->buildHelpDeskStatsQuery($request)
             ->whereBetween('created_at', [$start, $end])
+            ->toBase();
+
+        $counts = (clone $baseQuery)
             ->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status')
             ->toArray();
 
+        $priorityCounts = (clone $baseQuery)
+            ->select('priority', DB::raw('count(*) as total'))
+            ->groupBy('priority')
+            ->pluck('total', 'priority')
+            ->toArray();
+
         $total = (int) array_sum($counts);
+        $priorityTotal = (int) array_sum($priorityCounts);
+        $pct = function (int $count) use ($priorityTotal): int {
+            if ($priorityTotal <= 0) {
+                return 0;
+            }
+            return (int) round(($count / $priorityTotal) * 100);
+        };
 
         return [
             'month_label' => Carbon::now()->format('F Y'),
@@ -472,6 +488,24 @@ class SupportTicketController extends Controller
             'in_progress' => (int) ($counts[SupportTicket::STATUS_IN_PROGRESS] ?? 0),
             'resolved' => (int) ($counts[SupportTicket::STATUS_RESOLVED] ?? 0),
             'closed' => (int) ($counts[SupportTicket::STATUS_CLOSED] ?? 0),
+            'priority' => [
+                'low' => [
+                    'count' => (int) ($priorityCounts[SupportTicket::PRIORITY_LOW] ?? 0),
+                    'percent' => $pct((int) ($priorityCounts[SupportTicket::PRIORITY_LOW] ?? 0)),
+                ],
+                'medium' => [
+                    'count' => (int) ($priorityCounts[SupportTicket::PRIORITY_MEDIUM] ?? 0),
+                    'percent' => $pct((int) ($priorityCounts[SupportTicket::PRIORITY_MEDIUM] ?? 0)),
+                ],
+                'high' => [
+                    'count' => (int) ($priorityCounts[SupportTicket::PRIORITY_HIGH] ?? 0),
+                    'percent' => $pct((int) ($priorityCounts[SupportTicket::PRIORITY_HIGH] ?? 0)),
+                ],
+                'critical' => [
+                    'count' => (int) ($priorityCounts[SupportTicket::PRIORITY_CRITICAL] ?? 0),
+                    'percent' => $pct((int) ($priorityCounts[SupportTicket::PRIORITY_CRITICAL] ?? 0)),
+                ],
+            ],
         ];
     }
 

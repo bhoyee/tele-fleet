@@ -20,6 +20,12 @@
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span>Help Desk Analytics (<span data-helpdesk-month>{{ $helpdeskAnalytics['month_label'] ?? now()->format('F Y') }}</span>)</span>
+            <span class="text-muted small" data-helpdesk-priority>
+                Low <span data-helpdesk-priority-pct="low">{{ $helpdeskAnalytics['priority']['low']['percent'] ?? 0 }}</span>% &bull;
+                Medium <span data-helpdesk-priority-pct="medium">{{ $helpdeskAnalytics['priority']['medium']['percent'] ?? 0 }}</span>% &bull;
+                High <span data-helpdesk-priority-pct="high">{{ $helpdeskAnalytics['priority']['high']['percent'] ?? 0 }}</span>% &bull;
+                Critical <span data-helpdesk-priority-pct="critical">{{ $helpdeskAnalytics['priority']['critical']['percent'] ?? 0 }}</span>%
+            </span>
         </div>
         <div class="card-body">
             <div class="row g-3" id="helpdeskStatsCards">
@@ -149,6 +155,14 @@
                         const el = document.querySelector(`[data-helpdesk-stat="${key}"]`);
                         if (el) {
                             el.textContent = String(stats[key] ?? 0);
+                        }
+                    });
+
+                    const priority = stats.priority || {};
+                    ['low', 'medium', 'high', 'critical'].forEach((key) => {
+                        const el = document.querySelector(`[data-helpdesk-priority-pct="${key}"]`);
+                        if (el) {
+                            el.textContent = String(priority?.[key]?.percent ?? 0);
                         }
                     });
                 };
