@@ -48,8 +48,8 @@
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span>Incident Analytics (<span data-incident-month>{{ $incidentAnalytics['month_label'] ?? now()->format('F Y') }}</span>)</span>
             <span class="text-muted small" data-incident-severity>
-                Critical <span data-incident-severity-pct="critical">{{ $incidentAnalytics['severity']['critical']['percent'] ?? 0 }}</span>% â€¢
-                Major <span data-incident-severity-pct="major">{{ $incidentAnalytics['severity']['major']['percent'] ?? 0 }}</span>% â€¢
+                Critical <span data-incident-severity-pct="critical">{{ $incidentAnalytics['severity']['critical']['percent'] ?? 0 }}</span>% &bull;
+                Major <span data-incident-severity-pct="major">{{ $incidentAnalytics['severity']['major']['percent'] ?? 0 }}</span>% &bull;
                 Minor <span data-incident-severity-pct="minor">{{ $incidentAnalytics['severity']['minor']['percent'] ?? 0 }}</span>%
             </span>
         </div>
