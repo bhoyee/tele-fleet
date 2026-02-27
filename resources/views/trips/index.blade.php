@@ -133,14 +133,14 @@
         </div>
     </div>
 
-    @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN && $analytics)
+    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true) && $analytics)
         <div class="card shadow-sm border-0 mb-4 trip-analytics">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <span>Trip Analytics ({{ $analytics['range_label'] }})</span>
                     <span class="text-muted small">All-time Trips total: {{ number_format($analytics['all_time'] ?? 0) }}</span>
                 </div>
-                <span class="text-muted small">Approval {{ $analytics['approval_rate'] }}% • Completion {{ $analytics['completion_rate'] }}%</span>
+                <span class="text-muted small">Approval {{ $analytics['approval_rate'] }}% &bull; Completion {{ $analytics['completion_rate'] }}%</span>
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -414,7 +414,7 @@
         </div>
     </div>
 
-    @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
         <div class="card shadow-sm border-0 mt-4">
             <div class="card-header">Trip History (Completed, Cancelled, Rejected)</div>
             <div class="card-body">
