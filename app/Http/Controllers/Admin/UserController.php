@@ -36,6 +36,12 @@ class UserController extends Controller
             'total' => $users->count(),
             'active' => $users->where('status', User::STATUS_ACTIVE)->count(),
             'inactive' => $users->where('status', User::STATUS_INACTIVE)->count(),
+            'roles' => [
+                User::ROLE_SUPER_ADMIN => $users->where('role', User::ROLE_SUPER_ADMIN)->count(),
+                User::ROLE_FLEET_MANAGER => $users->where('role', User::ROLE_FLEET_MANAGER)->count(),
+                User::ROLE_BRANCH_HEAD => $users->where('role', User::ROLE_BRANCH_HEAD)->count(),
+                User::ROLE_BRANCH_ADMIN => $users->where('role', User::ROLE_BRANCH_ADMIN)->count(),
+            ],
         ];
 
         return view('admin.users.index', compact('users', 'showArchived', 'userStats'));
