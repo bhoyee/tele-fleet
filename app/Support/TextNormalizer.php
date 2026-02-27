@@ -31,6 +31,54 @@ final class TextNormalizer
     }
 
     /**
+     * Normalize phone numbers to a consistent, SMS-friendly format.
+     *
+     * - Preserves other international numbers that already start with "+"
+     * - For Nigeria defaults, converts:
+     *   - 08065428869 -> +2348065428869
+     *   - 8065428869  -> +2348065428869
+     *   - 2348065428869 -> +2348065428869
+     */
+    public static function phoneE164(?string $value, string $defaultCountryCode = '234'): ?string
+    {
+        $value = static::collapseWhitespace($value);
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        $value = str_replace([' ', '-', '(', ')'], '', $value);
+
+        if (str_starts_with($value, '+')) {
+            $digits = preg_replace('/\D+/', '', $value) ?? '';
+            return $digits !== '' ? ('+' . $digits) : '';
+        }
+
+        $digits = preg_replace('/\D+/', '', $value) ?? '';
+        if ($digits === '') {
+            return '';
+        }
+
+        $country = preg_replace('/\D+/', '', $defaultCountryCode) ?? '';
+        if ($country === '') {
+            return $digits;
+        }
+
+        if (str_starts_with($digits, $country)) {
+            return '+' . $digits;
+        }
+
+        if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
+            return '+' . $country . substr($digits, 1);
+        }
+
+        if (strlen($digits) === 10) {
+            return '+' . $country . $digits;
+        }
+
+        return $digits;
+    }
+
+    /**
      * Normalize branch code input (e.g. " br- 001 " -> "BR-001").
      */
     public static function branchCode(?string $value): ?string

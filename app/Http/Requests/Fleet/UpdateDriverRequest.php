@@ -17,6 +17,7 @@ class UpdateDriverRequest extends FormRequest
     {
         $this->merge([
             'full_name' => TextNormalizer::personName($this->input('full_name')),
+            'phone' => TextNormalizer::phoneE164($this->input('phone')),
         ]);
     }
 
