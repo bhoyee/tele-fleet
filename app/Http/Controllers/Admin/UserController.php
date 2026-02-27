@@ -25,7 +25,9 @@ class UserController extends Controller
     {
         $showArchived = request()->boolean('archived');
 
-        $usersQuery = User::with('branch')->orderBy('name');
+        $usersQuery = User::with('branch')
+            ->where('is_system', false)
+            ->orderBy('name');
         if ($showArchived) {
             $usersQuery->onlyTrashed();
         }
@@ -143,6 +145,12 @@ class UserController extends Controller
                 ->with('error', 'You cannot delete your own account.');
         }
 
+        if ($user->is_system) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('error', 'This user is a protected system account.');
+        }
+
         $user->delete();
         $auditLog->log('user.deleted', $user);
 
@@ -173,6 +181,12 @@ class UserController extends Controller
             return redirect()
                 ->route('admin.users.index', ['archived' => 1])
                 ->with('error', 'You cannot delete your own account.');
+        }
+
+        if ($user->is_system) {
+            return redirect()
+                ->route('admin.users.index', ['archived' => 1])
+                ->with('error', 'This user is a protected system account.');
         }
 
         $user->forceDelete();
