@@ -28,8 +28,8 @@
             </span>
         </div>
         <div class="card-body">
-            <div class="row g-3" id="helpdeskStatsCards">
-                <div class="col-6 col-lg-3">
+            <div class="row g-3 flex-nowrap overflow-auto" id="helpdeskStatsCards">
+                <div class="col-8 col-sm-6 col-lg-2">
                     <div class="card stat-card h-100">
                         <div class="card-body">
                             <div class="stat-label">Total Tickets</div>
@@ -37,7 +37,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-lg-3">
+                <div class="col-8 col-sm-6 col-lg-2">
                     <div class="card stat-card h-100">
                         <div class="card-body">
                             <div class="stat-label">Open</div>
@@ -45,7 +45,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-lg-3">
+                <div class="col-8 col-sm-6 col-lg-2">
                     <div class="card stat-card h-100">
                         <div class="card-body">
                             <div class="stat-label">In Progress</div>
@@ -53,7 +53,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-lg-3">
+                <div class="col-8 col-sm-6 col-lg-2">
                     <div class="card stat-card h-100">
                         <div class="card-body">
                             <div class="stat-label">Resolved</div>
@@ -61,7 +61,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-lg-3">
+                <div class="col-8 col-sm-6 col-lg-2">
                     <div class="card stat-card h-100">
                         <div class="card-body">
                             <div class="stat-label">Closed</div>
