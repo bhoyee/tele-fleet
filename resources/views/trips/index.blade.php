@@ -144,46 +144,60 @@
             </div>
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Total Trips</div>
-                            <div class="stat-value">{{ $analytics['total'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Total Trips</div>
+                                <div class="stat-value">{{ $analytics['total'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Pending</div>
-                            <div class="stat-value">{{ $analytics['pending'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Pending</div>
+                                <div class="stat-value">{{ $analytics['pending'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Approved</div>
-                            <div class="stat-value">{{ $analytics['approved'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Approved</div>
+                                <div class="stat-value">{{ $analytics['approved'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Assigned</div>
-                            <div class="stat-value">{{ $analytics['assigned'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Assigned</div>
+                                <div class="stat-value">{{ $analytics['assigned'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Completed</div>
-                            <div class="stat-value">{{ $analytics['completed'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Completed</div>
+                                <div class="stat-value">{{ $analytics['completed'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Rejected</div>
-                            <div class="stat-value">{{ $analytics['rejected'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Rejected</div>
+                                <div class="stat-value">{{ $analytics['rejected'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Cancelled</div>
-                            <div class="stat-value">{{ $analytics['cancelled'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Cancelled</div>
+                                <div class="stat-value">{{ $analytics['cancelled'] }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
