@@ -16,6 +16,49 @@
         </div>
     </div>
 
+    <div class="row g-3 mb-4" id="vehicleStatsCards">
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Total Vehicles</div>
+                    <div class="stat-value" data-vehicle-stat="total">{{ $vehicleStats['total'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Available</div>
+                    <div class="stat-value" data-vehicle-stat="available">{{ $vehicleStats['available'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">In Use</div>
+                    <div class="stat-value" data-vehicle-stat="in_use">{{ $vehicleStats['in_use'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Offline</div>
+                    <div class="stat-value" data-vehicle-stat="offline">{{ $vehicleStats['offline'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Maintenance</div>
+                    <div class="stat-value" data-vehicle-stat="maintenance">{{ $vehicleStats['maintenance'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
@@ -364,10 +407,37 @@
                     }
                 };
 
+                const updateVehicleStats = (rows) => {
+                    const stats = {
+                        total: 0,
+                        available: 0,
+                        in_use: 0,
+                        offline: 0,
+                        maintenance: 0,
+                    };
+
+                    (rows || []).forEach((vehicle) => {
+                        stats.total += 1;
+                        const status = String(vehicle?.status ?? '').toLowerCase();
+                        if (status in stats) {
+                            stats[status] += 1;
+                        }
+                    });
+
+                    Object.entries(stats).forEach(([key, value]) => {
+                        const el = document.querySelector(`[data-vehicle-stat="${key}"]`);
+                        if (el) {
+                            el.textContent = String(value);
+                        }
+                    });
+                };
+
                 const renderRows = (rows) => {
                     if (window.jQuery && window.jQuery.fn.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
                         window.jQuery(table).DataTable().destroy();
                     }
+
+                    updateVehicleStats(rows);
 
                     tbody.innerHTML = rows.map((vehicle) => {
                         const maintenanceState = vehicle.maintenance_state;
