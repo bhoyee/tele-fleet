@@ -165,6 +165,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'role:super_admin,fleet_manager,branch_admin,branch_head'])->group(function () {
     Route::get('helpdesk', [SupportTicketController::class, 'index'])->name('helpdesk.index');
+    Route::get('helpdesk/stats', [SupportTicketController::class, 'stats'])->name('helpdesk.stats');
     Route::get('helpdesk/create', [SupportTicketController::class, 'create'])->name('helpdesk.create');
     Route::post('helpdesk', [SupportTicketController::class, 'store'])->name('helpdesk.store');
     Route::get('helpdesk/{ticket}', [SupportTicketController::class, 'show'])->name('helpdesk.show');
