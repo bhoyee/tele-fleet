@@ -14,6 +14,33 @@
         </div>
     </div>
 
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value">{{ $userStats['total'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Active Users</div>
+                    <div class="stat-value">{{ $userStats['active'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Inactive Users</div>
+                    <div class="stat-value">{{ $userStats['inactive'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-body">
             @if (session('generated_password'))

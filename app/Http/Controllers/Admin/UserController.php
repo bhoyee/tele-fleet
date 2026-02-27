@@ -32,7 +32,13 @@ class UserController extends Controller
 
         $users = $usersQuery->get();
 
-        return view('admin.users.index', compact('users', 'showArchived'));
+        $userStats = [
+            'total' => $users->count(),
+            'active' => $users->where('status', User::STATUS_ACTIVE)->count(),
+            'inactive' => $users->where('status', User::STATUS_INACTIVE)->count(),
+        ];
+
+        return view('admin.users.index', compact('users', 'showArchived', 'userStats'));
     }
 
     public function create(): View
