@@ -30,36 +30,44 @@ class SmsService
 
         $payload = [
             'username' => $username,
-            'phoneNumbers' => [$phone],
+            // Africa's Talking expects `to` as a comma-separated string or a single phone number.
+            'to' => $phone,
             'message' => $message,
         ];
         if (! empty($senderId)) {
-            $payload['senderId'] = $senderId;
+            // Sender ID / short code
+            $payload['from'] = $senderId;
         }
 
         try {
-            Log::info('sms.request', [
+            $endpoint = $baseUrl . '/version1/messaging';
+
+            Log::channel('telefleet')->info('sms.request', [
                 'base_url' => $baseUrl,
+                'endpoint' => $endpoint,
                 'username' => $username,
                 'sender_id' => $senderId ?: null,
             ]);
             $response = Http::timeout(10)
                 ->asJson()
                 ->withHeaders([
+                    // AT docs use `apiKey`, but allow for servers that expect lowercase.
                     'apiKey' => $apiKey,
+                    'apikey' => $apiKey,
                     'Accept' => 'application/json',
                 ])
-                ->post($baseUrl.'/version1/messaging/bulk', $payload);
+                ->post($endpoint, $payload);
 
             if ($response->status() === 415) {
                 $response = Http::timeout(10)
                     ->asForm()
                     ->withHeaders([
                         'apiKey' => $apiKey,
+                        'apikey' => $apiKey,
                         'Content-Type' => 'application/x-www-form-urlencoded',
                         'Accept' => 'application/json',
                     ])
-                    ->post($baseUrl.'/version1/messaging/bulk', $payload);
+                    ->post($endpoint, $payload);
             }
 
             Log::channel('telefleet')->info('sms.sent', [
