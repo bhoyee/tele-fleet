@@ -133,57 +133,71 @@
         </div>
     </div>
 
-    @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN && $analytics)
+    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true) && $analytics)
         <div class="card shadow-sm border-0 mb-4 trip-analytics">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <span>Trip Analytics ({{ $analytics['range_label'] }})</span>
                     <span class="text-muted small">All-time Trips total: {{ number_format($analytics['all_time'] ?? 0) }}</span>
                 </div>
-                <span class="text-muted small">Approval {{ $analytics['approval_rate'] }}% • Completion {{ $analytics['completion_rate'] }}%</span>
+                <span class="text-muted small">Approval {{ $analytics['approval_rate'] }}% &bull; Completion {{ $analytics['completion_rate'] }}%</span>
             </div>
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Total Trips</div>
-                            <div class="stat-value">{{ $analytics['total'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Total Trips</div>
+                                <div class="stat-value">{{ $analytics['total'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Pending</div>
-                            <div class="stat-value">{{ $analytics['pending'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Pending</div>
+                                <div class="stat-value">{{ $analytics['pending'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Approved</div>
-                            <div class="stat-value">{{ $analytics['approved'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Approved</div>
+                                <div class="stat-value">{{ $analytics['approved'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Assigned</div>
-                            <div class="stat-value">{{ $analytics['assigned'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Assigned</div>
+                                <div class="stat-value">{{ $analytics['assigned'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Completed</div>
-                            <div class="stat-value">{{ $analytics['completed'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Completed</div>
+                                <div class="stat-value">{{ $analytics['completed'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Rejected</div>
-                            <div class="stat-value">{{ $analytics['rejected'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Rejected</div>
+                                <div class="stat-value">{{ $analytics['rejected'] }}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-label">Cancelled</div>
-                            <div class="stat-value">{{ $analytics['cancelled'] }}</div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100">
+                            <div class="card-body">
+                                <div class="stat-label">Cancelled</div>
+                                <div class="stat-value">{{ $analytics['cancelled'] }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -400,7 +414,7 @@
         </div>
     </div>
 
-    @if (auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
         <div class="card shadow-sm border-0 mt-4">
             <div class="card-header">Trip History (Completed, Cancelled, Rejected)</div>
             <div class="card-body">

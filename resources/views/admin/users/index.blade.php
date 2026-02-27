@@ -14,6 +14,52 @@
         </div>
     </div>
 
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value">{{ $userStats['total'] ?? 0 }}</div>
+                    <div class="row g-2 mt-2">
+                        @php
+                            $roleCounts = (array) ($userStats['roles'] ?? []);
+                            $roleBadges = [
+                                \App\Models\User::ROLE_SUPER_ADMIN => ['label' => 'Super Admin', 'class' => 'primary'],
+                                \App\Models\User::ROLE_FLEET_MANAGER => ['label' => 'Fleet Manager', 'class' => 'info text-dark'],
+                                \App\Models\User::ROLE_BRANCH_HEAD => ['label' => 'Branch Head', 'class' => 'warning text-dark'],
+                                \App\Models\User::ROLE_BRANCH_ADMIN => ['label' => 'Branch Admin', 'class' => 'secondary'],
+                            ];
+                        @endphp
+                        @foreach ($roleBadges as $roleKey => $meta)
+                            <div class="col-6">
+                                <div class="p-2 rounded-3 border bg-white d-flex justify-content-between align-items-center" style="border-color: rgba(5, 108, 163, 0.12);">
+                                    <span class="small text-muted">{{ $meta['label'] }}</span>
+                                    <span class="badge bg-{{ $meta['class'] }}">{{ $roleCounts[$roleKey] ?? 0 }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Active Users</div>
+                    <div class="stat-value">{{ $userStats['active'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Inactive Users</div>
+                    <div class="stat-value">{{ $userStats['inactive'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-body">
             @if (session('generated_password'))

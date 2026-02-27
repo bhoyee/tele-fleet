@@ -17,6 +17,32 @@ use Illuminate\Support\Carbon;
 
 class VehicleController extends Controller
 {
+    private function buildVehicleStats($vehicles, $activeAssignedIds): array
+    {
+        $stats = [
+            'total' => 0,
+            'available' => 0,
+            'in_use' => 0,
+            'offline' => 0,
+            'maintenance' => 0,
+        ];
+
+        foreach ($vehicles as $vehicle) {
+            $stats['total'] += 1;
+
+            $displayStatus = $vehicle->status;
+            if (! in_array($vehicle->status, ['maintenance', 'offline'], true)) {
+                $displayStatus = $activeAssignedIds->contains($vehicle->id) ? 'in_use' : 'available';
+            }
+
+            if (isset($stats[$displayStatus])) {
+                $stats[$displayStatus] += 1;
+            }
+        }
+
+        return $stats;
+    }
+
     public function index(Request $request): View
     {
         $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
@@ -45,6 +71,7 @@ class VehicleController extends Controller
             $vehiclesQuery->onlyTrashed();
         }
         $vehicles = $vehiclesQuery->get();
+        $vehicleStats = $this->buildVehicleStats($vehicles, $activeAssignedIds);
 
         $vehicleTripLogs = collect();
         if (in_array($request->user()?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
@@ -60,7 +87,7 @@ class VehicleController extends Controller
                 ->get();
         }
 
-        return view('vehicles.index', compact('vehicles', 'activeAssignedIds', 'showArchived', 'vehicleTripLogs'));
+        return view('vehicles.index', compact('vehicles', 'activeAssignedIds', 'showArchived', 'vehicleTripLogs', 'vehicleStats'));
     }
 
     public function indexData(Request $request): JsonResponse

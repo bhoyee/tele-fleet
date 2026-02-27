@@ -72,6 +72,11 @@ class User extends Authenticatable
         $this->attributes['name'] = TextNormalizer::personName(is_string($value) ? $value : null) ?? '';
     }
 
+    public function setPhoneAttribute($value): void
+    {
+        $this->attributes['phone'] = TextNormalizer::phoneE164(is_string($value) ? $value : null);
+    }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);

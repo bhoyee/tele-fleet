@@ -17,6 +17,26 @@ use Illuminate\Support\Carbon;
 
 class DriverController extends Controller
 {
+    private function buildDriverStats($drivers): array
+    {
+        $stats = [
+            'total' => 0,
+            'active' => 0,
+            'inactive' => 0,
+            'suspended' => 0,
+        ];
+
+        foreach ($drivers as $driver) {
+            $stats['total'] += 1;
+            $status = strtolower((string) ($driver->status ?? ''));
+            if (isset($stats[$status])) {
+                $stats[$status] += 1;
+            }
+        }
+
+        return $stats;
+    }
+
     public function index(Request $request): View
     {
         $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
@@ -25,6 +45,7 @@ class DriverController extends Controller
             $driversQuery->onlyTrashed();
         }
         $drivers = $driversQuery->get();
+        $driverStats = $this->buildDriverStats($drivers);
 
         $driverTripLogs = collect();
         if (in_array($request->user()?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
@@ -40,7 +61,7 @@ class DriverController extends Controller
                 ->get();
         }
 
-        return view('drivers.index', compact('drivers', 'showArchived', 'driverTripLogs'));
+        return view('drivers.index', compact('drivers', 'showArchived', 'driverTripLogs', 'driverStats'));
     }
 
     public function create(): View

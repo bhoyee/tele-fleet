@@ -44,6 +44,53 @@
         </div>
     </div>
 
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span>Incident Analytics (<span data-incident-month>{{ $incidentAnalytics['month_label'] ?? now()->format('F Y') }}</span>)</span>
+            <span class="text-muted small" data-incident-severity>
+                Critical <span data-incident-severity-pct="critical">{{ $incidentAnalytics['severity']['critical']['percent'] ?? 0 }}</span>% &bull;
+                Major <span data-incident-severity-pct="major">{{ $incidentAnalytics['severity']['major']['percent'] ?? 0 }}</span>% &bull;
+                Minor <span data-incident-severity-pct="minor">{{ $incidentAnalytics['severity']['minor']['percent'] ?? 0 }}</span>%
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3" id="incidentStatsCards">
+                <div class="col-6 col-lg-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">Total Incidents</div>
+                            <div class="stat-value" data-incident-stat="total">{{ $incidentAnalytics['total'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">Open</div>
+                            <div class="stat-value" data-incident-stat="open">{{ $incidentAnalytics['open'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">Under Review</div>
+                            <div class="stat-value" data-incident-stat="under_review">{{ $incidentAnalytics['under_review'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">Resolved</div>
+                            <div class="stat-value" data-incident-stat="resolved">{{ $incidentAnalytics['resolved'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
@@ -401,6 +448,31 @@
                     }
                 };
 
+                const updateIncidentStats = (stats) => {
+                    if (!stats) {
+                        return;
+                    }
+                    const monthEl = document.querySelector('[data-incident-month]');
+                    if (monthEl && stats.month_label) {
+                        monthEl.textContent = String(stats.month_label);
+                    }
+
+                    ['total', 'open', 'under_review', 'resolved'].forEach((key) => {
+                        const el = document.querySelector(`[data-incident-stat="${key}"]`);
+                        if (el) {
+                            el.textContent = String(stats[key] ?? 0);
+                        }
+                    });
+
+                    const severity = stats.severity || {};
+                    ['critical', 'major', 'minor'].forEach((key) => {
+                        const el = document.querySelector(`[data-incident-severity-pct="${key}"]`);
+                        if (el) {
+                            el.textContent = String(severity?.[key]?.percent ?? 0);
+                        }
+                    });
+                };
+
                 const canEdit = (incident) => {
                     return incident.status === 'open' && !showArchived;
                 };
@@ -565,6 +637,7 @@
                         if (!response.ok) return;
                         const payload = await response.json();
                         renderRows(payload.data || []);
+                        updateIncidentStats(payload.stats);
                     } catch (error) {
                         console.warn('Incident table refresh failed.');
                     }

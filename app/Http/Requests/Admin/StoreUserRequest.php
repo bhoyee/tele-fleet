@@ -19,6 +19,7 @@ class StoreUserRequest extends FormRequest
     {
         $this->merge([
             'name' => TextNormalizer::personName($this->input('name')),
+            'phone' => TextNormalizer::phoneE164($this->input('phone')),
         ]);
     }
 

@@ -13,6 +13,7 @@ class SmsService
         $apiKey = config('services.africastalking.api_key');
         $senderId = config('services.africastalking.sender_id');
         $baseUrl = rtrim((string) config('services.africastalking.base_url'), '/');
+        $phone = \App\Support\TextNormalizer::phoneE164($phone) ?? $phone;
 
         if (! $apiKey || ! $username) {
             Log::channel('telefleet')->warning('sms.skipped', [

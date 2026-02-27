@@ -16,6 +16,41 @@
         </div>
     </div>
 
+    <div class="row g-3 mb-4" id="driverStatsCards">
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Total Drivers</div>
+                    <div class="stat-value" data-driver-stat="total">{{ $driverStats['total'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Active</div>
+                    <div class="stat-value" data-driver-stat="active">{{ $driverStats['active'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Inactive</div>
+                    <div class="stat-value" data-driver-stat="inactive">{{ $driverStats['inactive'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Suspended</div>
+                    <div class="stat-value" data-driver-stat="suspended">{{ $driverStats['suspended'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
@@ -362,10 +397,36 @@
                     }
                 };
 
+                const updateDriverStats = (rows) => {
+                    const stats = {
+                        total: 0,
+                        active: 0,
+                        inactive: 0,
+                        suspended: 0,
+                    };
+
+                    (rows || []).forEach((driver) => {
+                        stats.total += 1;
+                        const status = String(driver?.status ?? '').toLowerCase();
+                        if (status in stats) {
+                            stats[status] += 1;
+                        }
+                    });
+
+                    Object.entries(stats).forEach(([key, value]) => {
+                        const el = document.querySelector(`[data-driver-stat="${key}"]`);
+                        if (el) {
+                            el.textContent = String(value);
+                        }
+                    });
+                };
+
                 const renderRows = (rows) => {
                     if (window.jQuery && window.jQuery.fn.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
                         window.jQuery(table).DataTable().destroy();
                     }
+
+                    updateDriverStats(rows);
 
                     tbody.innerHTML = rows.map((driver) => {
                         const archivedActions = `

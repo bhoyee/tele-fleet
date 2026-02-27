@@ -17,12 +17,52 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Throwable;
 
 class MaintenanceController extends Controller
 {
+    private function buildMonthlyMaintenanceAnalytics(): array
+    {
+        $start = Carbon::now()->startOfMonth()->toDateString();
+        $end = Carbon::now()->endOfMonth()->toDateString();
+
+        $counts = VehicleMaintenance::query()
+            ->whereBetween('scheduled_for', [$start, $end])
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $due = VehicleMaintenance::query()
+            ->whereBetween('scheduled_for', [$start, $end])
+            ->where('status', VehicleMaintenance::STATUS_SCHEDULED)
+            ->whereHas('vehicle', function ($vehicleQuery): void {
+                $vehicleQuery->where('maintenance_state', 'due');
+            })
+            ->count();
+
+        $overdue = VehicleMaintenance::query()
+            ->whereBetween('scheduled_for', [$start, $end])
+            ->where('status', VehicleMaintenance::STATUS_SCHEDULED)
+            ->whereHas('vehicle', function ($vehicleQuery): void {
+                $vehicleQuery->where('maintenance_state', 'overdue');
+            })
+            ->count();
+
+        return [
+            'month_label' => Carbon::now()->format('F Y'),
+            'scheduled' => (int) ($counts[VehicleMaintenance::STATUS_SCHEDULED] ?? 0),
+            'in_progress' => (int) ($counts[VehicleMaintenance::STATUS_IN_PROGRESS] ?? 0),
+            'completed' => (int) ($counts[VehicleMaintenance::STATUS_COMPLETED] ?? 0),
+            'cancelled' => (int) ($counts[VehicleMaintenance::STATUS_CANCELLED] ?? 0),
+            'due' => (int) $due,
+            'overdue' => (int) $overdue,
+        ];
+    }
+
     public function index(Request $request): View
     {
         $statusFilter = $request->query('status');
@@ -40,7 +80,9 @@ class MaintenanceController extends Controller
 
         $maintenances = $query->get();
 
-        return view('maintenances.index', compact('maintenances', 'statusFilter'));
+        $maintenanceAnalytics = $this->buildMonthlyMaintenanceAnalytics();
+
+        return view('maintenances.index', compact('maintenances', 'statusFilter', 'maintenanceAnalytics'));
     }
 
     public function create(): View
@@ -240,6 +282,7 @@ class MaintenanceController extends Controller
                     'cost' => $maintenance->cost !== null ? number_format($maintenance->cost, 2) : 'N/A',
                 ];
             }),
+            'stats' => $this->buildMonthlyMaintenanceAnalytics(),
         ]);
     }
 

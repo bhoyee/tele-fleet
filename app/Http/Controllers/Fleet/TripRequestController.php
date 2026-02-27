@@ -91,7 +91,7 @@ class TripRequestController extends Controller
 
         $analytics = null;
         $historyTrips = collect();
-        if ($user->role === User::ROLE_SUPER_ADMIN) {
+        if (in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
             $now = Carbon::now();
             $monthStart = $now->copy()->startOfMonth();
             $monthEnd = $now->copy()->endOfMonth();

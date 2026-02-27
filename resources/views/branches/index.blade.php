@@ -7,6 +7,26 @@
         <a href="{{ route('branches.create') }}" class="btn btn-primary">New Branch</a>
     </div>
 
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Total Branches</div>
+                    <div class="stat-value">{{ $branchStats['total'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-label">Head Office Branch</div>
+                    <div class="stat-value">{{ $branchStats['head_office'] ?? 0 }}</div>
+                    <div class="small text-muted mt-2">Regular: {{ $branchStats['regular'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
