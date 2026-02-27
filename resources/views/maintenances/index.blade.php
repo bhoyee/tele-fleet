@@ -32,6 +32,64 @@
         </div>
     </div>
 
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span>Maintenance Analytics (<span data-maintenance-month>{{ $maintenanceAnalytics['month_label'] ?? now()->format('F Y') }}</span>)</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3" id="maintenanceStatsCards">
+                <div class="col-6 col-lg-2">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">Scheduled</div>
+                            <div class="stat-value" data-maintenance-stat="scheduled">{{ $maintenanceAnalytics['scheduled'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">In Progress</div>
+                            <div class="stat-value" data-maintenance-stat="in_progress">{{ $maintenanceAnalytics['in_progress'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">Completed</div>
+                            <div class="stat-value" data-maintenance-stat="completed">{{ $maintenanceAnalytics['completed'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">Cancelled</div>
+                            <div class="stat-value" data-maintenance-stat="cancelled">{{ $maintenanceAnalytics['cancelled'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">Due (Mileage)</div>
+                            <div class="stat-value" data-maintenance-stat="due">{{ $maintenanceAnalytics['due'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <div class="stat-label">Overdue (Mileage)</div>
+                            <div class="stat-value" data-maintenance-stat="overdue">{{ $maintenanceAnalytics['overdue'] ?? 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
@@ -231,12 +289,29 @@
                     }
                 };
 
+                const updateMaintenanceStats = (stats) => {
+                    if (!stats) {
+                        return;
+                    }
+                    const monthEl = document.querySelector('[data-maintenance-month]');
+                    if (monthEl && stats.month_label) {
+                        monthEl.textContent = String(stats.month_label);
+                    }
+                    ['scheduled', 'in_progress', 'completed', 'cancelled', 'due', 'overdue'].forEach((key) => {
+                        const el = document.querySelector(`[data-maintenance-stat="${key}"]`);
+                        if (el) {
+                            el.textContent = String(stats[key] ?? 0);
+                        }
+                    });
+                };
+
                 const refreshTable = async () => {
                     try {
                         const response = await fetch(dataUrl, { headers: { 'Accept': 'application/json' } });
                         if (!response.ok) return;
                         const payload = await response.json();
                         renderRows(payload.data || []);
+                        updateMaintenanceStats(payload.stats);
                     } catch (error) {
                         console.warn('Maintenance table refresh failed.');
                     }
