@@ -19,8 +19,10 @@ use App\Notifications\IncidentUpdated;
 use App\Services\AuditLogService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -33,14 +35,16 @@ class IncidentReportController extends Controller
     {
         $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
         $incidents = $this->buildIncidentQuery($request, $showArchived)->get();
+        $incidentAnalytics = $this->buildMonthlyIncidentAnalytics($request, $showArchived);
 
-        return view('incidents.index', compact('incidents', 'showArchived'));
+        return view('incidents.index', compact('incidents', 'showArchived', 'incidentAnalytics'));
     }
 
     public function indexData(Request $request): JsonResponse
     {
         $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
         $incidents = $this->buildIncidentQuery($request, $showArchived)->get();
+        $stats = $this->buildMonthlyIncidentAnalytics($request, $showArchived);
 
         $payload = $incidents->map(function (IncidentReport $incident): array {
             return [
@@ -59,6 +63,7 @@ class IncidentReportController extends Controller
 
         return response()->json([
             'data' => $payload,
+            'stats' => $stats,
         ]);
     }
 
@@ -567,6 +572,48 @@ class IncidentReportController extends Controller
         }
 
         return $query;
+    }
+
+    private function buildIncidentStatsQuery(Request $request, bool $showArchived = false)
+    {
+        $user = $request->user();
+
+        $query = IncidentReport::query();
+
+        if ($showArchived) {
+            $query->onlyTrashed();
+        } elseif ($user->role === User::ROLE_BRANCH_ADMIN) {
+            $query->where('reported_by_user_id', $user->id);
+        }
+
+        if ($user->role === User::ROLE_BRANCH_HEAD) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query;
+    }
+
+    private function buildMonthlyIncidentAnalytics(Request $request, bool $showArchived = false): array
+    {
+        $start = Carbon::now()->startOfMonth()->toDateString();
+        $end = Carbon::now()->endOfMonth()->toDateString();
+
+        $counts = $this->buildIncidentStatsQuery($request, $showArchived)
+            ->whereBetween('incident_date', [$start, $end])
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $total = (int) array_sum($counts);
+
+        return [
+            'month_label' => Carbon::now()->format('F Y'),
+            'total' => $total,
+            'open' => (int) ($counts[IncidentReport::STATUS_OPEN] ?? 0),
+            'under_review' => (int) ($counts[IncidentReport::STATUS_REVIEW] ?? 0),
+            'resolved' => (int) ($counts[IncidentReport::STATUS_RESOLVED] ?? 0),
+        ];
     }
 
     private function authorizeIncidentMutation(IncidentReport $incident, ?User $user): void
