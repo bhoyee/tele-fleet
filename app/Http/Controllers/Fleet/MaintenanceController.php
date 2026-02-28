@@ -36,30 +36,21 @@ class MaintenanceController extends Controller
             ->pluck('total', 'status')
             ->toArray();
 
-        $due = VehicleMaintenance::query()
-            ->whereBetween('scheduled_for', [$start, $end])
-            ->where('status', VehicleMaintenance::STATUS_SCHEDULED)
-            ->whereHas('vehicle', function ($vehicleQuery): void {
-                $vehicleQuery->where('maintenance_state', 'due');
-            })
-            ->count();
-
-        $overdue = VehicleMaintenance::query()
-            ->whereBetween('scheduled_for', [$start, $end])
-            ->where('status', VehicleMaintenance::STATUS_SCHEDULED)
-            ->whereHas('vehicle', function ($vehicleQuery): void {
-                $vehicleQuery->where('maintenance_state', 'overdue');
-            })
-            ->count();
+        $vehiclesInMaintenance = Vehicle::query()->where('status', 'maintenance')->count();
+        $due = Vehicle::query()->where('maintenance_state', 'due')->count();
+        $overdue = Vehicle::query()->where('maintenance_state', 'overdue')->count();
+        $inProgressRecords = (int) ($counts[VehicleMaintenance::STATUS_IN_PROGRESS] ?? 0);
+        $inProgress = max($vehiclesInMaintenance, $inProgressRecords);
 
         return [
             'month_label' => Carbon::now()->format('F Y'),
             'scheduled' => (int) ($counts[VehicleMaintenance::STATUS_SCHEDULED] ?? 0),
-            'in_progress' => (int) ($counts[VehicleMaintenance::STATUS_IN_PROGRESS] ?? 0),
+            'in_progress' => $inProgress,
             'completed' => (int) ($counts[VehicleMaintenance::STATUS_COMPLETED] ?? 0),
             'cancelled' => (int) ($counts[VehicleMaintenance::STATUS_CANCELLED] ?? 0),
             'due' => (int) $due,
             'overdue' => (int) $overdue,
+            'vehicles_in_maintenance' => (int) $vehiclesInMaintenance,
         ];
     }
 
@@ -67,22 +58,29 @@ class MaintenanceController extends Controller
     {
         $statusFilter = $request->query('status');
 
-        $query = VehicleMaintenance::with(['vehicle', 'branch', 'createdBy'])
-            ->orderByDesc('scheduled_for')
-            ->orderByDesc('created_at');
+        $vehicleMode = in_array($statusFilter, ['due', 'overdue', 'maintenance'], true);
 
-        if (in_array($statusFilter, ['due', 'overdue'], true)) {
-            $query->where('status', VehicleMaintenance::STATUS_SCHEDULED);
-            $query->whereHas('vehicle', function ($vehicleQuery) use ($statusFilter): void {
-                $vehicleQuery->where('maintenance_state', $statusFilter);
-            });
+        $maintenances = collect();
+        $vehicles = collect();
+
+        if ($vehicleMode) {
+            $vehiclesQuery = Vehicle::with('branch')->orderBy('registration_number');
+            if ($statusFilter === 'maintenance') {
+                $vehiclesQuery->where('status', 'maintenance');
+            } else {
+                $vehiclesQuery->where('maintenance_state', $statusFilter);
+            }
+            $vehicles = $vehiclesQuery->get();
+        } else {
+            $query = VehicleMaintenance::with(['vehicle', 'branch', 'createdBy'])
+                ->orderByDesc('scheduled_for')
+                ->orderByDesc('created_at');
+            $maintenances = $query->get();
         }
-
-        $maintenances = $query->get();
 
         $maintenanceAnalytics = $this->buildMonthlyMaintenanceAnalytics();
 
-        return view('maintenances.index', compact('maintenances', 'statusFilter', 'maintenanceAnalytics'));
+        return view('maintenances.index', compact('maintenances', 'vehicles', 'vehicleMode', 'statusFilter', 'maintenanceAnalytics'));
     }
 
     public function create(): View
@@ -250,21 +248,48 @@ class MaintenanceController extends Controller
     public function indexData(Request $request): JsonResponse
     {
         $statusFilter = $request->query('status');
+        $vehicleMode = in_array($statusFilter, ['due', 'overdue', 'maintenance'], true);
+
+        if ($vehicleMode) {
+            $vehiclesQuery = Vehicle::with('branch')->orderBy('registration_number');
+            if ($statusFilter === 'maintenance') {
+                $vehiclesQuery->where('status', 'maintenance');
+            } else {
+                $vehiclesQuery->where('maintenance_state', $statusFilter);
+            }
+
+            $vehicles = $vehiclesQuery->get();
+
+            return response()->json([
+                'mode' => 'vehicles',
+                'data' => $vehicles->map(function (Vehicle $vehicle): array {
+                    $publicId = is_string($vehicle->uuid ?? null) && $vehicle->uuid !== '' ? $vehicle->uuid : (string) $vehicle->id;
+
+                    return [
+                        'id' => $vehicle->id,
+                        'public_id' => $publicId,
+                        'registration_number' => $vehicle->registration_number ?? 'N/A',
+                        'make' => $vehicle->make ?? '',
+                        'model' => $vehicle->model ?? '',
+                        'branch' => $vehicle->branch?->name ?? 'N/A',
+                        'status' => $vehicle->status ?? '',
+                        'maintenance_state' => $vehicle->maintenance_state ?? 'ok',
+                        'current_mileage' => $vehicle->current_mileage ?? null,
+                        'last_maintenance_mileage' => $vehicle->last_maintenance_mileage ?? null,
+                    ];
+                }),
+                'stats' => $this->buildMonthlyMaintenanceAnalytics(),
+            ]);
+        }
 
         $query = VehicleMaintenance::with(['vehicle', 'branch', 'createdBy'])
             ->orderByDesc('scheduled_for')
             ->orderByDesc('created_at');
 
-        if (in_array($statusFilter, ['due', 'overdue'], true)) {
-            $query->where('status', VehicleMaintenance::STATUS_SCHEDULED);
-            $query->whereHas('vehicle', function ($vehicleQuery) use ($statusFilter): void {
-                $vehicleQuery->where('maintenance_state', $statusFilter);
-            });
-        }
-
         $maintenances = $query->get();
 
         return response()->json([
+            'mode' => 'records',
             'data' => $maintenances->map(function (VehicleMaintenance $maintenance): array {
                 $status = $maintenance->status;
                 $publicId = is_string($maintenance->uuid ?? null) && $maintenance->uuid !== '' ? $maintenance->uuid : (string) $maintenance->id;
