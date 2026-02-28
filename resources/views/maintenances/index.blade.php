@@ -2,6 +2,7 @@
     @php
         $vehicleMode = $vehicleMode ?? false;
         $vehicles = $vehicles ?? collect();
+        $viewMode = $viewMode ?? 'vehicles';
     @endphp
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -33,6 +34,10 @@
             <a class="btn btn-sm {{ $statusFilter === 'overdue' ? 'btn-primary' : 'btn-outline-primary' }}"
                href="{{ route('maintenances.index', ['status' => 'overdue']) }}">
                 Overdue (Mileage)
+            </a>
+            <a class="btn btn-sm {{ $viewMode === 'records' ? 'btn-primary' : 'btn-outline-primary' }}"
+               href="{{ route('maintenances.index', ['view' => 'records']) }}">
+                Records
             </a>
             <div class="w-100 text-muted small mt-2">
                 Due = at 98% of the mileage target since last maintenance. Overdue = target reached/exceeded. Configure the target in Maintenance Settings.
@@ -106,10 +111,8 @@
                         <tr>
                             @if (!empty($vehicleMode))
                                 <th>Vehicle</th>
-                                <th>Branch</th>
                                 <th>Status</th>
                                 <th>Mileage</th>
-                                <th>Maintenance</th>
                                 <th class="text-end">Action</th>
                             @else
                                 <th>Vehicle</th>
@@ -129,7 +132,6 @@
                                         <div class="fw-semibold">{{ $vehicle->registration_number ?? 'N/A' }}</div>
                                         <small class="text-muted">{{ $vehicle->make }} {{ $vehicle->model }}</small>
                                     </td>
-                                    <td>{{ $vehicle->branch?->name ?? 'N/A' }}</td>
                                     <td>
                                         @php
                                             $vehicleStatus = strtolower((string) ($vehicle->status ?? ''));
@@ -140,17 +142,6 @@
                                                 'offline' => 'secondary',
                                                 default => 'secondary',
                                             };
-                                        @endphp
-                                        <span class="badge bg-{{ $vehicleStatusClass }}">
-                                            {{ ucfirst(str_replace('_', ' ', $vehicleStatus ?: 'unknown')) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="small text-muted">Current: {{ number_format((int) ($vehicle->current_mileage ?? 0)) }} km</div>
-                                        <div class="small text-muted">Last: {{ number_format((int) ($vehicle->last_maintenance_mileage ?? 0)) }} km</div>
-                                    </td>
-                                    <td>
-                                        @php
                                             $state = strtolower((string) ($vehicle->maintenance_state ?? 'ok'));
                                             $stateClass = match ($state) {
                                                 'overdue' => 'danger',
@@ -158,7 +149,14 @@
                                                 default => 'secondary',
                                             };
                                         @endphp
-                                        <span class="badge bg-{{ $stateClass }}">{{ ucfirst($state) }}</span>
+                                        <span class="badge bg-{{ $vehicleStatusClass }}">{{ ucfirst(str_replace('_', ' ', $vehicleStatus ?: 'unknown')) }}</span>
+                                        @if (in_array($state, ['due', 'overdue'], true))
+                                            <span class="badge bg-{{ $stateClass }}">{{ ucfirst($state) }}</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div class="small text-muted">Current: {{ number_format((int) ($vehicle->current_mileage ?? 0)) }} km</div>
+                                        <div class="small text-muted">Last: {{ number_format((int) ($vehicle->last_maintenance_mileage ?? 0)) }} km</div>
                                     </td>
                                     <td class="text-end">
                                         <a href="{{ route('maintenances.create', ['vehicle_id' => $vehicle->id]) }}"
@@ -271,7 +269,7 @@
                 }
 
                 const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
-                const dataUrl = "{{ route('maintenances.data', ['status' => $statusFilter]) }}";
+                const dataUrl = "{{ route('maintenances.data', ['status' => $statusFilter, 'view' => $viewMode]) }}";
                 const showUrlTemplate = "{{ route('maintenances.show', ['maintenance' => '__ID__']) }}";
                 const editUrlTemplate = "{{ route('maintenances.edit', ['maintenance' => '__ID__']) }}";
                 const deleteUrlTemplate = "{{ route('maintenances.destroy', ['maintenance' => '__ID__']) }}";
@@ -401,14 +399,16 @@
 
                         const statusLabel = String(vehicle.status ?? '').replaceAll('_', ' ') || 'unknown';
                         const stateLabel = String(vehicle.maintenance_state ?? 'ok').replaceAll('_', ' ') || 'ok';
+                        const showStateBadge = ['due', 'overdue'].includes(String(vehicle.maintenance_state ?? '').toLowerCase());
 
                         return `
                             <tr>
                                 <td>${vehicleLine}</td>
-                                <td>${escapeHtml(vehicle.branch)}</td>
-                                <td><span class="badge bg-${vehicleStatusBadge(vehicle.status)}">${escapeHtml(statusLabel)}</span></td>
+                                <td>
+                                    <span class="badge bg-${vehicleStatusBadge(vehicle.status)}">${escapeHtml(statusLabel)}</span>
+                                    ${showStateBadge ? `<span class="badge bg-${maintenanceStateBadge(vehicle.maintenance_state)}">${escapeHtml(stateLabel)}</span>` : ''}
+                                </td>
                                 <td>${mileageLine}</td>
-                                <td><span class="badge bg-${maintenanceStateBadge(vehicle.maintenance_state)}">${escapeHtml(stateLabel)}</span></td>
                                 <td class="text-end">
                                     <a href="${scheduleUrlTemplate.replace('__ID__', vehicle.id)}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="Schedule maintenance">
                                         <i class="bi bi-calendar-plus"></i>

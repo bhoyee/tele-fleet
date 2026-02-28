@@ -57,18 +57,24 @@ class MaintenanceController extends Controller
     public function index(Request $request): View
     {
         $statusFilter = $request->query('status');
-
-        $vehicleMode = in_array($statusFilter, ['due', 'overdue', 'maintenance'], true);
+        $viewMode = $request->query('view', 'vehicles');
+        $vehicleMode = $viewMode !== 'records';
 
         $maintenances = collect();
         $vehicles = collect();
 
         if ($vehicleMode) {
             $vehiclesQuery = Vehicle::with('branch')->orderBy('registration_number');
+
             if ($statusFilter === 'maintenance') {
                 $vehiclesQuery->where('status', 'maintenance');
-            } else {
+            } elseif (in_array($statusFilter, ['due', 'overdue'], true)) {
                 $vehiclesQuery->where('maintenance_state', $statusFilter);
+            } else {
+                $vehiclesQuery->where(function ($query): void {
+                    $query->where('status', 'maintenance')
+                        ->orWhereIn('maintenance_state', ['due', 'overdue']);
+                });
             }
             $vehicles = $vehiclesQuery->get();
         } else {
@@ -80,7 +86,7 @@ class MaintenanceController extends Controller
 
         $maintenanceAnalytics = $this->buildMonthlyMaintenanceAnalytics();
 
-        return view('maintenances.index', compact('maintenances', 'vehicles', 'vehicleMode', 'statusFilter', 'maintenanceAnalytics'));
+        return view('maintenances.index', compact('maintenances', 'vehicles', 'vehicleMode', 'statusFilter', 'maintenanceAnalytics', 'viewMode'));
     }
 
     public function create(): View
@@ -248,14 +254,20 @@ class MaintenanceController extends Controller
     public function indexData(Request $request): JsonResponse
     {
         $statusFilter = $request->query('status');
-        $vehicleMode = in_array($statusFilter, ['due', 'overdue', 'maintenance'], true);
+        $viewMode = $request->query('view', 'vehicles');
+        $vehicleMode = $viewMode !== 'records';
 
         if ($vehicleMode) {
             $vehiclesQuery = Vehicle::with('branch')->orderBy('registration_number');
             if ($statusFilter === 'maintenance') {
                 $vehiclesQuery->where('status', 'maintenance');
-            } else {
+            } elseif (in_array($statusFilter, ['due', 'overdue'], true)) {
                 $vehiclesQuery->where('maintenance_state', $statusFilter);
+            } else {
+                $vehiclesQuery->where(function ($query): void {
+                    $query->where('status', 'maintenance')
+                        ->orWhereIn('maintenance_state', ['due', 'overdue']);
+                });
             }
 
             $vehicles = $vehiclesQuery->get();
