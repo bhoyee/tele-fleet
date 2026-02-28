@@ -8,7 +8,7 @@
         <select class="form-select" id="vehicle_id" name="vehicle_id" required>
             <option value="">Select vehicle</option>
             @foreach ($vehicles as $vehicle)
-                <option value="{{ $vehicle->id }}" @selected(old('vehicle_id', $maintenance?->vehicle_id) == $vehicle->id)>
+                <option value="{{ $vehicle->id }}" @selected((string) old('vehicle_id', $maintenance?->vehicle_id ?? request('vehicle_id')) === (string) $vehicle->id)>
                     {{ $vehicle->registration_number }} - {{ $vehicle->make }} {{ $vehicle->model }}
                 </option>
             @endforeach

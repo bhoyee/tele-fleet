@@ -1,4 +1,8 @@
 <x-admin-layout>
+    @php
+        $vehicleMode = $vehicleMode ?? false;
+        $vehicles = $vehicles ?? collect();
+    @endphp
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Maintenance</h1>
@@ -17,6 +21,10 @@
             <a class="btn btn-sm {{ empty($statusFilter) ? 'btn-primary' : 'btn-outline-primary' }}"
                href="{{ route('maintenances.index') }}">
                 All
+            </a>
+            <a class="btn btn-sm {{ $statusFilter === 'maintenance' ? 'btn-primary' : 'btn-outline-primary' }}"
+               href="{{ route('maintenances.index', ['status' => 'maintenance']) }}">
+                In Maintenance (Vehicles)
             </a>
             <a class="btn btn-sm {{ $statusFilter === 'due' ? 'btn-primary' : 'btn-outline-primary' }}"
                href="{{ route('maintenances.index', ['status' => 'due']) }}">
@@ -96,16 +104,74 @@
                 <table class="table align-middle datatable">
                     <thead class="table-light">
                         <tr>
-                            <th>Vehicle</th>
-                            <th>Scheduled</th>
-                            <th>Status</th>
-                            <th>Description</th>
-                            <th>Cost</th>
-                            <th class="text-end">Actions</th>
+                            @if (!empty($vehicleMode))
+                                <th>Vehicle</th>
+                                <th>Branch</th>
+                                <th>Status</th>
+                                <th>Mileage</th>
+                                <th>Maintenance</th>
+                                <th class="text-end">Action</th>
+                            @else
+                                <th>Vehicle</th>
+                                <th>Scheduled</th>
+                                <th>Status</th>
+                                <th>Description</th>
+                                <th>Cost</th>
+                                <th class="text-end">Actions</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($maintenances as $maintenance)
+                        @if (!empty($vehicleMode))
+                            @foreach ($vehicles as $vehicle)
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ $vehicle->registration_number ?? 'N/A' }}</div>
+                                        <small class="text-muted">{{ $vehicle->make }} {{ $vehicle->model }}</small>
+                                    </td>
+                                    <td>{{ $vehicle->branch?->name ?? 'N/A' }}</td>
+                                    <td>
+                                        @php
+                                            $vehicleStatus = strtolower((string) ($vehicle->status ?? ''));
+                                            $vehicleStatusClass = match ($vehicleStatus) {
+                                                'available' => 'success',
+                                                'maintenance' => 'warning text-dark',
+                                                'in_use' => 'primary',
+                                                'offline' => 'secondary',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <span class="badge bg-{{ $vehicleStatusClass }}">
+                                            {{ ucfirst(str_replace('_', ' ', $vehicleStatus ?: 'unknown')) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="small text-muted">Current: {{ number_format((int) ($vehicle->current_mileage ?? 0)) }} km</div>
+                                        <div class="small text-muted">Last: {{ number_format((int) ($vehicle->last_maintenance_mileage ?? 0)) }} km</div>
+                                    </td>
+                                    <td>
+                                        @php
+                                            $state = strtolower((string) ($vehicle->maintenance_state ?? 'ok'));
+                                            $stateClass = match ($state) {
+                                                'overdue' => 'danger',
+                                                'due' => 'warning text-dark',
+                                                default => 'secondary',
+                                            };
+                                        @endphp
+                                        <span class="badge bg-{{ $stateClass }}">{{ ucfirst($state) }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ route('maintenances.create', ['vehicle_id' => $vehicle->id]) }}"
+                                           class="btn btn-sm btn-outline-primary"
+                                           data-tele-tooltip
+                                           title="Schedule maintenance">
+                                            <i class="bi bi-calendar-plus"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @else
+                            @foreach ($maintenances as $maintenance)
                             <tr>
                                 <td>
                                     <div class="fw-semibold">{{ $maintenance->vehicle?->registration_number ?? 'N/A' }}</div>
@@ -150,7 +216,8 @@
                                     </button>
                                 </td>
                             </tr>
-                        @endforeach
+                            @endforeach
+                        @endif
                     </tbody>
                 </table>
             </div>
@@ -208,6 +275,7 @@
                 const showUrlTemplate = "{{ route('maintenances.show', ['maintenance' => '__ID__']) }}";
                 const editUrlTemplate = "{{ route('maintenances.edit', ['maintenance' => '__ID__']) }}";
                 const deleteUrlTemplate = "{{ route('maintenances.destroy', ['maintenance' => '__ID__']) }}";
+                const scheduleUrlTemplate = "{{ route('maintenances.create', ['vehicle_id' => '__ID__']) }}";
 
                 const escapeHtml = (value) => String(value ?? '')
                     .replace(/&/g, '&amp;')
@@ -229,7 +297,7 @@
                     }
                 };
 
-                const renderRows = (rows) => {
+                const renderRecordRows = (rows) => {
                     if (window.jQuery && window.jQuery.fn.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
                         window.jQuery(table).DataTable().destroy();
                     }
@@ -289,6 +357,85 @@
                     }
                 };
 
+                const vehicleStatusBadge = (status) => {
+                    switch ((status || '').toLowerCase()) {
+                        case 'available':
+                            return 'success';
+                        case 'in_use':
+                            return 'primary';
+                        case 'maintenance':
+                            return 'warning text-dark';
+                        case 'offline':
+                            return 'secondary';
+                        default:
+                            return 'secondary';
+                    }
+                };
+
+                const maintenanceStateBadge = (state) => {
+                    switch ((state || '').toLowerCase()) {
+                        case 'overdue':
+                            return 'danger';
+                        case 'due':
+                            return 'warning text-dark';
+                        default:
+                            return 'secondary';
+                    }
+                };
+
+                const renderVehicleRows = (rows) => {
+                    if (window.jQuery && window.jQuery.fn.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
+                        window.jQuery(table).DataTable().destroy();
+                    }
+
+                    tbody.innerHTML = rows.map((vehicle) => {
+                        const vehicleLine = `
+                            <div class="fw-semibold">${escapeHtml(vehicle.registration_number)}</div>
+                            <small class="text-muted">${escapeHtml(vehicle.make)} ${escapeHtml(vehicle.model)}</small>
+                        `;
+
+                        const mileageLine = `
+                            <div class="small text-muted">Current: ${escapeHtml(vehicle.current_mileage ?? 0)} km</div>
+                            <div class="small text-muted">Last: ${escapeHtml(vehicle.last_maintenance_mileage ?? 0)} km</div>
+                        `;
+
+                        const statusLabel = String(vehicle.status ?? '').replaceAll('_', ' ') || 'unknown';
+                        const stateLabel = String(vehicle.maintenance_state ?? 'ok').replaceAll('_', ' ') || 'ok';
+
+                        return `
+                            <tr>
+                                <td>${vehicleLine}</td>
+                                <td>${escapeHtml(vehicle.branch)}</td>
+                                <td><span class="badge bg-${vehicleStatusBadge(vehicle.status)}">${escapeHtml(statusLabel)}</span></td>
+                                <td>${mileageLine}</td>
+                                <td><span class="badge bg-${maintenanceStateBadge(vehicle.maintenance_state)}">${escapeHtml(stateLabel)}</span></td>
+                                <td class="text-end">
+                                    <a href="${scheduleUrlTemplate.replace('__ID__', vehicle.id)}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="Schedule maintenance">
+                                        <i class="bi bi-calendar-plus"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    if (window.jQuery && window.jQuery.fn.dataTable) {
+                        window.jQuery(table).DataTable({
+                            pageLength: 10,
+                            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+                            order: [],
+                            searching: true,
+                            paging: true,
+                            info: true,
+                        });
+                    }
+
+                    if (window.bootstrap?.Tooltip) {
+                        table.querySelectorAll('[data-tele-tooltip]').forEach((el) => {
+                            bootstrap.Tooltip.getOrCreateInstance(el);
+                        });
+                    }
+                };
+
                 const updateMaintenanceStats = (stats) => {
                     if (!stats) {
                         return;
@@ -310,7 +457,11 @@
                         const response = await fetch(dataUrl, { headers: { 'Accept': 'application/json' } });
                         if (!response.ok) return;
                         const payload = await response.json();
-                        renderRows(payload.data || []);
+                        if ((payload.mode || 'records') === 'vehicles') {
+                            renderVehicleRows(payload.data || []);
+                        } else {
+                            renderRecordRows(payload.data || []);
+                        }
                         updateMaintenanceStats(payload.stats);
                     } catch (error) {
                         console.warn('Maintenance table refresh failed.');
