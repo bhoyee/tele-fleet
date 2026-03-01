@@ -602,6 +602,47 @@
                     table.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 };
 
+                const applyCardParamFilter = () => {
+                    if (showArchived) {
+                        return;
+                    }
+
+                    const params = new URLSearchParams(window.location.search);
+                    const cardKey = params.get('card') || params.get('status');
+                    if (!cardKey) {
+                        return;
+                    }
+
+                    const normalized = String(cardKey || '').trim().toLowerCase();
+                    const allowed = ['available', 'in_use', 'offline', 'maintenance', 'all'];
+                    if (!allowed.includes(normalized)) {
+                        return;
+                    }
+
+                    if (normalized === 'all') {
+                        activeVehicleFilter = { type: 'all', status: null };
+                    } else {
+                        activeVehicleFilter = { type: 'status', status: normalized };
+                    }
+
+                    let attempts = 0;
+                    const MAX_ATTEMPTS = 20;
+                    const tick = () => {
+                        attempts += 1;
+                        if (window.jQuery?.fn?.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
+                            applyVehicleFilter();
+                            scrollToTable();
+                            return;
+                        }
+                        if (attempts < MAX_ATTEMPTS) {
+                            setTimeout(tick, 150);
+                        }
+                    };
+                    tick();
+                };
+
+                applyCardParamFilter();
+
                 const handleFilterClick = (node) => {
                     const type = node.getAttribute('data-vehicle-filter');
                     if (!type) {

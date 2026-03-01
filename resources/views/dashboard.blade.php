@@ -120,6 +120,12 @@
             border-color: #056CA3;
         }
 
+        .metric-card-link {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+        }
+
         .metric-icon {
             width: 36px;
             height: 36px;
@@ -882,7 +888,10 @@
         <!-- COMPACT Metrics Cards -->
         <div class="metrics-grid">
             <!-- Available Vehicles -->
-            <div class="metric-card">
+            <a class="metric-card metric-card-link"
+               href="{{ route('vehicles.index', ['card' => 'available']) }}"
+               data-tele-tooltip
+               title="View available vehicles">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-car-front"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Fleet</span>
@@ -896,7 +905,7 @@
                 <div class="metric-footnote">
                     <i class="bi bi-check-circle"></i> Ready for assignment
                 </div>
-            </div>
+            </a>
 
             <!-- Personal Trip Requests -->
             @if (!is_null($personalTripRequests))
