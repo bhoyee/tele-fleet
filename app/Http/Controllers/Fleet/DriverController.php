@@ -71,7 +71,11 @@ class DriverController extends Controller
 
     public function store(StoreDriverRequest $request, AuditLogService $auditLog): RedirectResponse
     {
-        $driver = Driver::create($request->validated());
+        $data = $request->validated();
+        $data['created_by_user_id'] = $request->user()?->id;
+        $data['updated_by_user_id'] = $request->user()?->id;
+
+        $driver = Driver::create($data);
         $auditLog->log('driver.created', $driver, [], $driver->toArray());
 
         return redirect()
@@ -86,7 +90,7 @@ class DriverController extends Controller
 
     public function show(Driver $driver): View
     {
-        $driver->load('branch');
+        $driver->load('branch', 'createdBy', 'updatedBy');
         $activeTrips = \App\Models\TripRequest::with(['branch', 'requestedBy'])
             ->where('assigned_driver_id', $driver->id)
             ->whereIn('status', ['approved', 'assigned'])
@@ -141,6 +145,7 @@ class DriverController extends Controller
     {
         $oldValues = $driver->getOriginal();
         $data = $request->validated();
+        $data['updated_by_user_id'] = $request->user()?->id;
         if (! empty($data['license_expiry']) && $driver->license_expiry?->format('Y-m-d') !== $data['license_expiry']) {
             $data['license_expiry_notified_at'] = null;
         }

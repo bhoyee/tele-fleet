@@ -1147,7 +1147,7 @@ class ReportController extends Controller
             $rows = $drivers->map(function (Driver $driver) use ($tripCounts): array {
                 return [
                     $driver->full_name,
-                    ucfirst($driver->status),
+                    Driver::statusLabel($driver->status),
                     $driver->license_expiry?->format('Y-m-d') ?? 'N/A',
                     $driver->phone ?? 'N/A',
                     (int) ($tripCounts[$driver->id] ?? 0),

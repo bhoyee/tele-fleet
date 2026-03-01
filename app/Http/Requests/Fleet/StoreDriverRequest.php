@@ -15,14 +15,27 @@ class StoreDriverRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $status = $this->input('status');
+
+        $note = TextNormalizer::collapseWhitespace($this->input('note'));
+        if ($status === 'active') {
+            $note = null;
+        }
+
         $this->merge([
             'full_name' => TextNormalizer::personName($this->input('full_name')),
             'phone' => TextNormalizer::phoneE164($this->input('phone')),
+            'note' => $note,
         ]);
     }
 
     public function rules(): array
     {
+        $status = $this->input('status');
+        $noteRules = in_array($status, ['inactive', 'suspended'], true)
+            ? ['required', 'string', 'max:2000']
+            : ['nullable', 'string', 'max:2000'];
+
         return [
             'full_name' => ['required', 'string', 'max:255'],
             'license_number' => ['required', 'string', 'max:100', 'unique:drivers,license_number'],
@@ -31,6 +44,7 @@ class StoreDriverRequest extends FormRequest
             'phone' => ['required', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
+            'note' => $noteRules,
             'status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
         ];
     }

@@ -1,5 +1,7 @@
 @php
     $driver = $driver ?? null;
+    $selectedStatus = old('status', $driver?->status ?? 'active');
+    $requiresNote = in_array($selectedStatus, ['inactive', 'suspended'], true);
 @endphp
 @csrf
 
@@ -35,7 +37,7 @@
     <div class="col-md-4">
         <label class="form-label" for="status">Status</label>
         <select class="form-select" id="status" name="status" required>
-            @foreach (['active' => 'Active', 'inactive' => 'Inactive', 'suspended' => 'Suspended'] as $value => $label)
+            @foreach (['active' => 'Active', 'inactive' => 'Assigned to Officer', 'suspended' => 'On Leave'] as $value => $label)
                 <option value="{{ $value }}" @selected(old('status', $driver?->status ?? 'active') === $value)>{{ $label }}</option>
             @endforeach
         </select>
@@ -45,4 +47,39 @@
         <label class="form-label" for="address">Address</label>
         <input class="form-control" id="address" name="address" value="{{ old('address', $driver?->address ?? '') }}">
     </div>
+    <div class="col-12" id="driverStatusNoteWrap" style="{{ $requiresNote ? '' : 'display:none;' }}">
+        <label class="form-label" for="note">Note</label>
+        <textarea class="form-control" id="note" name="note" rows="3" {{ $requiresNote ? 'required' : '' }}>{{ old('note', $driver?->note ?? '') }}</textarea>
+        <div class="form-text">Required when the driver is On Leave or Assigned to Officer.</div>
+        @error('note') <div class="text-danger small">{{ $message }}</div> @enderror
+    </div>
 </div>
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const statusSelect = document.getElementById('status');
+            const noteWrap = document.getElementById('driverStatusNoteWrap');
+            const noteInput = document.getElementById('note');
+
+            if (!statusSelect || !noteWrap || !noteInput) {
+                return;
+            }
+
+            const needsNote = (status) => status === 'inactive' || status === 'suspended';
+
+            const syncNoteVisibility = () => {
+                const status = statusSelect.value;
+                const required = needsNote(status);
+                noteWrap.style.display = required ? '' : 'none';
+                noteInput.required = required;
+                if (!required) {
+                    noteInput.value = '';
+                }
+            };
+
+            statusSelect.addEventListener('change', syncNoteVisibility);
+            syncNoteVisibility();
+        });
+    </script>
+@endpush

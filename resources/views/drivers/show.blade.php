@@ -33,17 +33,35 @@
                     <div class="text-muted small">Status</div>
                     <div class="fw-semibold">
                         @php
-                            $statusClass = match ($driver->status) {
-                                'active' => 'success',
-                                'inactive' => 'secondary',
-                                'suspended' => 'danger',
-                                default => 'light text-dark',
-                            };
+                            $statusClass = \App\Models\Driver::statusBadgeClass($driver->status);
+                            $statusLabel = \App\Models\Driver::statusLabel($driver->status);
                         @endphp
                         <span class="badge bg-{{ $statusClass }}">
-                            {{ ucfirst($driver->status) }}
+                            {{ $statusLabel }}
                         </span>
                     </div>
+                </div>
+                @if (!empty($driver->note))
+                    <div class="col-12">
+                        <div class="text-muted small">Note</div>
+                        <div class="fw-semibold">{!! nl2br(e($driver->note)) !!}</div>
+                    </div>
+                @endif
+                <div class="col-md-4">
+                    <div class="text-muted small">Created By</div>
+                    <div class="fw-semibold">{{ $driver->createdBy?->name ?? 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Created At</div>
+                    <div class="fw-semibold">{{ $driver->created_at?->format('M d, Y g:i A') ?? 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Last Updated By</div>
+                    <div class="fw-semibold">{{ $driver->updatedBy?->name ?? 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Last Updated At</div>
+                    <div class="fw-semibold">{{ $driver->updated_at?->format('M d, Y g:i A') ?? 'N/A' }}</div>
                 </div>
             </div>
         </div>

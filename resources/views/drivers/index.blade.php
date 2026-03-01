@@ -36,7 +36,7 @@
         <div class="col-6 col-lg-3">
             <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="stat-label">Inactive</div>
+                    <div class="stat-label">Assigned to Officer</div>
                     <div class="stat-value" data-driver-stat="inactive">{{ $driverStats['inactive'] ?? 0 }}</div>
                 </div>
             </div>
@@ -44,7 +44,7 @@
         <div class="col-6 col-lg-3">
             <div class="card stat-card h-100">
                 <div class="card-body">
-                    <div class="stat-label">Suspended</div>
+                    <div class="stat-label">On Leave</div>
                     <div class="stat-value" data-driver-stat="suspended">{{ $driverStats['suspended'] ?? 0 }}</div>
                 </div>
             </div>
@@ -73,8 +73,8 @@
                                 <td>{{ $driver->license_expiry?->format('M d, Y') ?? 'N/A' }}</td>
                                 <td>{{ $driver->phone }}</td>
                                 <td>
-                                    <span class="badge {{ $driver->status === 'active' ? 'bg-success' : ($driver->status === 'inactive' ? 'bg-secondary' : 'bg-warning') }}">
-                                        {{ ucfirst($driver->status) }}
+                                    <span class="badge bg-{{ \App\Models\Driver::statusBadgeClass($driver->status) }}">
+                                        {{ \App\Models\Driver::statusLabel($driver->status) }}
                                     </span>
                                 </td>
                                 <td class="text-end">
