@@ -212,28 +212,20 @@ class DashboardController extends Controller
                 ->where(function ($query): void {
                     $query->whereNull('is_completed')->orWhere('is_completed', false);
                 })
-                ->where(function ($query) use ($now): void {
-                    $query->whereNull('trip_time')
-                        ->orWhere('trip_time', '<=', $now->format('H:i'));
-                })
                 ->distinct('assigned_driver_id')
                 ->count('assigned_driver_id');
 
-            $totalDriversRegistered = Driver::where('status', '!=', 'suspended')->count();
+            // "Drivers On Duty" should exclude drivers that are not actually available for trips:
+            // - inactive => Assigned to Officer
+            // - suspended => On Leave
+            $totalDriversRegistered = Driver::where('status', 'active')->count();
             $driversUnavailableToday = TripRequest::whereIn('status', ['approved', 'assigned'])
                 ->whereNotNull('assigned_driver_id')
                 ->where(function ($query): void {
                     $query->whereNull('is_completed')->orWhere('is_completed', false);
                 })
                 ->where(function ($query) use ($now): void {
-                    $query->whereDate('trip_date', '<', $now->toDateString())
-                        ->orWhere(function ($sub) use ($now): void {
-                            $sub->whereDate('trip_date', $now->toDateString())
-                                ->where(function ($timeQuery) use ($now): void {
-                                    $timeQuery->whereNull('trip_time')
-                                        ->orWhere('trip_time', '<=', $now->format('H:i'));
-                                });
-                        });
+                    $query->whereDate('trip_date', '<=', $now->toDateString());
                 })
                 ->distinct('assigned_driver_id')
                 ->count('assigned_driver_id');

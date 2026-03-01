@@ -210,6 +210,7 @@ Route::middleware(['auth', 'role:super_admin,fleet_manager'])->group(function ()
     Route::get('vehicles/data', [VehicleController::class, 'indexData'])->name('vehicles.data');
     Route::resource('drivers', DriverController::class);
     Route::get('drivers/data', [DriverController::class, 'indexData'])->name('drivers.data');
+    Route::get('drivers/check-email', [DriverController::class, 'checkEmail'])->name('drivers.check-email');
     Route::resource('maintenances', MaintenanceController::class);
     Route::get('maintenances/data', [MaintenanceController::class, 'indexData'])->name('maintenances.data');
     Route::get('maintenances/export/csv', [MaintenanceController::class, 'exportCsv'])->name('maintenances.export.csv');

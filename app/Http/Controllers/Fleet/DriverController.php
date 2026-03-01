@@ -17,6 +17,44 @@ use Illuminate\Support\Carbon;
 
 class DriverController extends Controller
 {
+    private function driverDutyIds(Carbon $now): array
+    {
+        $today = $now->toDateString();
+
+        // "Assigned today" should include upcoming trips later today (not only those already started),
+        // so the dashboard and drivers list stay consistent with the "Assigned Future" trip log.
+        $assignedToday = TripRequest::whereDate('trip_date', $today)
+            ->whereIn('status', ['approved', 'assigned'])
+            ->whereNotNull('assigned_driver_id')
+            ->where(function ($query): void {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->distinct('assigned_driver_id')
+            ->pluck('assigned_driver_id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $unavailable = TripRequest::whereIn('status', ['approved', 'assigned'])
+            ->whereNotNull('assigned_driver_id')
+            ->where(function ($query): void {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->where(function ($query) use ($today): void {
+                $query->whereDate('trip_date', '<=', $today);
+            })
+            ->distinct('assigned_driver_id')
+            ->pluck('assigned_driver_id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        return [
+            'assigned_today' => $assignedToday,
+            'unavailable' => $unavailable,
+        ];
+    }
+
     private function buildDriverStats($drivers): array
     {
         $stats = [
@@ -48,7 +86,14 @@ class DriverController extends Controller
         $driverStats = $this->buildDriverStats($drivers);
 
         $driverTripLogs = collect();
+        $assignedTodayDriverIds = [];
+        $unavailableDriverIds = [];
         if (in_array($request->user()?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
+            $now = Carbon::now();
+            $duty = $this->driverDutyIds($now);
+            $assignedTodayDriverIds = $duty['assigned_today'];
+            $unavailableDriverIds = $duty['unavailable'];
+
             $driverTripLogs = TripRequest::query()
                 ->with(['assignedDriver', 'branch'])
                 ->whereNotNull('assigned_driver_id')
@@ -61,12 +106,43 @@ class DriverController extends Controller
                 ->get();
         }
 
-        return view('drivers.index', compact('drivers', 'showArchived', 'driverTripLogs', 'driverStats'));
+        return view('drivers.index', compact(
+            'drivers',
+            'showArchived',
+            'driverTripLogs',
+            'driverStats',
+            'assignedTodayDriverIds',
+            'unavailableDriverIds',
+        ));
     }
 
     public function create(): View
     {
         return view('drivers.create');
+    }
+
+    public function checkEmail(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['nullable', 'string', 'email', 'max:255'],
+            'ignore' => ['nullable', 'integer'],
+        ]);
+
+        $email = $validated['email'] ?? null;
+        if (! is_string($email) || trim($email) === '') {
+            return response()->json(['available' => true]);
+        }
+
+        $email = mb_strtolower(trim($email), 'UTF-8');
+
+        $query = Driver::withTrashed()->where('email', $email);
+        if (! empty($validated['ignore'])) {
+            $query->where('id', '!=', (int) $validated['ignore']);
+        }
+
+        return response()->json([
+            'available' => ! $query->exists(),
+        ]);
     }
 
     public function store(StoreDriverRequest $request, AuditLogService $auditLog): RedirectResponse
@@ -202,9 +278,16 @@ class DriverController extends Controller
         }
         $drivers = $driversQuery->get();
 
+        $duty = $this->driverDutyIds(Carbon::now());
+        $assignedToday = array_fill_keys($duty['assigned_today'], true);
+        $unavailable = array_fill_keys($duty['unavailable'], true);
+
         return response()->json([
-            'data' => $drivers->map(function (Driver $driver): array {
+            'data' => $drivers->map(function (Driver $driver) use ($assignedToday, $unavailable): array {
                 $publicId = is_string($driver->uuid ?? null) && $driver->uuid !== '' ? $driver->uuid : (string) $driver->id;
+                $status = strtolower((string) ($driver->status ?? ''));
+                $isActive = $status === 'active';
+                $id = (int) $driver->id;
 
                 return [
                     'id' => $driver->id,
@@ -215,6 +298,10 @@ class DriverController extends Controller
                     'phone' => $driver->phone,
                     'status' => $driver->status,
                     'is_archived' => $driver->trashed(),
+                    'duty_assigned_today' => isset($assignedToday[$id]),
+                    // For "On Duty" metrics/filters, only ACTIVE drivers count as registered/available.
+                    'duty_registered' => $isActive,
+                    'duty_unassigned_today' => $isActive && !isset($unavailable[$id]),
                 ];
             }),
         ]);

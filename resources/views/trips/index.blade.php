@@ -204,6 +204,14 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card stat-card h-100 tele-trip-filter" role="button" tabindex="0" data-trip-filter="activity" data-trip-activity="all_future" data-tele-tooltip title="Show all future trips (after today)">
+                            <div class="card-body">
+                                <div class="stat-label">All Future Trips</div>
+                                <div class="stat-value">{{ $analytics['all_future'] ?? 0 }}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -624,6 +632,7 @@
                 const showArchived = @json($showArchived ?? false);
                 const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
                 const currentMonth = @json(now()->format('Y-m'));
+                const todayIso = @json(now()->format('Y-m-d'));
                 const dataUrl = "{{ route('trips.data') }}" + (showArchived ? "?archived=1" : "");
                 const editUrlTemplate = "{{ route('trips.edit', ['tripRequest' => '__ID__']) }}";
                 const showUrlTemplate = "{{ route('trips.show', ['tripRequest' => '__ID__']) }}";
@@ -699,7 +708,7 @@
 
                 const escapeRegex = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-                let activeTripFilter = { type: 'none', month: null, statuses: [] };
+                let activeTripFilter = { type: 'none', month: null, statuses: [], activity: null };
 
                 const applyTripFilter = () => {
                     if (!window.jQuery?.fn?.dataTable) {
@@ -730,6 +739,13 @@
                         }
                     }
 
+                    if (activeTripFilter.type === 'activity' && activeTripFilter.activity) {
+                        const activityToken = String(activeTripFilter.activity || '').trim().toLowerCase();
+                        if (activityToken) {
+                            dt.column(4).search('\\b' + escapeRegex(activityToken) + '\\b', true, false, true);
+                        }
+                    }
+
                     dt.draw();
                 };
 
@@ -739,6 +755,14 @@
                     }
 
                     tbody.innerHTML = rows.map((trip) => {
+                        const status = String(trip.status || 'pending').toLowerCase();
+                        const tripDateRaw = String(trip.trip_date_raw || '').trim();
+                        const isApprovedPipeline = ['approved', 'assigned'].includes(status);
+                        const isActiveFutureCandidate = tripDateRaw && tripDateRaw > todayIso && !['completed', 'cancelled', 'rejected'].includes(status);
+                        const isTodayActive = isApprovedPipeline && Boolean(trip.assigned) && tripDateRaw === todayIso;
+                        const isFuturePipeline = isApprovedPipeline && tripDateRaw && tripDateRaw > todayIso;
+                        const isUnassignedPipeline = isApprovedPipeline && !Boolean(trip.assigned) && tripDateRaw && tripDateRaw >= todayIso;
+
                         const restrictedPurpose = currentUser.role === 'branch_admin'
                             && Number(trip.requested_by_user_id) !== Number(currentUser.id);
                         const purposeHtml = restrictedPurpose
@@ -857,7 +881,11 @@
                                     <small class="text-muted">${escapeHtml(trip.trip_time)}</small>
                                 </td>
                                 <td data-label="Status">
-                                    <span class="visually-hidden">${escapeHtml(String(trip.status || 'pending').toLowerCase())}</span>
+                                    <span class="visually-hidden">${escapeHtml(status)}</span>
+                                    ${isTodayActive ? '<span class="visually-hidden">activity_today_active</span>' : ''}
+                                    ${isFuturePipeline ? '<span class="visually-hidden">activity_future</span>' : ''}
+                                    ${isUnassignedPipeline ? '<span class="visually-hidden">activity_unassigned</span>' : ''}
+                                    ${isActiveFutureCandidate ? '<span class="visually-hidden">activity_all_future</span>' : ''}
                                     <span class="badge bg-${statusClass(trip.status)}${String(trip.status || '').toLowerCase() === 'pending' ? ' text-dark' : ''}">${escapeHtml(statusLabel)}</span>
                                     ${dueBadge}
                                 </td>
@@ -1008,6 +1036,45 @@
                     table.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 };
 
+                function applyTripActivityParamFilter() {
+                    if (showArchived) {
+                        return;
+                    }
+
+                    const params = new URLSearchParams(window.location.search);
+                    const activity = String(params.get('activity') || '').trim().toLowerCase();
+                    const map = {
+                        today_active: 'activity_today_active',
+                        future: 'activity_future',
+                        unassigned: 'activity_unassigned',
+                        all_future: 'activity_all_future',
+                    };
+
+                    const token = map[activity];
+                    if (!token) {
+                        return;
+                    }
+
+                    activeTripFilter = { type: 'activity', month: null, statuses: [], activity: token };
+
+                    let attempts = 0;
+                    const MAX_ATTEMPTS = 25;
+                    const tick = () => {
+                        attempts += 1;
+                        if (window.jQuery?.fn?.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
+                            applyTripFilter();
+                            scrollToTable();
+                            return;
+                        }
+                        if (attempts < MAX_ATTEMPTS) {
+                            setTimeout(tick, 120);
+                        }
+                    };
+                    tick();
+                }
+
+                applyTripActivityParamFilter();
+
                 const parseTripStatuses = (value) => String(value || '')
                     .split(',')
                     .map((item) => item.trim().toLowerCase())
@@ -1020,7 +1087,7 @@
                     }
 
                     if (type === 'all') {
-                        activeTripFilter = { type: 'all', month: currentMonth, statuses: [] };
+                        activeTripFilter = { type: 'all', month: currentMonth, statuses: [], activity: null };
                         applyTripFilter();
                         scrollToTable();
                         return;
@@ -1028,7 +1095,25 @@
 
                     if (type === 'status') {
                         const statuses = parseTripStatuses(node.getAttribute('data-trip-statuses') || node.getAttribute('data-trip-status'));
-                        activeTripFilter = { type: 'status', month: currentMonth, statuses };
+                        activeTripFilter = { type: 'status', month: currentMonth, statuses, activity: null };
+                        applyTripFilter();
+                        scrollToTable();
+                        return;
+                    }
+
+                    if (type === 'activity') {
+                        const activity = String(node.getAttribute('data-trip-activity') || '').trim().toLowerCase();
+                        const map = {
+                            today_active: 'activity_today_active',
+                            future: 'activity_future',
+                            unassigned: 'activity_unassigned',
+                            all_future: 'activity_all_future',
+                        };
+                        const token = map[activity];
+                        if (!token) {
+                            return;
+                        }
+                        activeTripFilter = { type: 'activity', month: null, statuses: [], activity: token };
                         applyTripFilter();
                         scrollToTable();
                     }

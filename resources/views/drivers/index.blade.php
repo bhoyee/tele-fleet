@@ -74,6 +74,23 @@
                                 <td>{{ $driver->phone }}</td>
                                 <td>
                                     <span class="visually-hidden">{{ $driver->status }}</span>
+                                    @php
+                                        $driverId = (int) $driver->id;
+                                        $driverStatus = strtolower((string) ($driver->status ?? ''));
+                                        $driverRegistered = $driverStatus === 'active';
+                                        $driverAssignedToday = in_array($driverId, $assignedTodayDriverIds ?? [], true);
+                                        $driverUnavailable = in_array($driverId, $unavailableDriverIds ?? [], true);
+                                        $driverUnassignedToday = $driverRegistered && ! $driverUnavailable;
+                                    @endphp
+                                    @if ($driverAssignedToday)
+                                        <span class="visually-hidden">duty_assigned_today</span>
+                                    @endif
+                                    @if ($driverUnassignedToday)
+                                        <span class="visually-hidden">duty_unassigned_today</span>
+                                    @endif
+                                    @if ($driverRegistered)
+                                        <span class="visually-hidden">duty_registered</span>
+                                    @endif
                                     <span class="badge bg-{{ \App\Models\Driver::statusBadgeClass($driver->status) }}">
                                         {{ \App\Models\Driver::statusLabel($driver->status) }}
                                     </span>
@@ -413,7 +430,7 @@
                     }
                 };
 
-                let activeDriverFilter = { type: 'all', status: null };
+                let activeDriverFilter = { type: 'all', status: null, duty: null };
 
                 const applyDriverFilter = () => {
                     if (!window.jQuery?.fn?.dataTable) {
@@ -433,6 +450,13 @@
                         if (statusToken) {
                             // Status cells contain both a hidden code and a human label; match the code token anywhere in the cell text.
                             dt.column(4).search('\\b' + statusToken + '\\b', true, false, true);
+                        }
+                    }
+
+                    if (activeDriverFilter.type === 'duty' && activeDriverFilter.duty) {
+                        const dutyToken = String(activeDriverFilter.duty || '').trim();
+                        if (dutyToken) {
+                            dt.column(4).search('\\b' + dutyToken + '\\b', true, false, true);
                         }
                     }
 
@@ -471,6 +495,10 @@
                     updateDriverStats(rows);
 
                     tbody.innerHTML = rows.map((driver) => {
+                        const dutyAssigned = Boolean(driver.duty_assigned_today);
+                        const dutyRegistered = Boolean(driver.duty_registered);
+                        const dutyUnassigned = Boolean(driver.duty_unassigned_today);
+
                         const archivedActions = `
                             <a href="${showUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
                                 <i class="bi bi-eye"></i>
@@ -520,6 +548,9 @@
                                 <td>${escapeHtml(driver.phone)}</td>
                                 <td>
                                     <span class="visually-hidden">${escapeHtml(driver.status)}</span>
+                                    ${dutyAssigned ? '<span class="visually-hidden">duty_assigned_today</span>' : ''}
+                                    ${dutyUnassigned ? '<span class="visually-hidden">duty_unassigned_today</span>' : ''}
+                                    ${dutyRegistered ? '<span class="visually-hidden">duty_registered</span>' : ''}
                                     <span class="badge ${statusBadge(driver.status)}">${escapeHtml(statusLabel(driver.status))}</span>
                                 </td>
                                 <td class="text-end">
@@ -605,6 +636,44 @@
                     table.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 };
 
+                const applyDutyParamFilter = () => {
+                    if (showArchived) {
+                        return;
+                    }
+
+                    const params = new URLSearchParams(window.location.search);
+                    const duty = String(params.get('duty') || '').trim().toLowerCase();
+                    const dutyMap = {
+                        'assigned_today': 'duty_assigned_today',
+                        'unassigned_today': 'duty_unassigned_today',
+                        'registered': 'duty_registered',
+                    };
+
+                    const dutyToken = dutyMap[duty];
+                    if (!dutyToken) {
+                        return;
+                    }
+
+                    activeDriverFilter = { type: 'duty', status: null, duty: dutyToken };
+
+                    let attempts = 0;
+                    const MAX_ATTEMPTS = 20;
+                    const tick = () => {
+                        attempts += 1;
+                        if (window.jQuery?.fn?.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
+                            applyDriverFilter();
+                            scrollToTable();
+                            return;
+                        }
+                        if (attempts < MAX_ATTEMPTS) {
+                            setTimeout(tick, 150);
+                        }
+                    };
+                    tick();
+                };
+
+                applyDutyParamFilter();
+
                 const handleFilterClick = (node) => {
                     const type = node.getAttribute('data-driver-filter');
                     if (!type) {
@@ -612,9 +681,9 @@
                     }
 
                     if (type === 'all') {
-                        activeDriverFilter = { type: 'all', status: null };
+                        activeDriverFilter = { type: 'all', status: null, duty: null };
                     } else if (type === 'status') {
-                        activeDriverFilter = { type: 'status', status: node.getAttribute('data-driver-status') };
+                        activeDriverFilter = { type: 'status', status: node.getAttribute('data-driver-status'), duty: null };
                     } else {
                         return;
                     }

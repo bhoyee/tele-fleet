@@ -93,6 +93,7 @@ class TripRequestController extends Controller
         $historyTrips = collect();
         if (in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
             $now = Carbon::now();
+            $today = $now->toDateString();
             $monthStart = $now->copy()->startOfMonth();
             $monthEnd = $now->copy()->endOfMonth();
 
@@ -105,6 +106,9 @@ class TripRequestController extends Controller
             $completedTrips = (clone $monthlyQuery)->where('status', 'completed')->count();
             $rejectedTrips = (clone $monthlyQuery)->where('status', 'rejected')->count();
             $cancelledTrips = (clone $monthlyQuery)->where('status', 'cancelled')->count();
+            $allFutureTrips = TripRequest::whereDate('trip_date', '>', $today)
+                ->whereNotIn('status', ['completed', 'cancelled', 'rejected'])
+                ->count();
 
             $approvalRate = $totalTrips > 0 ? round(($approvedTrips / $totalTrips) * 100, 1) : 0;
             $completionRate = $totalTrips > 0 ? round(($completedTrips / $totalTrips) * 100, 1) : 0;
@@ -112,6 +116,7 @@ class TripRequestController extends Controller
             $analytics = [
                 'total' => $totalTrips,
                 'all_time' => $allTimeTrips,
+                'all_future' => $allFutureTrips,
                 'pending' => $pendingTrips,
                 'approved' => $approvedTrips,
                 'assigned' => $assignedTrips,

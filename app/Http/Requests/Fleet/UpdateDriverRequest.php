@@ -22,9 +22,16 @@ class UpdateDriverRequest extends FormRequest
             $note = null;
         }
 
+        $email = $this->input('email');
+        if (is_string($email)) {
+            $email = trim($email);
+            $email = $email !== '' ? mb_strtolower($email, 'UTF-8') : null;
+        }
+
         $this->merge([
             'full_name' => TextNormalizer::personName($this->input('full_name')),
             'phone' => TextNormalizer::phoneE164($this->input('phone')),
+            'email' => $email,
             'note' => $note,
         ]);
     }
@@ -39,15 +46,23 @@ class UpdateDriverRequest extends FormRequest
             : ['nullable', 'string', 'max:2000'];
 
         return [
-            'full_name' => ['required', 'string', 'max:255'],
+            'full_name' => ['required', 'string', 'max:255', 'regex:/^\\p{L}+(?:[\\s\'-]\\p{L}+)*$/u'],
             'license_number' => ['required', 'string', 'max:100', Rule::unique('drivers', 'license_number')->ignore($driverId)],
             'license_type' => ['nullable', 'string', 'max:100'],
             'license_expiry' => ['required', 'date'],
             'phone' => ['required', 'string', 'max:30'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => ['nullable', 'string', 'lowercase', 'email', 'max:255', Rule::unique('drivers', 'email')->ignore($driverId)],
             'address' => ['nullable', 'string', 'max:255'],
             'note' => $noteRules,
             'status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'full_name.regex' => 'Full name must contain only letters and spaces (e.g. "Ibrahim Musa" or "O\'Connor").',
+            'email.unique' => 'This email address is already registered for another driver.',
         ];
     }
 }

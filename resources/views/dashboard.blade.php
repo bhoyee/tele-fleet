@@ -205,6 +205,23 @@
             border: 1px solid rgba(5, 108, 163, 0.12);
         }
 
+        .metric-subcard-link {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .metric-subcard-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(5, 108, 163, 0.12);
+        }
+
+        .metric-subcard-link:focus-visible {
+            outline: 3px solid rgba(5, 108, 163, 0.28);
+            outline-offset: 2px;
+        }
+
         .metric-subcard.metric-subcard--alert {
             background: rgba(239, 68, 68, 0.08);
             border-color: rgba(239, 68, 68, 0.22);
@@ -973,18 +990,27 @@
                 </div>
                 <div class="metric-label">Drivers On Duty</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard">
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('drivers.index', ['duty' => 'assigned_today']) }}"
+                       data-tele-tooltip
+                       title="View drivers assigned today">
                         <div class="metric-subvalue" data-metric="driversAssignedToday">{{ $driversAssignedToday ?? 0 }}</div>
                         <div class="metric-subtitle">Assigned today</div>
-                    </div>
-                    <div class="metric-subcard {{ ($driversUnassignedToday ?? 0) > 0 ? 'metric-subcard--success' : '' }}">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link {{ ($driversUnassignedToday ?? 0) > 0 ? 'metric-subcard--success' : '' }}"
+                       href="{{ route('drivers.index', ['duty' => 'unassigned_today']) }}"
+                       data-tele-tooltip
+                       title="View drivers unassigned today">
                         <div class="metric-subvalue" data-metric="driversUnassignedToday">{{ $driversUnassignedToday ?? 0 }}</div>
                         <div class="metric-subtitle">Unassigned</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('drivers.index', ['duty' => 'registered']) }}"
+                       data-tele-tooltip
+                       title="View registered drivers">
                         <div class="metric-subvalue" data-metric="totalDriversRegistered">{{ $totalDriversRegistered ?? 0 }}</div>
                         <div class="metric-subtitle">Drivers registered</div>
-                    </div>
+                    </a>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-person-check"></i> Active driver coverage
@@ -1000,18 +1026,27 @@
                 </div>
                 <div class="metric-label">Trip Activity</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard">
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['activity' => 'today_active']) }}"
+                       data-tele-tooltip
+                       title="View today's active trips">
                         <div class="metric-subvalue" data-metric="todayActiveTrips">{{ $todayActiveTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Today active</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['activity' => 'future']) }}"
+                       data-tele-tooltip
+                       title="View future trips">
                         <div class="metric-subvalue" data-metric="futureTrips">{{ $futureTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Future trips</div>
-                    </div>
-                    <div class="metric-subcard {{ ($unassignedTrips ?? 0) > 0 ? 'metric-subcard--alert' : '' }}">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link {{ ($unassignedTrips ?? 0) > 0 ? 'metric-subcard--alert' : '' }}"
+                       href="{{ route('trips.index', ['activity' => 'unassigned']) }}"
+                       data-tele-tooltip
+                       title="View unassigned trips">
                         <div class="metric-subvalue" data-metric="unassignedTrips">{{ $unassignedTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Unassigned</div>
-                    </div>
+                    </a>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-graph-up"></i> Approved &amp; assigned pipeline
