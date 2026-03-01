@@ -4,6 +4,11 @@
         $vehicles = $vehicles ?? collect();
         $viewMode = $viewMode ?? 'vehicles';
     @endphp
+    <style>
+        .tele-maintenance-filter {
+            cursor: pointer;
+        }
+    </style>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Maintenance</h1>
@@ -52,7 +57,7 @@
         <div class="card-body">
             <div class="row g-3" id="maintenanceStatsCards">
                 <div class="col-6 col-lg-2">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-maintenance-filter" role="button" tabindex="0" data-maintenance-card="scheduled" data-maintenance-target="records" data-tele-tooltip title="Filter scheduled records (this month)">
                         <div class="card-body">
                             <div class="stat-label">Scheduled</div>
                             <div class="stat-value" data-maintenance-stat="scheduled">{{ $maintenanceAnalytics['scheduled'] ?? 0 }}</div>
@@ -60,7 +65,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-lg-2">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-maintenance-filter" role="button" tabindex="0" data-maintenance-card="in_progress" data-maintenance-target="vehicles" data-maintenance-status="maintenance" data-tele-tooltip title="Filter vehicles in maintenance">
                         <div class="card-body">
                             <div class="stat-label">In Progress</div>
                             <div class="stat-value" data-maintenance-stat="in_progress">{{ $maintenanceAnalytics['in_progress'] ?? 0 }}</div>
@@ -68,7 +73,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-lg-2">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-maintenance-filter" role="button" tabindex="0" data-maintenance-card="completed" data-maintenance-target="records" data-tele-tooltip title="Filter completed records (this month)">
                         <div class="card-body">
                             <div class="stat-label">Completed</div>
                             <div class="stat-value" data-maintenance-stat="completed">{{ $maintenanceAnalytics['completed'] ?? 0 }}</div>
@@ -76,7 +81,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-lg-2">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-maintenance-filter" role="button" tabindex="0" data-maintenance-card="cancelled" data-maintenance-target="records" data-tele-tooltip title="Filter cancelled records (this month)">
                         <div class="card-body">
                             <div class="stat-label">Cancelled</div>
                             <div class="stat-value" data-maintenance-stat="cancelled">{{ $maintenanceAnalytics['cancelled'] ?? 0 }}</div>
@@ -84,7 +89,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-lg-2">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-maintenance-filter" role="button" tabindex="0" data-maintenance-card="due" data-maintenance-target="vehicles" data-maintenance-status="due" data-tele-tooltip title="Filter vehicles due for maintenance">
                         <div class="card-body">
                             <div class="stat-label">Due (Mileage)</div>
                             <div class="stat-value" data-maintenance-stat="due">{{ $maintenanceAnalytics['due'] ?? 0 }}</div>
@@ -92,7 +97,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-lg-2">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-maintenance-filter" role="button" tabindex="0" data-maintenance-card="overdue" data-maintenance-target="vehicles" data-maintenance-status="overdue" data-tele-tooltip title="Filter vehicles overdue for maintenance">
                         <div class="card-body">
                             <div class="stat-label">Overdue (Mileage)</div>
                             <div class="stat-value" data-maintenance-stat="overdue">{{ $maintenanceAnalytics['overdue'] ?? 0 }}</div>
@@ -149,11 +154,13 @@
                                                 default => 'secondary',
                                             };
                                         @endphp
-                                        <span class="badge bg-{{ $vehicleStatusClass }}">{{ ucfirst(str_replace('_', ' ', $vehicleStatus ?: 'unknown')) }}</span>
-                                        @if (in_array($state, ['due', 'overdue'], true))
-                                            <span class="badge bg-{{ $stateClass }}">{{ ucfirst($state) }}</span>
-                                        @endif
-                                    </td>
+                                    <span class="badge bg-{{ $vehicleStatusClass }}">{{ ucfirst(str_replace('_', ' ', $vehicleStatus ?: 'unknown')) }}</span>
+                                    <span class="visually-hidden">{{ $vehicleStatus }}</span>
+                                    @if (in_array($state, ['due', 'overdue'], true))
+                                        <span class="badge bg-{{ $stateClass }}">{{ ucfirst($state) }}</span>
+                                    @endif
+                                    <span class="visually-hidden">{{ $state }}</span>
+                                </td>
                                     <td>
                                         <div class="small text-muted">Current: {{ number_format((int) ($vehicle->current_mileage ?? 0)) }} km</div>
                                         <div class="small text-muted">Last: {{ number_format((int) ($vehicle->last_maintenance_mileage ?? 0)) }} km</div>
@@ -175,7 +182,10 @@
                                     <div class="fw-semibold">{{ $maintenance->vehicle?->registration_number ?? 'N/A' }}</div>
                                     <small class="text-muted">{{ $maintenance->vehicle?->make }} {{ $maintenance->vehicle?->model }}</small>
                                 </td>
-                                <td>{{ $maintenance->scheduled_for?->format('M d, Y') }}</td>
+                                <td>
+                                    <span class="visually-hidden">{{ $maintenance->scheduled_for?->format('Y-m-d') }}</span>
+                                    {{ $maintenance->scheduled_for?->format('M d, Y') }}
+                                </td>
                                 <td>
                                     @php
                                         $status = $maintenance->status;
@@ -187,6 +197,7 @@
                                                     ? 'secondary'
                                                     : 'warning'));
                                     @endphp
+                                    <span class="visually-hidden">{{ $status }}</span>
                                     <span class="badge bg-{{ $statusClass }}">
                                         {{ ucfirst(str_replace('_', ' ', $status)) }}
                                     </span>
@@ -274,6 +285,63 @@
                 const editUrlTemplate = "{{ route('maintenances.edit', ['maintenance' => '__ID__']) }}";
                 const deleteUrlTemplate = "{{ route('maintenances.destroy', ['maintenance' => '__ID__']) }}";
                 const scheduleUrlTemplate = "{{ route('maintenances.create', ['vehicle_id' => '__ID__']) }}";
+                const currentMonth = @json(now()->format('Y-m'));
+
+                let activeMode = @json(!empty($vehicleMode) ? 'vehicles' : 'records');
+                let activeMaintenanceFilter = { type: 'none', month: null, token: null };
+
+                const escapeRegex = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                const applyMaintenanceFilter = () => {
+                    if (!window.jQuery?.fn?.dataTable) {
+                        return;
+                    }
+                    if (!window.jQuery.fn.dataTable.isDataTable(table)) {
+                        return;
+                    }
+
+                    const dt = window.jQuery(table).DataTable();
+                    dt.search('');
+                    dt.columns().search('');
+
+                    if (activeMode === 'records') {
+                        const dateCol = 1;
+                        const statusCol = 2;
+                        if (activeMaintenanceFilter.month) {
+                            dt.column(dateCol).search(escapeRegex(activeMaintenanceFilter.month) + '-\\d{2}', true, false, true);
+                        }
+                        if (activeMaintenanceFilter.type === 'record_status' && activeMaintenanceFilter.token) {
+                            dt.column(statusCol).search('\\b' + escapeRegex(activeMaintenanceFilter.token) + '\\b', true, false, true);
+                        }
+                    } else {
+                        const statusCol = 1;
+                        if (activeMaintenanceFilter.type === 'vehicle' && activeMaintenanceFilter.token) {
+                            dt.column(statusCol).search('\\b' + escapeRegex(activeMaintenanceFilter.token) + '\\b', true, false, true);
+                        }
+                    }
+
+                    dt.draw();
+                };
+
+                const scrollToTable = () => {
+                    table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+
+                const setFilterFromCardKey = (key) => {
+                    const normalized = String(key || '').toLowerCase();
+
+                    if (activeMode === 'vehicles') {
+                        const vehicleToken = normalized === 'in_progress' ? 'maintenance' : normalized;
+                        if (['maintenance', 'due', 'overdue', 'in_progress'].includes(normalized)) {
+                            activeMaintenanceFilter = { type: 'vehicle', month: null, token: vehicleToken };
+                        }
+                        return;
+                    }
+
+                    if (['scheduled', 'completed', 'cancelled', 'in_progress'].includes(normalized)) {
+                        activeMaintenanceFilter = { type: 'record_status', month: currentMonth, token: normalized };
+                    }
+                };
 
                 const escapeHtml = (value) => String(value ?? '')
                     .replace(/&/g, '&amp;')
@@ -309,8 +377,12 @@
                         return `
                             <tr>
                                 <td>${vehicleLine}</td>
-                                <td>${escapeHtml(maintenance.scheduled_for)}</td>
                                 <td>
+                                    <span class="visually-hidden">${escapeHtml(maintenance.scheduled_for_raw || '')}</span>
+                                    ${escapeHtml(maintenance.scheduled_for)}
+                                </td>
+                                <td>
+                                    <span class="visually-hidden">${escapeHtml(String(maintenance.status || '').toLowerCase())}</span>
                                     <span class="badge bg-${statusBadge(maintenance.status)}">${escapeHtml(maintenance.status_label)}</span>
                                 </td>
                                 <td>${escapeHtml(maintenance.description)}</td>
@@ -353,6 +425,8 @@
                             bootstrap.Tooltip.getOrCreateInstance(el);
                         });
                     }
+
+                    applyMaintenanceFilter();
                 };
 
                 const vehicleStatusBadge = (status) => {
@@ -405,6 +479,8 @@
                             <tr>
                                 <td>${vehicleLine}</td>
                                 <td>
+                                    <span class="visually-hidden">${escapeHtml(String(vehicle.status || '').toLowerCase())}</span>
+                                    <span class="visually-hidden">${escapeHtml(String(vehicle.maintenance_state || '').toLowerCase())}</span>
                                     <span class="badge bg-${vehicleStatusBadge(vehicle.status)}">${escapeHtml(statusLabel)}</span>
                                     ${showStateBadge ? `<span class="badge bg-${maintenanceStateBadge(vehicle.maintenance_state)}">${escapeHtml(stateLabel)}</span>` : ''}
                                 </td>
@@ -434,6 +510,8 @@
                             bootstrap.Tooltip.getOrCreateInstance(el);
                         });
                     }
+
+                    applyMaintenanceFilter();
                 };
 
                 const updateMaintenanceStats = (stats) => {
@@ -457,6 +535,7 @@
                         const response = await fetch(dataUrl, { headers: { 'Accept': 'application/json' } });
                         if (!response.ok) return;
                         const payload = await response.json();
+                        activeMode = (payload.mode || 'records') === 'vehicles' ? 'vehicles' : 'records';
                         if ((payload.mode || 'records') === 'vehicles') {
                             renderVehicleRows(payload.data || []);
                         } else {
@@ -508,6 +587,92 @@
 
                 subscribeMaintenancesChannel();
                 startPollingFallback();
+
+                const handleMaintenanceCardClick = (node) => {
+                    const cardKey = node.getAttribute('data-maintenance-card');
+                    const targetMode = node.getAttribute('data-maintenance-target');
+                    const vehicleStatus = node.getAttribute('data-maintenance-status');
+
+                    if (!cardKey || !targetMode) {
+                        return;
+                    }
+
+                    if (targetMode !== activeMode) {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('view', targetMode);
+                        url.searchParams.set('card', cardKey);
+
+                        if (targetMode === 'vehicles') {
+                            if (vehicleStatus) {
+                                url.searchParams.set('status', vehicleStatus);
+                            } else {
+                                url.searchParams.delete('status');
+                            }
+                        } else {
+                            url.searchParams.delete('status');
+                        }
+
+                        window.location.href = url.toString();
+                        return;
+                    }
+
+                    if (activeMode === 'vehicles') {
+                        const token = vehicleStatus || cardKey;
+                        activeMaintenanceFilter = { type: 'vehicle', month: null, token: String(token || '').toLowerCase() };
+                    } else {
+                        activeMaintenanceFilter = { type: 'record_status', month: currentMonth, token: String(cardKey || '').toLowerCase() };
+                    }
+
+                    applyMaintenanceFilter();
+                    scrollToTable();
+                };
+
+                document.addEventListener('click', (event) => {
+                    const target = event.target.closest('[data-maintenance-card]');
+                    if (!target) {
+                        return;
+                    }
+                    handleMaintenanceCardClick(target);
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                    }
+                    const target = event.target.closest('[data-maintenance-card]');
+                    if (!target) {
+                        return;
+                    }
+                    event.preventDefault();
+                    handleMaintenanceCardClick(target);
+                });
+
+                const applyCardParamFilter = () => {
+                    const params = new URLSearchParams(window.location.search);
+                    const cardKey = params.get('card');
+                    if (!cardKey) {
+                        return;
+                    }
+
+                    setFilterFromCardKey(cardKey);
+
+                    let attempts = 0;
+                    const MAX_ATTEMPTS = 20;
+                    const tick = () => {
+                        attempts += 1;
+                        if (window.jQuery?.fn?.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
+                            applyMaintenanceFilter();
+                            scrollToTable();
+                            return;
+                        }
+                        if (attempts < MAX_ATTEMPTS) {
+                            setTimeout(tick, 150);
+                        }
+                    };
+                    tick();
+                };
+
+                applyCardParamFilter();
             });
         </script>
     @endpush

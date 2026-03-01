@@ -15,6 +15,10 @@
             display: none !important;
         }
 
+        .tele-incident-filter {
+            cursor: pointer;
+        }
+
         @media (max-width: 767px) {
             .incident-action-icons {
                 gap: 0.45rem;
@@ -56,7 +60,7 @@
         <div class="card-body">
             <div class="row g-3" id="incidentStatsCards">
                 <div class="col-6 col-lg-3">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-incident-filter" role="button" tabindex="0" data-incident-filter="all" data-tele-tooltip title="Show incidents from this month">
                         <div class="card-body">
                             <div class="stat-label">Total Incidents</div>
                             <div class="stat-value" data-incident-stat="total">{{ $incidentAnalytics['total'] ?? 0 }}</div>
@@ -64,7 +68,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-lg-3">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-incident-filter" role="button" tabindex="0" data-incident-filter="status" data-incident-status="open" data-tele-tooltip title="Filter open incidents (this month)">
                         <div class="card-body">
                             <div class="stat-label">Open</div>
                             <div class="stat-value" data-incident-stat="open">{{ $incidentAnalytics['open'] ?? 0 }}</div>
@@ -72,7 +76,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-lg-3">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-incident-filter" role="button" tabindex="0" data-incident-filter="status" data-incident-status="under_review" data-tele-tooltip title="Filter incidents under review (this month)">
                         <div class="card-body">
                             <div class="stat-label">Under Review</div>
                             <div class="stat-value" data-incident-stat="under_review">{{ $incidentAnalytics['under_review'] ?? 0 }}</div>
@@ -80,7 +84,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-lg-3">
-                    <div class="card stat-card h-100">
+                    <div class="card stat-card h-100 tele-incident-filter" role="button" tabindex="0" data-incident-filter="status" data-incident-status="resolved" data-tele-tooltip title="Filter resolved incidents (this month)">
                         <div class="card-body">
                             <div class="stat-label">Resolved</div>
                             <div class="stat-value" data-incident-stat="resolved">{{ $incidentAnalytics['resolved'] ?? 0 }}</div>
@@ -119,14 +123,19 @@
                                     };
                                 @endphp
                                 <td>
+                                    <span class="visually-hidden">{{ $incident->severity }}</span>
                                     <span class="badge bg-{{ $severityClass }}">{{ ucfirst($incident->severity) }}</span>
                                 </td>
                                 <td>
+                                    <span class="visually-hidden">{{ $incident->status }}</span>
                                     <span class="badge bg-{{ $incident->status === 'resolved' ? 'success' : ($incident->status === 'under_review' ? 'warning text-dark' : ($incident->status === 'cancelled' ? 'secondary' : 'info')) }}">
                                         {{ str_replace('_', ' ', ucfirst($incident->status)) }}
                                     </span>
                                 </td>
-                                <td>{{ $incident->incident_date?->format('M d, Y') }}</td>
+                                <td>
+                                    <span class="visually-hidden">{{ $incident->incident_date?->format('Y-m-d') }}</span>
+                                    {{ $incident->incident_date?->format('M d, Y') }}
+                                </td>
                                 <td class="text-end">
                                     <div class="incident-action-buttons d-inline-flex gap-1 flex-wrap justify-content-end">
                                         <a href="{{ route('incidents.show', $incident) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
@@ -419,6 +428,7 @@
                 const deleteUrlTemplate = "{{ route('incidents.destroy', ['incident' => '__ID__']) }}";
                 const restoreUrlTemplate = "{{ route('incidents.restore', ['incident' => '__ID__']) }}";
                 const forceDeleteUrlTemplate = "{{ route('incidents.force', ['incident' => '__ID__']) }}";
+                const currentMonth = @json(now()->format('Y-m'));
 
                 let poller = null;
                 const startPollingFallback = () => {
@@ -479,6 +489,42 @@
 
                 const canDelete = (incident) => {
                     return ['super_admin', 'fleet_manager'].includes(currentUser.role) && !showArchived;
+                };
+
+                const escapeRegex = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                let activeIncidentFilter = { type: 'none', month: null, statuses: [] };
+
+                const applyIncidentFilter = () => {
+                    if (!window.jQuery?.fn?.dataTable) {
+                        return;
+                    }
+                    if (!window.jQuery.fn.dataTable.isDataTable(table)) {
+                        return;
+                    }
+
+                    const dt = window.jQuery(table).DataTable();
+                    dt.search('');
+                    dt.columns().search('');
+
+                    if (activeIncidentFilter.month) {
+                        const monthToken = String(activeIncidentFilter.month || '').trim();
+                        if (monthToken) {
+                            dt.column(4).search(escapeRegex(monthToken) + '-\\d{2}', true, false, true);
+                        }
+                    }
+
+                    if (activeIncidentFilter.type === 'status' && Array.isArray(activeIncidentFilter.statuses) && activeIncidentFilter.statuses.length > 0) {
+                        const tokens = activeIncidentFilter.statuses
+                            .map((item) => String(item || '').trim().toLowerCase())
+                            .filter(Boolean);
+                        if (tokens.length > 0) {
+                            const pattern = tokens.map((token) => '\\b' + escapeRegex(token) + '\\b').join('|');
+                            dt.column(3).search(pattern, true, false, true);
+                        }
+                    }
+
+                    dt.draw();
                 };
 
                 const renderRows = (rows) => {
@@ -581,16 +627,21 @@
                                 <td class="dtr-control"></td>
                                 <td>${escapeHtml(incident.reference)}</td>
                                 <td>
+                                    <span class="visually-hidden">${escapeHtml(String(incident.severity || '').toLowerCase())}</span>
                                     <span class="badge bg-${incident.severity === 'critical' ? 'dark' : (incident.severity === 'major' ? 'danger' : 'warning')}">
                                         ${escapeHtml(incident.severity)}
                                     </span>
                                 </td>
                                 <td>
+                                    <span class="visually-hidden">${escapeHtml(String(incident.status || '').toLowerCase())}</span>
                                     <span class="badge bg-${statusBadge(incident.status)}">
                                         ${escapeHtml(String(incident.status || '').replace('_', ' '))}
                                     </span>
                                 </td>
-                                <td>${escapeHtml(incident.incident_date)}</td>
+                                <td>
+                                    <span class="visually-hidden">${escapeHtml(incident.incident_date_raw || '')}</span>
+                                    ${escapeHtml(incident.incident_date)}
+                                </td>
                                 <td class="text-end">
                                     <div class="incident-action-buttons d-inline-flex gap-1 flex-wrap justify-content-end">${viewHtml} ${editHtml} ${cancelHtml} ${deleteHtml} ${restoreHtml}</div>
                                     <div class="incident-action-icons">${viewIcon} ${editIcon} ${cancelIcon} ${deleteIcon} ${restoreIcon}</div>
@@ -629,6 +680,8 @@
                             }
                         });
                     }
+
+                    applyIncidentFilter();
                 };
 
                 const refreshTable = async () => {
@@ -720,6 +773,56 @@
 
                 refreshTable();
                 subscribeIncidentChannels();
+
+                const scrollToTable = () => {
+                    table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+
+                const parseStatuses = (value) => String(value || '')
+                    .split(',')
+                    .map((item) => item.trim().toLowerCase())
+                    .filter(Boolean);
+
+                const handleIncidentFilterClick = (node) => {
+                    const type = node.getAttribute('data-incident-filter');
+                    if (!type) {
+                        return;
+                    }
+
+                    if (type === 'all') {
+                        activeIncidentFilter = { type: 'all', month: currentMonth, statuses: [] };
+                        applyIncidentFilter();
+                        scrollToTable();
+                        return;
+                    }
+
+                    if (type === 'status') {
+                        const statuses = parseStatuses(node.getAttribute('data-incident-statuses') || node.getAttribute('data-incident-status'));
+                        activeIncidentFilter = { type: 'status', month: currentMonth, statuses };
+                        applyIncidentFilter();
+                        scrollToTable();
+                    }
+                };
+
+                document.addEventListener('click', (event) => {
+                    const target = event.target.closest('[data-incident-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    handleIncidentFilterClick(target);
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                    }
+                    const target = event.target.closest('[data-incident-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    event.preventDefault();
+                    handleIncidentFilterClick(target);
+                });
             });
         </script>
     @endpush
