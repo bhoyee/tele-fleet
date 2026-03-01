@@ -9,7 +9,7 @@
 
     <div class="row g-3 mb-4">
         <div class="col-12 col-md-6">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-branch-filter" role="button" tabindex="0" data-branch-filter="all" data-tele-tooltip title="Show all branches">
                 <div class="card-body">
                     <div class="stat-label">Total Branches</div>
                     <div class="stat-value">{{ $branchStats['total'] ?? 0 }}</div>
@@ -17,11 +17,17 @@
             </div>
         </div>
         <div class="col-12 col-md-6">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-branch-filter" role="button" tabindex="0" data-branch-filter="head_office" data-tele-tooltip title="Filter head office branch">
                 <div class="card-body">
                     <div class="stat-label">Head Office Branch</div>
                     <div class="stat-value">{{ $branchStats['head_office'] ?? 0 }}</div>
-                    <div class="small text-muted mt-2">Regular: {{ $branchStats['regular'] ?? 0 }}</div>
+                    <button type="button"
+                            class="btn btn-link p-0 small text-muted mt-2 tele-branch-filter"
+                            data-branch-filter="regular"
+                            data-tele-tooltip
+                            title="Filter regular branches">
+                        Regular: {{ $branchStats['regular'] ?? 0 }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -122,6 +128,89 @@
                     document.getElementById('deleteBranchName').textContent = name;
                 });
             }
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const table = document.querySelector('table.datatable');
+                if (!table || !window.jQuery || !window.jQuery.fn || !window.jQuery.fn.dataTable) {
+                    return;
+                }
+
+                const dt = window.jQuery(table).DataTable();
+
+                const findColumnIndex = (label) => {
+                    const headers = dt.columns().header().toArray();
+                    const match = headers.findIndex((th) => (th?.textContent ?? '').trim().toLowerCase() === label.toLowerCase());
+                    return match >= 0 ? match : null;
+                };
+
+                const headOfficeCol = findColumnIndex('Head Office');
+
+                const clearFilters = () => {
+                    dt.search('');
+                    dt.columns().search('');
+                };
+
+                const applyHeadOfficeFilter = (value) => {
+                    if (headOfficeCol === null) {
+                        return;
+                    }
+                    clearFilters();
+                    const label = value ? 'Yes' : 'No';
+                    dt.column(headOfficeCol).search('^\\s*' + label + '\\s*$', true, false);
+                };
+
+                const scrollToTable = () => {
+                    table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+
+                const handleFilterClick = (node) => {
+                    const filter = node.getAttribute('data-branch-filter');
+                    if (!filter) {
+                        return;
+                    }
+
+                    if (filter === 'all') {
+                        clearFilters();
+                        dt.draw();
+                        scrollToTable();
+                        return;
+                    }
+
+                    if (filter === 'head_office') {
+                        applyHeadOfficeFilter(true);
+                        dt.draw();
+                        scrollToTable();
+                        return;
+                    }
+
+                    if (filter === 'regular') {
+                        applyHeadOfficeFilter(false);
+                        dt.draw();
+                        scrollToTable();
+                    }
+                };
+
+                document.addEventListener('click', (event) => {
+                    const target = event.target.closest('[data-branch-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    handleFilterClick(target);
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                    }
+                    const target = event.target.closest('[data-branch-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    event.preventDefault();
+                    handleFilterClick(target);
+                });
+            });
         </script>
     @endpush
 </x-admin-layout>
