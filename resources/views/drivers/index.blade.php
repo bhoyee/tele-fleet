@@ -73,6 +73,7 @@
                                 <td>{{ $driver->license_expiry?->format('M d, Y') ?? 'N/A' }}</td>
                                 <td>{{ $driver->phone }}</td>
                                 <td>
+                                    <span class="visually-hidden">{{ $driver->status }}</span>
                                     <span class="badge bg-{{ \App\Models\Driver::statusBadgeClass($driver->status) }}">
                                         {{ \App\Models\Driver::statusLabel($driver->status) }}
                                     </span>
@@ -430,7 +431,8 @@
                         // Filter by status code (stable across server-rendered and realtime rows).
                         const statusToken = String(activeDriverFilter.status || '').trim();
                         if (statusToken) {
-                            dt.column(4).search('^\\s*' + statusToken + '\\s*$', true, false, true);
+                            // Status cells contain both a hidden code and a human label; match the code token anywhere in the cell text.
+                            dt.column(4).search('\\b' + statusToken + '\\b', true, false, true);
                         }
                     }
 
