@@ -18,7 +18,7 @@
 
     <div class="row g-3 mb-4" id="vehicleStatsCards">
         <div class="col-6 col-lg-3">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-vehicle-filter" role="button" tabindex="0" data-vehicle-filter="all" data-tele-tooltip title="Show all vehicles">
                 <div class="card-body">
                     <div class="stat-label">Total Vehicles</div>
                     <div class="stat-value" data-vehicle-stat="total">{{ $vehicleStats['total'] ?? 0 }}</div>
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-vehicle-filter" role="button" tabindex="0" data-vehicle-filter="status" data-vehicle-status="available" data-tele-tooltip title="Filter available vehicles">
                 <div class="card-body">
                     <div class="stat-label">Available</div>
                     <div class="stat-value" data-vehicle-stat="available">{{ $vehicleStats['available'] ?? 0 }}</div>
@@ -34,7 +34,7 @@
             </div>
         </div>
         <div class="col-6 col-lg-2">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-vehicle-filter" role="button" tabindex="0" data-vehicle-filter="status" data-vehicle-status="in_use" data-tele-tooltip title="Filter vehicles in use">
                 <div class="card-body">
                     <div class="stat-label">In Use</div>
                     <div class="stat-value" data-vehicle-stat="in_use">{{ $vehicleStats['in_use'] ?? 0 }}</div>
@@ -42,7 +42,7 @@
             </div>
         </div>
         <div class="col-6 col-lg-2">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-vehicle-filter" role="button" tabindex="0" data-vehicle-filter="status" data-vehicle-status="offline" data-tele-tooltip title="Filter offline vehicles">
                 <div class="card-body">
                     <div class="stat-label">Offline</div>
                     <div class="stat-value" data-vehicle-stat="offline">{{ $vehicleStats['offline'] ?? 0 }}</div>
@@ -50,7 +50,7 @@
             </div>
         </div>
         <div class="col-6 col-lg-2">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-vehicle-filter" role="button" tabindex="0" data-vehicle-filter="status" data-vehicle-status="maintenance" data-tele-tooltip title="Filter vehicles on maintenance">
                 <div class="card-body">
                     <div class="stat-label">Maintenance</div>
                     <div class="stat-value" data-vehicle-stat="maintenance">{{ $vehicleStats['maintenance'] ?? 0 }}</div>
@@ -407,6 +407,31 @@
                     }
                 };
 
+                let activeVehicleFilter = { type: 'all', status: null };
+
+                const applyVehicleFilter = () => {
+                    if (!window.jQuery?.fn?.dataTable) {
+                        return;
+                    }
+                    if (!window.jQuery.fn.dataTable.isDataTable(table)) {
+                        return;
+                    }
+
+                    const dt = window.jQuery(table).DataTable();
+                    dt.search('');
+                    dt.columns().search('');
+
+                    if (activeVehicleFilter.type === 'status' && activeVehicleFilter.status) {
+                        const statusToken = String(activeVehicleFilter.status || '').replaceAll('_', ' ').trim();
+                        if (statusToken) {
+                            // Status cells can also include the "Due/Overdue" badges; match the leading status.
+                            dt.column(3).search('^\\s*' + statusToken + '\\b', true, false, true);
+                        }
+                    }
+
+                    dt.draw();
+                };
+
                 const updateVehicleStats = (rows) => {
                     const stats = {
                         total: 0,
@@ -517,6 +542,8 @@
                             bootstrap.Tooltip.getOrCreateInstance(el);
                         });
                     }
+
+                    applyVehicleFilter();
                 };
 
                 const refreshTable = async () => {
@@ -570,6 +597,51 @@
 
                 subscribeVehiclesChannel();
                 startPollingFallback();
+
+                const scrollToTable = () => {
+                    table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+
+                const handleFilterClick = (node) => {
+                    const type = node.getAttribute('data-vehicle-filter');
+                    if (!type) {
+                        return;
+                    }
+
+                    if (type === 'all') {
+                        activeVehicleFilter = { type: 'all', status: null };
+                    } else if (type === 'status') {
+                        activeVehicleFilter = { type: 'status', status: node.getAttribute('data-vehicle-status') };
+                    } else {
+                        return;
+                    }
+
+                    // Apply to the current table state (initial server-rendered DataTable or after refresh).
+                    setTimeout(() => {
+                        applyVehicleFilter();
+                        scrollToTable();
+                    }, 0);
+                };
+
+                document.addEventListener('click', (event) => {
+                    const target = event.target.closest('[data-vehicle-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    handleFilterClick(target);
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                    }
+                    const target = event.target.closest('[data-vehicle-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    event.preventDefault();
+                    handleFilterClick(target);
+                });
             });
         </script>
     @endpush
