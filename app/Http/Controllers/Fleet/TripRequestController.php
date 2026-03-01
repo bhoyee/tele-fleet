@@ -737,6 +737,15 @@ class TripRequestController extends Controller
         $this->authorizeTripMutation(request()->user(), $tripRequest);
         $tripRequest->load(['assignedDriver', 'log']);
 
+        if (! $tripRequest->hasStarted()) {
+            $startAt = $tripRequest->tripStartAt();
+            $startLabel = $startAt ? $startAt->format('M d, Y g:i A') : 'the scheduled start time';
+
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', "Logbook entry is locked until the trip starts ({$startLabel}).");
+        }
+
         return view('trips.logbook', compact('tripRequest'));
     }
 
@@ -911,6 +920,15 @@ class TripRequestController extends Controller
         $this->authorizeTripMutation(request()->user(), $tripRequest);
         $tripRequest->load(['assignedDriver', 'log']);
 
+        if (! $tripRequest->hasStarted()) {
+            $startAt = $tripRequest->tripStartAt();
+            $startLabel = $startAt ? $startAt->format('M d, Y g:i A') : 'the scheduled start time';
+
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', "Logbook access is locked until the trip starts ({$startLabel}).");
+        }
+
         if (! $tripRequest->log) {
             return redirect()
                 ->route('trips.logbook', $tripRequest)
@@ -934,6 +952,15 @@ class TripRequestController extends Controller
     {
         $this->authorizeTripMutation($request->user(), $tripRequest);
         $tripRequest->load(['log']);
+
+        if (! $tripRequest->hasStarted()) {
+            $startAt = $tripRequest->tripStartAt();
+            $startLabel = $startAt ? $startAt->format('M d, Y g:i A') : 'the scheduled start time';
+
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', "Logbook updates are locked until the trip starts ({$startLabel}).");
+        }
 
         if (! $tripRequest->log) {
             return redirect()
@@ -1221,6 +1248,16 @@ class TripRequestController extends Controller
     {
         $this->authorizeTripMutation($request->user(), $tripRequest);
         $tripRequest->loadMissing('log');
+
+        if (! $tripRequest->hasStarted()) {
+            $startAt = $tripRequest->tripStartAt();
+            $startLabel = $startAt ? $startAt->format('M d, Y g:i A') : 'the scheduled start time';
+
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', "Logbook entry is locked until the trip starts ({$startLabel}).");
+        }
+
         if ($tripRequest->log) {
             return redirect()
                 ->route('trips.logbook.edit', $tripRequest)

@@ -379,7 +379,18 @@
                     @endif
 
                     @if ($tripRequest->status === 'assigned' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
-                        <a href="{{ route('trips.logbook', $tripRequest) }}" class="btn btn-dark w-100" data-loading>Enter Logbook</a>
+                        @php
+                            $tripStartAt = $tripRequest->tripStartAt();
+                            $tripHasStarted = $tripRequest->hasStarted();
+                            $startLabel = $tripStartAt ? $tripStartAt->format('M d, Y g:i A') : 'the scheduled start time';
+                        @endphp
+                        <a href="{{ route('trips.logbook', $tripRequest) }}"
+                           class="btn btn-dark w-100"
+                           @if (! $tripHasStarted) data-logbook-locked="1" data-logbook-start="{{ $startLabel }}" @endif
+                           data-tele-tooltip
+                           title="{{ $tripHasStarted ? 'Enter logbook' : 'Locked until ' . $startLabel }}">
+                            Enter Logbook
+                        </a>
                     @endif
 
                     @if ($tripRequest->status === 'completed' && in_array(auth()->user()->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
@@ -654,6 +665,16 @@
                     document.getElementById('modal-to-driver').textContent = details.to_driver || '—';
                 });
             }
+
+            document.addEventListener('click', (event) => {
+                const target = event.target.closest('[data-logbook-locked]');
+                if (!target) {
+                    return;
+                }
+                event.preventDefault();
+                const startAt = target.getAttribute('data-logbook-start') || 'the trip start time';
+                window.teleShowToast?.('Logbook locked', `You can enter the logbook once the trip starts (${startAt}).`, 'warning');
+            });
 
             // Realtime trip status refresh (handles cases where another user cancels/updates the trip
             // while a fleet manager is viewing this page).

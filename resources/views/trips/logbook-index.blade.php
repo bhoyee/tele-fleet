@@ -141,7 +141,16 @@
                                                 </a>
                                             @endif
                                         @else
-                                            <a href="{{ route('trips.logbook', $trip) }}" class="btn btn-sm btn-dark" data-loading data-tele-tooltip title="Enter logbook">
+                                            @php
+                                                $tripStartAt = $trip->tripStartAt();
+                                                $tripHasStarted = $trip->hasStarted();
+                                                $startLabel = $tripStartAt ? $tripStartAt->format('M d, Y g:i A') : 'the scheduled start time';
+                                            @endphp
+                                            <a href="{{ route('trips.logbook', $trip) }}"
+                                               class="btn btn-sm btn-dark"
+                                               @if (! $tripHasStarted) data-logbook-locked="1" data-logbook-start="{{ $startLabel }}" @endif
+                                               data-tele-tooltip
+                                               title="{{ $tripHasStarted ? 'Enter logbook' : 'Locked until ' . $startLabel }}">
                                                 <i class="bi bi-journal-plus"></i>
                                             </a>
                                         @endif
@@ -217,6 +226,16 @@
                         return;
                     }
                     handleClick(target);
+                });
+
+                document.addEventListener('click', (event) => {
+                    const target = event.target.closest('[data-logbook-locked]');
+                    if (!target) {
+                        return;
+                    }
+                    event.preventDefault();
+                    const startAt = target.getAttribute('data-logbook-start') || 'the trip start time';
+                    window.teleShowToast?.('Logbook locked', `You can enter the logbook once the trip starts (${startAt}).`, 'warning');
                 });
 
                 document.addEventListener('keydown', (event) => {

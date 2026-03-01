@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -209,5 +210,32 @@ class TripRequest extends Model
         }
 
         return null;
+    }
+
+    public function tripStartAt(): ?Carbon
+    {
+        if (! $this->trip_date) {
+            return null;
+        }
+
+        $tripTime = $this->trip_time ? (string) $this->trip_time : '00:00';
+
+        try {
+            return Carbon::createFromFormat('Y-m-d H:i', $this->trip_date->format('Y-m-d').' '.$tripTime);
+        } catch (\Throwable) {
+            return Carbon::parse($this->trip_date->format('Y-m-d').' '.$tripTime);
+        }
+    }
+
+    public function hasStarted(?Carbon $now = null): bool
+    {
+        $startAt = $this->tripStartAt();
+        if (! $startAt) {
+            return true;
+        }
+
+        $now = $now ?? Carbon::now();
+
+        return $now->greaterThanOrEqualTo($startAt);
     }
 }
