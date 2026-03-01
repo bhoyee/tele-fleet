@@ -271,6 +271,7 @@
                                     @endif
                                 </td>
                                 <td data-label="Trip Date">
+                                    <span class="visually-hidden">{{ $trip->trip_date?->format('Y-m-d') }}</span>
                                     <div>{{ $trip->trip_date?->format('M d, Y') }}</div>
                                     @php
                                         $tripTime = $trip->trip_time;
@@ -622,6 +623,7 @@
                 const currentUser = @json($currentUserData);
                 const showArchived = @json($showArchived ?? false);
                 const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
+                const currentMonth = @json(now()->format('Y-m'));
                 const dataUrl = "{{ route('trips.data') }}" + (showArchived ? "?archived=1" : "");
                 const editUrlTemplate = "{{ route('trips.edit', ['tripRequest' => '__ID__']) }}";
                 const showUrlTemplate = "{{ route('trips.show', ['tripRequest' => '__ID__']) }}";
@@ -697,7 +699,7 @@
 
                 const escapeRegex = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-                let activeTripFilter = { type: 'all', statuses: [] };
+                let activeTripFilter = { type: 'none', month: null, statuses: [] };
 
                 const applyTripFilter = () => {
                     if (!window.jQuery?.fn?.dataTable) {
@@ -710,6 +712,13 @@
                     const dt = window.jQuery(table).DataTable();
                     dt.search('');
                     dt.columns().search('');
+
+                    if (activeTripFilter.month) {
+                        const monthToken = String(activeTripFilter.month || '').trim();
+                        if (monthToken) {
+                            dt.column(3).search(escapeRegex(monthToken) + '-\\d{2}', true, false, true);
+                        }
+                    }
 
                     if (activeTripFilter.type === 'status' && Array.isArray(activeTripFilter.statuses) && activeTripFilter.statuses.length > 0) {
                         const tokens = activeTripFilter.statuses
@@ -843,6 +852,7 @@
                                 <td data-label="Request #">${escapeHtml(trip.request_number)}</td>
                                 <td data-label="Purpose">${purposeHtml}</td>
                                 <td data-label="Trip Date">
+                                    <span class="visually-hidden">${escapeHtml(trip.trip_date_raw || '')}</span>
                                     <div>${escapeHtml(trip.trip_date)}</div>
                                     <small class="text-muted">${escapeHtml(trip.trip_time)}</small>
                                 </td>
@@ -1010,7 +1020,7 @@
                     }
 
                     if (type === 'all') {
-                        activeTripFilter = { type: 'all', statuses: [] };
+                        activeTripFilter = { type: 'all', month: currentMonth, statuses: [] };
                         applyTripFilter();
                         scrollToTable();
                         return;
@@ -1018,7 +1028,7 @@
 
                     if (type === 'status') {
                         const statuses = parseTripStatuses(node.getAttribute('data-trip-statuses') || node.getAttribute('data-trip-status'));
-                        activeTripFilter = { type: 'status', statuses };
+                        activeTripFilter = { type: 'status', month: currentMonth, statuses };
                         applyTripFilter();
                         scrollToTable();
                     }
