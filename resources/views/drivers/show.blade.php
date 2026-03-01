@@ -25,6 +25,10 @@
                     <div class="text-muted small">Phone</div>
                     <div class="fw-semibold">{{ $driver->phone ?? 'N/A' }}</div>
                 </div>
+                <div class="col-md-8">
+                    <div class="text-muted small">Address</div>
+                    <div class="fw-semibold">{{ $driver->address ? \App\Support\TextNormalizer::titleText($driver->address) : 'N/A' }}</div>
+                </div>
                 <div class="col-md-4">
                     <div class="text-muted small">License Expiry</div>
                     <div class="fw-semibold">{{ $driver->license_expiry?->format('M d, Y') ?? 'N/A' }}</div>
