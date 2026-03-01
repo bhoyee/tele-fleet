@@ -756,7 +756,22 @@ class TripRequestController extends Controller
 
         $trips = $query->get();
 
-        return view('trips.logbook-index', compact('trips'));
+        $now = Carbon::now();
+        $monthStart = $now->copy()->startOfMonth();
+        $monthEnd = $now->copy()->endOfMonth();
+
+        $monthlyQuery = (clone $query)->whereBetween('trip_date', [$monthStart, $monthEnd]);
+        $completedLogbooks = (clone $monthlyQuery)->whereHas('log')->count();
+        $pendingLogbooks = (clone $monthlyQuery)->whereDoesntHave('log')->count();
+
+        $stats = [
+            'range_label' => $monthStart->format('M Y'),
+            'completed' => $completedLogbooks,
+            'pending' => $pendingLogbooks,
+            'total' => $completedLogbooks + $pendingLogbooks,
+        ];
+
+        return view('trips.logbook-index', compact('trips', 'stats'));
     }
 
     public function manageLogbooks(Request $request): View
