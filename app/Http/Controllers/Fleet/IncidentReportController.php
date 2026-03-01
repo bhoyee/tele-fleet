@@ -55,6 +55,7 @@ class IncidentReportController extends Controller
                 'severity' => $incident->severity,
                 'status' => $incident->status,
                 'incident_date' => $incident->incident_date?->format('M d, Y') ?? '',
+                'incident_date_raw' => $incident->incident_date?->format('Y-m-d') ?? null,
                 'branch_id' => $incident->branch_id,
                 'reported_by_user_id' => $incident->reported_by_user_id,
                 'is_archived' => $incident->trashed(),

@@ -18,11 +18,21 @@ class StoreUserRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $name = TextNormalizer::personName($this->input('name'));
-        $phone = TextNormalizer::phoneE164($this->input('phone'));
+        $rawPhone = $this->input('phone');
+        $rawPhoneText = is_string($rawPhone) ? $rawPhone : '';
+        $rawPhoneTrimmed = trim($rawPhoneText);
+
+        if ($rawPhoneTrimmed === '') {
+            $phone = null;
+        } elseif (preg_match('/[A-Za-z]/', $rawPhoneText) === 1) {
+            $phone = '__invalid__';
+        } else {
+            $phone = preg_replace('/\D+/', '', $rawPhoneText) ?? '';
+        }
 
         $this->merge([
             'name' => $name,
-            'phone' => is_string($phone) && trim($phone) === '' ? null : $phone,
+            'phone' => $phone,
         ]);
     }
 
@@ -31,7 +41,7 @@ class StoreUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255', 'regex:/^\\p{L}+(?:[\\s\'-]\\p{L}+)*$/u'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'regex:/^\\+[1-9]\\d{7,14}$/'],
+            'phone' => ['nullable', 'string', 'regex:/^\\d{10,15}$/'],
             'role' => ['required', Rule::in([
                 User::ROLE_SUPER_ADMIN,
                 User::ROLE_FLEET_MANAGER,
@@ -41,6 +51,14 @@ class StoreUserRequest extends FormRequest
             'branch_id' => ['nullable', 'exists:branches,id'],
             'status' => ['required', Rule::in([User::STATUS_ACTIVE, User::STATUS_INACTIVE])],
             'password' => ['nullable', 'confirmed', Password::defaults()],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'name.regex' => 'Name must contain only letters and spaces (e.g. "Ade Boye" or "O\'Connor").',
+            'phone.regex' => 'Phone number must contain only digits (10–15 digits). Example: 08065428869.',
         ];
     }
 }

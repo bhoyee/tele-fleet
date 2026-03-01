@@ -159,6 +159,7 @@ class DashboardController extends Controller
         $incidentReview = null;
         $incidentResolved = null;
         $maintenanceDue = null;
+        $maintenanceOverdue = null;
         $maintenanceInProgress = null;
         $todayActiveTrips = null;
         $futureTrips = null;
@@ -212,28 +213,20 @@ class DashboardController extends Controller
                 ->where(function ($query): void {
                     $query->whereNull('is_completed')->orWhere('is_completed', false);
                 })
-                ->where(function ($query) use ($now): void {
-                    $query->whereNull('trip_time')
-                        ->orWhere('trip_time', '<=', $now->format('H:i'));
-                })
                 ->distinct('assigned_driver_id')
                 ->count('assigned_driver_id');
 
-            $totalDriversRegistered = Driver::where('status', '!=', 'suspended')->count();
+            // "Drivers On Duty" should exclude drivers that are not actually available for trips:
+            // - inactive => Assigned to Officer
+            // - suspended => On Leave
+            $totalDriversRegistered = Driver::where('status', 'active')->count();
             $driversUnavailableToday = TripRequest::whereIn('status', ['approved', 'assigned'])
                 ->whereNotNull('assigned_driver_id')
                 ->where(function ($query): void {
                     $query->whereNull('is_completed')->orWhere('is_completed', false);
                 })
                 ->where(function ($query) use ($now): void {
-                    $query->whereDate('trip_date', '<', $now->toDateString())
-                        ->orWhere(function ($sub) use ($now): void {
-                            $sub->whereDate('trip_date', $now->toDateString())
-                                ->where(function ($timeQuery) use ($now): void {
-                                    $timeQuery->whereNull('trip_time')
-                                        ->orWhere('trip_time', '<=', $now->format('H:i'));
-                                });
-                        });
+                    $query->whereDate('trip_date', '<=', $now->toDateString());
                 })
                 ->distinct('assigned_driver_id')
                 ->count('assigned_driver_id');
@@ -294,7 +287,8 @@ class DashboardController extends Controller
             $incidentReview = IncidentReport::where('status', IncidentReport::STATUS_REVIEW)->count();
             $incidentResolved = IncidentReport::where('status', IncidentReport::STATUS_RESOLVED)->count();
 
-            $maintenanceDue = Vehicle::whereIn('maintenance_state', ['due', 'overdue'])->count();
+            $maintenanceDue = Vehicle::where('maintenance_state', 'due')->count();
+            $maintenanceOverdue = Vehicle::where('maintenance_state', 'overdue')->count();
             $maintenanceInProgress = Vehicle::where('status', 'maintenance')->count();
 
             $todayActiveTrips = TripRequest::whereDate('trip_date', Carbon::today())
@@ -368,6 +362,7 @@ class DashboardController extends Controller
             'incidentReview' => $incidentReview,
             'incidentResolved' => $incidentResolved,
             'maintenanceDue' => $maintenanceDue,
+            'maintenanceOverdue' => $maintenanceOverdue,
             'maintenanceInProgress' => $maintenanceInProgress,
             'todayActiveTrips' => $todayActiveTrips,
             'futureTrips' => $futureTrips,

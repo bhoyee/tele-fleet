@@ -313,6 +313,7 @@ class MaintenanceController extends Controller
                     'vehicle_make' => $maintenance->vehicle?->make ?? '',
                     'vehicle_model' => $maintenance->vehicle?->model ?? '',
                     'scheduled_for' => $maintenance->scheduled_for?->format('M d, Y') ?? 'N/A',
+                    'scheduled_for_raw' => $maintenance->scheduled_for?->format('Y-m-d') ?? null,
                     'status' => $status,
                     'status_label' => ucfirst(str_replace('_', ' ', $status)),
                     'description' => $maintenance->description,

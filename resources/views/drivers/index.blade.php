@@ -18,7 +18,7 @@
 
     <div class="row g-3 mb-4" id="driverStatsCards">
         <div class="col-6 col-lg-3">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-driver-filter" role="button" tabindex="0" data-driver-filter="all" data-tele-tooltip title="Show all drivers">
                 <div class="card-body">
                     <div class="stat-label">Total Drivers</div>
                     <div class="stat-value" data-driver-stat="total">{{ $driverStats['total'] ?? 0 }}</div>
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-driver-filter" role="button" tabindex="0" data-driver-filter="status" data-driver-status="active" data-tele-tooltip title="Filter active drivers">
                 <div class="card-body">
                     <div class="stat-label">Active</div>
                     <div class="stat-value" data-driver-stat="active">{{ $driverStats['active'] ?? 0 }}</div>
@@ -34,7 +34,7 @@
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-driver-filter" role="button" tabindex="0" data-driver-filter="status" data-driver-status="inactive" data-tele-tooltip title="Filter drivers assigned to officer">
                 <div class="card-body">
                     <div class="stat-label">Assigned to Officer</div>
                     <div class="stat-value" data-driver-stat="inactive">{{ $driverStats['inactive'] ?? 0 }}</div>
@@ -42,7 +42,7 @@
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-driver-filter" role="button" tabindex="0" data-driver-filter="status" data-driver-status="suspended" data-tele-tooltip title="Filter drivers on leave">
                 <div class="card-body">
                     <div class="stat-label">On Leave</div>
                     <div class="stat-value" data-driver-stat="suspended">{{ $driverStats['suspended'] ?? 0 }}</div>
@@ -73,6 +73,24 @@
                                 <td>{{ $driver->license_expiry?->format('M d, Y') ?? 'N/A' }}</td>
                                 <td>{{ $driver->phone }}</td>
                                 <td>
+                                    <span class="visually-hidden">{{ $driver->status }}</span>
+                                    @php
+                                        $driverId = (int) $driver->id;
+                                        $driverStatus = strtolower((string) ($driver->status ?? ''));
+                                        $driverRegistered = $driverStatus === 'active';
+                                        $driverAssignedToday = in_array($driverId, $assignedTodayDriverIds ?? [], true);
+                                        $driverUnavailable = in_array($driverId, $unavailableDriverIds ?? [], true);
+                                        $driverUnassignedToday = $driverRegistered && ! $driverUnavailable;
+                                    @endphp
+                                    @if ($driverAssignedToday)
+                                        <span class="visually-hidden">duty_assigned_today</span>
+                                    @endif
+                                    @if ($driverUnassignedToday)
+                                        <span class="visually-hidden">duty_unassigned_today</span>
+                                    @endif
+                                    @if ($driverRegistered)
+                                        <span class="visually-hidden">duty_registered</span>
+                                    @endif
                                     <span class="badge bg-{{ \App\Models\Driver::statusBadgeClass($driver->status) }}">
                                         {{ \App\Models\Driver::statusLabel($driver->status) }}
                                     </span>
@@ -392,9 +410,57 @@
                             return 'bg-success';
                         case 'inactive':
                             return 'bg-secondary';
+                        case 'suspended':
+                            return 'bg-warning text-dark';
                         default:
-                            return 'bg-warning';
+                            return 'bg-secondary';
                     }
+                };
+
+                const statusLabel = (status) => {
+                    switch ((status || '').toLowerCase()) {
+                        case 'active':
+                            return 'Active';
+                        case 'inactive':
+                            return 'Assigned to Officer';
+                        case 'suspended':
+                            return 'On Leave';
+                        default:
+                            return 'Unknown';
+                    }
+                };
+
+                let activeDriverFilter = { type: 'all', status: null, duty: null };
+
+                const applyDriverFilter = () => {
+                    if (!window.jQuery?.fn?.dataTable) {
+                        return;
+                    }
+                    if (!window.jQuery.fn.dataTable.isDataTable(table)) {
+                        return;
+                    }
+
+                    const dt = window.jQuery(table).DataTable();
+                    dt.search('');
+                    dt.columns().search('');
+
+                    if (activeDriverFilter.type === 'status' && activeDriverFilter.status) {
+                        // Filter by status code (stable across server-rendered and realtime rows).
+                        const statusToken = String(activeDriverFilter.status || '').trim();
+                        if (statusToken) {
+                            // Status cells contain both a hidden code and a human label; match the code token anywhere in the cell text.
+                            dt.column(4).search('\\b' + statusToken + '\\b', true, false, true);
+                        }
+                    }
+
+                    if (activeDriverFilter.type === 'duty' && activeDriverFilter.duty) {
+                        const dutyToken = String(activeDriverFilter.duty || '').trim();
+                        if (dutyToken) {
+                            dt.column(4).search('\\b' + dutyToken + '\\b', true, false, true);
+                        }
+                    }
+
+                    dt.draw();
                 };
 
                 const updateDriverStats = (rows) => {
@@ -429,6 +495,10 @@
                     updateDriverStats(rows);
 
                     tbody.innerHTML = rows.map((driver) => {
+                        const dutyAssigned = Boolean(driver.duty_assigned_today);
+                        const dutyRegistered = Boolean(driver.duty_registered);
+                        const dutyUnassigned = Boolean(driver.duty_unassigned_today);
+
                         const archivedActions = `
                             <a href="${showUrlTemplate.replace('__ID__', driver.public_id)}" class="btn btn-sm btn-outline-primary" data-tele-tooltip title="View">
                                 <i class="bi bi-eye"></i>
@@ -477,7 +547,11 @@
                                 <td>${escapeHtml(driver.license_expiry)}</td>
                                 <td>${escapeHtml(driver.phone)}</td>
                                 <td>
-                                    <span class="badge ${statusBadge(driver.status)}">${escapeHtml(driver.status)}</span>
+                                    <span class="visually-hidden">${escapeHtml(driver.status)}</span>
+                                    ${dutyAssigned ? '<span class="visually-hidden">duty_assigned_today</span>' : ''}
+                                    ${dutyUnassigned ? '<span class="visually-hidden">duty_unassigned_today</span>' : ''}
+                                    ${dutyRegistered ? '<span class="visually-hidden">duty_registered</span>' : ''}
+                                    <span class="badge ${statusBadge(driver.status)}">${escapeHtml(statusLabel(driver.status))}</span>
                                 </td>
                                 <td class="text-end">
                                     ${showArchived ? archivedActions : activeActions}
@@ -502,6 +576,8 @@
                             bootstrap.Tooltip.getOrCreateInstance(el);
                         });
                     }
+
+                    applyDriverFilter();
                 };
 
                 const refreshTable = async () => {
@@ -555,6 +631,88 @@
 
                 subscribeDriversChannel();
                 startPollingFallback();
+
+                const scrollToTable = () => {
+                    table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+
+                const applyDutyParamFilter = () => {
+                    if (showArchived) {
+                        return;
+                    }
+
+                    const params = new URLSearchParams(window.location.search);
+                    const duty = String(params.get('duty') || '').trim().toLowerCase();
+                    const dutyMap = {
+                        'assigned_today': 'duty_assigned_today',
+                        'unassigned_today': 'duty_unassigned_today',
+                        'registered': 'duty_registered',
+                    };
+
+                    const dutyToken = dutyMap[duty];
+                    if (!dutyToken) {
+                        return;
+                    }
+
+                    activeDriverFilter = { type: 'duty', status: null, duty: dutyToken };
+
+                    let attempts = 0;
+                    const MAX_ATTEMPTS = 20;
+                    const tick = () => {
+                        attempts += 1;
+                        if (window.jQuery?.fn?.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
+                            applyDriverFilter();
+                            scrollToTable();
+                            return;
+                        }
+                        if (attempts < MAX_ATTEMPTS) {
+                            setTimeout(tick, 150);
+                        }
+                    };
+                    tick();
+                };
+
+                applyDutyParamFilter();
+
+                const handleFilterClick = (node) => {
+                    const type = node.getAttribute('data-driver-filter');
+                    if (!type) {
+                        return;
+                    }
+
+                    if (type === 'all') {
+                        activeDriverFilter = { type: 'all', status: null, duty: null };
+                    } else if (type === 'status') {
+                        activeDriverFilter = { type: 'status', status: node.getAttribute('data-driver-status'), duty: null };
+                    } else {
+                        return;
+                    }
+
+                    setTimeout(() => {
+                        applyDriverFilter();
+                        scrollToTable();
+                    }, 0);
+                };
+
+                document.addEventListener('click', (event) => {
+                    const target = event.target.closest('[data-driver-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    handleFilterClick(target);
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                    }
+                    const target = event.target.closest('[data-driver-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    event.preventDefault();
+                    handleFilterClick(target);
+                });
             });
         </script>
     @endpush

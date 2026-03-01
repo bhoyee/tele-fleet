@@ -7,6 +7,7 @@
     <div class="col-md-6">
         <label class="form-label" for="name">Name</label>
         <input class="form-control" id="name" name="name" value="{{ old('name', $user?->name ?? '') }}" required>
+        <div class="invalid-feedback" id="nameInvalidFeedback">Name must contain only letters and spaces (e.g. "Ade Boye").</div>
         @error('name') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
@@ -16,7 +17,8 @@
     </div>
     <div class="col-md-6">
         <label class="form-label" for="phone">Phone</label>
-        <input class="form-control" id="phone" name="phone" value="{{ old('phone', $user?->phone ?? '') }}">
+        <input class="form-control" id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="08065428869"
+               value="{{ old('phone', $user?->phone ?? '') }}">
         @error('phone') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
@@ -59,3 +61,66 @@
         <input class="form-control" id="password_confirmation" name="password_confirmation" type="password">
     </div>
 </div>
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('phone');
+            if (!input) {
+                return;
+            }
+
+            input.addEventListener('input', () => {
+                input.value = String(input.value || '').replace(/\D+/g, '');
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const nameInput = document.getElementById('name');
+            const feedback = document.getElementById('nameInvalidFeedback');
+            if (!nameInput) {
+                return;
+            }
+
+            // Allow: letters (any language), spaces, apostrophes, hyphens.
+            const isValidName = (value) => {
+                const trimmed = String(value || '').trim();
+                if (!trimmed) {
+                    return false;
+                }
+                return /^\p{L}+(?:[\s'-]\p{L}+)*$/u.test(trimmed);
+            };
+
+            const setInvalid = (message) => {
+                nameInput.classList.add('is-invalid');
+                nameInput.setCustomValidity(message || 'Invalid name.');
+                if (feedback) {
+                    feedback.textContent = message || feedback.textContent;
+                }
+            };
+
+            const setValid = () => {
+                nameInput.classList.remove('is-invalid');
+                nameInput.setCustomValidity('');
+            };
+
+            const validateNow = () => {
+                const value = nameInput.value;
+                if (value.trim() === '') {
+                    // Let required validation handle empty on submit; keep it clean while typing.
+                    setValid();
+                    return;
+                }
+                if (isValidName(value)) {
+                    setValid();
+                } else {
+                    setInvalid('Only letters, spaces, apostrophes, and hyphens are allowed.');
+                }
+            };
+
+            nameInput.addEventListener('blur', validateNow);
+            nameInput.addEventListener('input', validateNow);
+        });
+    </script>
+@endpush

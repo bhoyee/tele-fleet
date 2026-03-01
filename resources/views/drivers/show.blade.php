@@ -25,6 +25,12 @@
                     <div class="text-muted small">Phone</div>
                     <div class="fw-semibold">{{ $driver->phone ?? 'N/A' }}</div>
                 </div>
+                @if (!empty($driver->email))
+                    <div class="col-md-4">
+                        <div class="text-muted small">Email</div>
+                        <div class="fw-semibold">{{ $driver->email }}</div>
+                    </div>
+                @endif
                 <div class="col-md-8">
                     <div class="text-muted small">Address</div>
                     <div class="fw-semibold">{{ $driver->address ? \App\Support\TextNormalizer::titleText($driver->address) : 'N/A' }}</div>

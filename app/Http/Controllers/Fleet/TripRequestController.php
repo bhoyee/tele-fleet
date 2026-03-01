@@ -38,6 +38,30 @@ use Throwable;
 
 class TripRequestController extends Controller
 {
+    private function applyCreatedFilter(Request $request, $query): void
+    {
+        $created = strtolower(trim((string) $request->query('created', '')));
+        if ($created === '') {
+            return;
+        }
+
+        $now = Carbon::now();
+
+        if ($created === 'today') {
+            $query->whereDate('created_at', $now->toDateString());
+            return;
+        }
+
+        if ($created === 'week') {
+            $query->whereBetween('created_at', [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()]);
+            return;
+        }
+
+        if ($created === 'month') {
+            $query->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()]);
+        }
+    }
+
     private function tripStartForAssignment(TripRequest $tripRequest): ?Carbon
     {
         if (! $tripRequest->trip_date) {
@@ -87,12 +111,16 @@ class TripRequestController extends Controller
             $query->where('branch_id', $user->branch_id);
         }
 
+        $this->applyCreatedFilter($request, $query);
+        // Note: due/overdue filter is handled in view via client-side tokens to keep this endpoint lightweight.
+
         $trips = $query->get();
 
         $analytics = null;
         $historyTrips = collect();
         if (in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
             $now = Carbon::now();
+            $today = $now->toDateString();
             $monthStart = $now->copy()->startOfMonth();
             $monthEnd = $now->copy()->endOfMonth();
 
@@ -105,6 +133,9 @@ class TripRequestController extends Controller
             $completedTrips = (clone $monthlyQuery)->where('status', 'completed')->count();
             $rejectedTrips = (clone $monthlyQuery)->where('status', 'rejected')->count();
             $cancelledTrips = (clone $monthlyQuery)->where('status', 'cancelled')->count();
+            $allFutureTrips = TripRequest::whereDate('trip_date', '>', $today)
+                ->whereNotIn('status', ['completed', 'cancelled', 'rejected'])
+                ->count();
 
             $approvalRate = $totalTrips > 0 ? round(($approvedTrips / $totalTrips) * 100, 1) : 0;
             $completionRate = $totalTrips > 0 ? round(($completedTrips / $totalTrips) * 100, 1) : 0;
@@ -112,6 +143,7 @@ class TripRequestController extends Controller
             $analytics = [
                 'total' => $totalTrips,
                 'all_time' => $allTimeTrips,
+                'all_future' => $allFutureTrips,
                 'pending' => $pendingTrips,
                 'approved' => $approvedTrips,
                 'assigned' => $assignedTrips,
@@ -147,6 +179,8 @@ class TripRequestController extends Controller
         } elseif ($user->role === User::ROLE_BRANCH_HEAD) {
             $query->where('branch_id', $user->branch_id);
         }
+
+        $this->applyCreatedFilter($request, $query);
 
         $trips = $query->get();
 
@@ -737,6 +771,15 @@ class TripRequestController extends Controller
         $this->authorizeTripMutation(request()->user(), $tripRequest);
         $tripRequest->load(['assignedDriver', 'log']);
 
+        if (! $tripRequest->hasStarted()) {
+            $startAt = $tripRequest->tripStartAt();
+            $startLabel = $startAt ? $startAt->format('M d, Y g:i A') : 'the scheduled start time';
+
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', "Logbook entry is locked until the trip starts ({$startLabel}).");
+        }
+
         return view('trips.logbook', compact('tripRequest'));
     }
 
@@ -756,7 +799,22 @@ class TripRequestController extends Controller
 
         $trips = $query->get();
 
-        return view('trips.logbook-index', compact('trips'));
+        $now = Carbon::now();
+        $monthStart = $now->copy()->startOfMonth();
+        $monthEnd = $now->copy()->endOfMonth();
+
+        $monthlyQuery = (clone $query)->whereBetween('trip_date', [$monthStart, $monthEnd]);
+        $completedLogbooks = (clone $monthlyQuery)->whereHas('log')->count();
+        $pendingLogbooks = (clone $monthlyQuery)->whereDoesntHave('log')->count();
+
+        $stats = [
+            'range_label' => $monthStart->format('M Y'),
+            'completed' => $completedLogbooks,
+            'pending' => $pendingLogbooks,
+            'total' => $completedLogbooks + $pendingLogbooks,
+        ];
+
+        return view('trips.logbook-index', compact('trips', 'stats'));
     }
 
     public function manageLogbooks(Request $request): View
@@ -896,6 +954,15 @@ class TripRequestController extends Controller
         $this->authorizeTripMutation(request()->user(), $tripRequest);
         $tripRequest->load(['assignedDriver', 'log']);
 
+        if (! $tripRequest->hasStarted()) {
+            $startAt = $tripRequest->tripStartAt();
+            $startLabel = $startAt ? $startAt->format('M d, Y g:i A') : 'the scheduled start time';
+
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', "Logbook access is locked until the trip starts ({$startLabel}).");
+        }
+
         if (! $tripRequest->log) {
             return redirect()
                 ->route('trips.logbook', $tripRequest)
@@ -919,6 +986,15 @@ class TripRequestController extends Controller
     {
         $this->authorizeTripMutation($request->user(), $tripRequest);
         $tripRequest->load(['log']);
+
+        if (! $tripRequest->hasStarted()) {
+            $startAt = $tripRequest->tripStartAt();
+            $startLabel = $startAt ? $startAt->format('M d, Y g:i A') : 'the scheduled start time';
+
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', "Logbook updates are locked until the trip starts ({$startLabel}).");
+        }
 
         if (! $tripRequest->log) {
             return redirect()
@@ -1206,6 +1282,16 @@ class TripRequestController extends Controller
     {
         $this->authorizeTripMutation($request->user(), $tripRequest);
         $tripRequest->loadMissing('log');
+
+        if (! $tripRequest->hasStarted()) {
+            $startAt = $tripRequest->tripStartAt();
+            $startLabel = $startAt ? $startAt->format('M d, Y g:i A') : 'the scheduled start time';
+
+            return redirect()
+                ->route('trips.show', $tripRequest)
+                ->with('error', "Logbook entry is locked until the trip starts ({$startLabel}).");
+        }
+
         if ($tripRequest->log) {
             return redirect()
                 ->route('trips.logbook.edit', $tripRequest)

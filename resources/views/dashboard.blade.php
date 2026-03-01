@@ -106,6 +106,28 @@
             color: #b45309;
         }
 
+        .metric-card.metric-card--danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.4);
+            box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.14) inset;
+        }
+
+        .metric-card.metric-card--danger .metric-value,
+        .metric-card.metric-card--danger .metric-label,
+        .metric-card.metric-card--danger .metric-footnote {
+            color: #b91c1c;
+        }
+
+        .metric-card.metric-card--urgent .metric-value {
+            font-size: 1.6rem;
+        }
+
+        @media (min-width: 768px) {
+            .metric-card.metric-card--urgent .metric-value {
+                font-size: 1.95rem;
+            }
+        }
+
         @media (min-width: 768px) {
             .metric-card {
                 padding: 1.25rem;
@@ -118,6 +140,12 @@
             transform: translateY(-1px);
             box-shadow: var(--metric-shadow-hover);
             border-color: #056CA3;
+        }
+
+        .metric-card-link {
+            display: block;
+            color: inherit;
+            text-decoration: none;
         }
 
         .metric-icon {
@@ -197,6 +225,23 @@
             border-radius: 12px;
             background: rgba(5, 108, 163, 0.06);
             border: 1px solid rgba(5, 108, 163, 0.12);
+        }
+
+        .metric-subcard-link {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .metric-subcard-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(5, 108, 163, 0.12);
+        }
+
+        .metric-subcard-link:focus-visible {
+            outline: 3px solid rgba(5, 108, 163, 0.28);
+            outline-offset: 2px;
         }
 
         .metric-subcard.metric-subcard--alert {
@@ -882,7 +927,10 @@
         <!-- COMPACT Metrics Cards -->
         <div class="metrics-grid">
             <!-- Available Vehicles -->
-            <div class="metric-card">
+            <a class="metric-card metric-card-link"
+               href="{{ route('vehicles.index', ['card' => 'available']) }}"
+               data-tele-tooltip
+               title="View available vehicles">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-car-front"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Fleet</span>
@@ -896,7 +944,7 @@
                 <div class="metric-footnote">
                     <i class="bi bi-check-circle"></i> Ready for assignment
                 </div>
-            </div>
+            </a>
 
             <!-- Personal Trip Requests -->
             @if (!is_null($personalTripRequests))
@@ -964,18 +1012,27 @@
                 </div>
                 <div class="metric-label">Drivers On Duty</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard">
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('drivers.index', ['duty' => 'assigned_today']) }}"
+                       data-tele-tooltip
+                       title="View drivers assigned today">
                         <div class="metric-subvalue" data-metric="driversAssignedToday">{{ $driversAssignedToday ?? 0 }}</div>
                         <div class="metric-subtitle">Assigned today</div>
-                    </div>
-                    <div class="metric-subcard {{ ($driversUnassignedToday ?? 0) > 0 ? 'metric-subcard--success' : '' }}">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link {{ ($driversUnassignedToday ?? 0) > 0 ? 'metric-subcard--success' : '' }}"
+                       href="{{ route('drivers.index', ['duty' => 'unassigned_today']) }}"
+                       data-tele-tooltip
+                       title="View drivers unassigned today">
                         <div class="metric-subvalue" data-metric="driversUnassignedToday">{{ $driversUnassignedToday ?? 0 }}</div>
                         <div class="metric-subtitle">Unassigned</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('drivers.index', ['duty' => 'registered']) }}"
+                       data-tele-tooltip
+                       title="View registered drivers">
                         <div class="metric-subvalue" data-metric="totalDriversRegistered">{{ $totalDriversRegistered ?? 0 }}</div>
                         <div class="metric-subtitle">Drivers registered</div>
-                    </div>
+                    </a>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-person-check"></i> Active driver coverage
@@ -991,18 +1048,27 @@
                 </div>
                 <div class="metric-label">Trip Activity</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard">
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['activity' => 'today_active']) }}"
+                       data-tele-tooltip
+                       title="View today's active trips">
                         <div class="metric-subvalue" data-metric="todayActiveTrips">{{ $todayActiveTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Today active</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['activity' => 'future']) }}"
+                       data-tele-tooltip
+                       title="View future trips">
                         <div class="metric-subvalue" data-metric="futureTrips">{{ $futureTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Future trips</div>
-                    </div>
-                    <div class="metric-subcard {{ ($unassignedTrips ?? 0) > 0 ? 'metric-subcard--alert' : '' }}">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link {{ ($unassignedTrips ?? 0) > 0 ? 'metric-subcard--alert' : '' }}"
+                       href="{{ route('trips.index', ['activity' => 'unassigned']) }}"
+                       data-tele-tooltip
+                       title="View unassigned trips">
                         <div class="metric-subvalue" data-metric="unassignedTrips">{{ $unassignedTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Unassigned</div>
-                    </div>
+                    </a>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-graph-up"></i> Approved &amp; assigned pipeline
@@ -1019,18 +1085,27 @@
                 </div>
                 <div class="metric-label">Trips This Month</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard">
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['month' => now()->format('Y-m'), 'statuses' => 'completed']) }}"
+                       data-tele-tooltip
+                       title="View completed trips (this month)">
                         <div class="metric-subvalue" data-metric="monthTripsCompleted">{{ $monthTripsCompleted ?? 0 }}</div>
                         <div class="metric-subtitle">Completed</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['month' => now()->format('Y-m'), 'statuses' => 'rejected']) }}"
+                       data-tele-tooltip
+                       title="View rejected trips (this month)">
                         <div class="metric-subvalue" data-metric="monthTripsRejected">{{ $monthTripsRejected ?? 0 }}</div>
                         <div class="metric-subtitle">Rejected</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['month' => now()->format('Y-m'), 'statuses' => 'approved,assigned']) }}"
+                       data-tele-tooltip
+                       title="View approved & assigned trips (this month)">
                         <div class="metric-subvalue" data-metric="monthTripsAssigned">{{ $monthTripsAssigned ?? 0 }}</div>
                         <div class="metric-subtitle">Assigned</div>
-                    </div>
+                    </a>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-graph-up"></i> Monthly summary
@@ -1040,7 +1115,10 @@
 
             <!-- Pending Approval -->
             @if (!is_null($pendingApproval))
-            <div class="metric-card {{ ($pendingApproval ?? 0) > 0 ? 'metric-card--warning' : '' }}">
+            <a class="metric-card metric-card-link {{ ($pendingApproval ?? 0) > 0 ? 'metric-card--danger metric-card--urgent' : '' }}"
+               href="{{ route('trips.index', ['statuses' => 'pending']) }}"
+               data-tele-tooltip
+               title="View pending approval trips">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-hourglass-split"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Pending</span>
@@ -1050,7 +1128,7 @@
                 <div class="metric-footnote">
                     <i class="bi bi-clock-history"></i> Awaiting action
                 </div>
-            </div>
+            </a>
             @endif
 
             <!-- Incident Reports -->
@@ -1062,18 +1140,27 @@
                 </div>
                 <div class="metric-label">Incident Reports</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard {{ ($incidentOpen ?? 0) > 0 ? 'metric-subcard--alert' : '' }}">
+                    <a class="metric-subcard metric-subcard-link {{ ($incidentOpen ?? 0) > 0 ? 'metric-subcard--alert' : '' }}"
+                       href="{{ route('incidents.index', ['status' => 'open']) }}"
+                       data-tele-tooltip
+                       title="View open incidents">
                         <div class="metric-subvalue" data-metric="incidentOpen">{{ $incidentOpen ?? 0 }}</div>
                         <div class="metric-subtitle">Open</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('incidents.index', ['status' => 'under_review']) }}"
+                       data-tele-tooltip
+                       title="View incidents under review">
                         <div class="metric-subvalue" data-metric="incidentReview">{{ $incidentReview ?? 0 }}</div>
                         <div class="metric-subtitle">Under review</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('incidents.index', ['status' => 'resolved']) }}"
+                       data-tele-tooltip
+                       title="View resolved incidents">
                         <div class="metric-subvalue" data-metric="incidentResolved">{{ $incidentResolved ?? 0 }}</div>
                         <div class="metric-subtitle">Resolved</div>
-                    </div>
+                    </a>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-shield-exclamation"></i> Under review
@@ -1090,14 +1177,27 @@
                 </div>
                 <div class="metric-label">Maintenance Due</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard {{ ($maintenanceDue ?? 0) > 0 ? 'metric-subcard--alert' : '' }}">
+                    <a class="metric-subcard metric-subcard-link {{ ($maintenanceDue ?? 0) > 0 ? 'metric-subcard--alert' : '' }}"
+                       href="{{ route('maintenances.index', ['card' => 'due']) }}"
+                       data-tele-tooltip
+                       title="View vehicles due for maintenance">
                         <div class="metric-subvalue" data-metric="maintenanceDue">{{ $maintenanceDue ?? 0 }}</div>
                         <div class="metric-subtitle">Due</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link {{ ($maintenanceOverdue ?? 0) > 0 ? 'metric-subcard--overdue' : '' }}"
+                       href="{{ route('maintenances.index', ['card' => 'overdue']) }}"
+                       data-tele-tooltip
+                       title="View vehicles overdue for maintenance">
+                        <div class="metric-subvalue" data-metric="maintenanceOverdue">{{ $maintenanceOverdue ?? 0 }}</div>
+                        <div class="metric-subtitle">Overdue</div>
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('maintenances.index', ['card' => 'in_progress']) }}"
+                       data-tele-tooltip
+                       title="View vehicles in maintenance">
                         <div class="metric-subvalue" data-metric="maintenanceInProgress">{{ $maintenanceInProgress ?? 0 }}</div>
                         <div class="metric-subtitle">In maintenance</div>
-                    </div>
+                    </a>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-calendar-check"></i> Current workload
@@ -1113,18 +1213,27 @@
                 </div>
                 <div class="metric-label">New Trip Requests</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard">
+                    <a class="metric-subcard metric-subcard-link {{ ($tripsToday ?? 0) > 0 ? 'metric-subcard--alert' : '' }}"
+                       href="{{ route('trips.index', ['created' => 'today']) }}"
+                       data-tele-tooltip
+                       title="View trip requests created today">
                         <div class="metric-subvalue" data-metric="tripsToday">{{ $tripsToday ?? 0 }}</div>
                         <div class="metric-subtitle">Today</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['created' => 'week']) }}"
+                       data-tele-tooltip
+                       title="View trip requests created this week">
                         <div class="metric-subvalue" data-metric="tripsThisWeek">{{ $tripsThisWeek ?? 0 }}</div>
                         <div class="metric-subtitle">This week</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['created' => 'month']) }}"
+                       data-tele-tooltip
+                       title="View trip requests created this month">
                         <div class="metric-subvalue" data-metric="tripsThisMonth">{{ $tripsThisMonth ?? 0 }}</div>
                         <div class="metric-subtitle">This month</div>
-                    </div>
+                    </a>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-graph-up"></i> Based on request submission date
@@ -1140,18 +1249,27 @@
                 </div>
                 <div class="metric-label">Uncompleted Trips</div>
                 <div class="metric-subcards">
-                    <div class="metric-subcard {{ ($dueTrips ?? 0) > 0 ? 'metric-subcard--alert' : '' }}">
+                    <a class="metric-subcard metric-subcard-link {{ ($dueTrips ?? 0) > 0 ? 'metric-subcard--alert' : '' }}"
+                       href="{{ route('trips.index', ['due' => 'due']) }}"
+                       data-tele-tooltip
+                       title="View trips due (not completed)">
                         <div class="metric-subvalue" data-metric="dueTrips">{{ $dueTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Due</div>
-                    </div>
-                    <div class="metric-subcard {{ ($overdueTrips ?? 0) > 0 ? 'metric-subcard--overdue' : '' }}">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link {{ ($overdueTrips ?? 0) > 0 ? 'metric-subcard--overdue' : '' }}"
+                       href="{{ route('trips.index', ['due' => 'overdue']) }}"
+                       data-tele-tooltip
+                       title="View trips overdue (not completed)">
                         <div class="metric-subvalue" data-metric="overdueTrips">{{ $overdueTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Overdue</div>
-                    </div>
-                    <div class="metric-subcard">
+                    </a>
+                    <a class="metric-subcard metric-subcard-link"
+                       href="{{ route('trips.index', ['due' => 'active']) }}"
+                       data-tele-tooltip
+                       title="View active trips (not completed/cancelled/rejected)">
                         <div class="metric-subvalue" data-metric="uncompletedTrips">{{ $uncompletedTrips ?? 0 }}</div>
                         <div class="metric-subtitle">Total active</div>
-                    </div>
+                    </a>
                 </div>
                 <div class="metric-footnote">
                     <i class="bi bi-flag"></i> Based on estimated trip days
