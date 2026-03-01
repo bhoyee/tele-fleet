@@ -40,6 +40,10 @@
             display: none !important;
         }
 
+        .tele-trip-filter {
+            cursor: pointer;
+        }
+
         @media (max-width: 767px) {
             .trip-header {
                 flex-direction: column;
@@ -145,7 +149,7 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-6 col-lg-3">
-                        <div class="card stat-card h-100">
+                        <div class="card stat-card h-100 tele-trip-filter" role="button" tabindex="0" data-trip-filter="all" data-tele-tooltip title="Show all trip requests">
                             <div class="card-body">
                                 <div class="stat-label">Total Trips</div>
                                 <div class="stat-value">{{ $analytics['total'] }}</div>
@@ -153,7 +157,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-lg-3">
-                        <div class="card stat-card h-100">
+                        <div class="card stat-card h-100 tele-trip-filter" role="button" tabindex="0" data-trip-filter="status" data-trip-status="pending" data-tele-tooltip title="Filter pending trips">
                             <div class="card-body">
                                 <div class="stat-label">Pending</div>
                                 <div class="stat-value">{{ $analytics['pending'] }}</div>
@@ -161,7 +165,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-lg-3">
-                        <div class="card stat-card h-100">
+                        <div class="card stat-card h-100 tele-trip-filter" role="button" tabindex="0" data-trip-filter="status" data-trip-statuses="approved,assigned,completed" data-tele-tooltip title="Filter approved trips">
                             <div class="card-body">
                                 <div class="stat-label">Approved</div>
                                 <div class="stat-value">{{ $analytics['approved'] }}</div>
@@ -169,7 +173,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-lg-3">
-                        <div class="card stat-card h-100">
+                        <div class="card stat-card h-100 tele-trip-filter" role="button" tabindex="0" data-trip-filter="status" data-trip-status="assigned" data-tele-tooltip title="Filter assigned trips">
                             <div class="card-body">
                                 <div class="stat-label">Assigned</div>
                                 <div class="stat-value">{{ $analytics['assigned'] }}</div>
@@ -177,7 +181,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-lg-3">
-                        <div class="card stat-card h-100">
+                        <div class="card stat-card h-100 tele-trip-filter" role="button" tabindex="0" data-trip-filter="status" data-trip-status="completed" data-tele-tooltip title="Filter completed trips">
                             <div class="card-body">
                                 <div class="stat-label">Completed</div>
                                 <div class="stat-value">{{ $analytics['completed'] }}</div>
@@ -185,7 +189,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-lg-3">
-                        <div class="card stat-card h-100">
+                        <div class="card stat-card h-100 tele-trip-filter" role="button" tabindex="0" data-trip-filter="status" data-trip-status="rejected" data-tele-tooltip title="Filter rejected trips">
                             <div class="card-body">
                                 <div class="stat-label">Rejected</div>
                                 <div class="stat-value">{{ $analytics['rejected'] }}</div>
@@ -193,7 +197,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-lg-3">
-                        <div class="card stat-card h-100">
+                        <div class="card stat-card h-100 tele-trip-filter" role="button" tabindex="0" data-trip-filter="status" data-trip-status="cancelled" data-tele-tooltip title="Filter cancelled trips">
                             <div class="card-body">
                                 <div class="stat-label">Cancelled</div>
                                 <div class="stat-value">{{ $analytics['cancelled'] }}</div>
@@ -281,6 +285,7 @@
                                     <small class="text-muted">{{ $tripTime ?: 'N/A' }}</small>
                                 </td>
                                 <td data-label="Status">
+                                    <span class="visually-hidden">{{ $trip->status }}</span>
                                     <span class="badge bg-{{ $trip->status === 'approved' ? 'success' : ($trip->status === 'rejected' ? 'danger' : ($trip->status === 'assigned' ? 'primary' : ($trip->status === 'completed' ? 'dark' : ($trip->status === 'pending' ? 'warning text-dark' : 'secondary')))) }}">
                                         {{ ucfirst($trip->status) }}
                                     </span>
@@ -458,13 +463,13 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td class="text-muted">—</td>
-                                    <td class="text-muted">—</td>
+                                    <td class="text-muted">&mdash;</td>
+                                    <td class="text-muted">&mdash;</td>
                                     <td class="text-muted">No history yet.</td>
-                                    <td class="text-muted">—</td>
-                                    <td class="text-muted">—</td>
-                                    <td class="text-muted">—</td>
-                                    <td class="text-muted text-end">—</td>
+                                    <td class="text-muted">&mdash;</td>
+                                    <td class="text-muted">&mdash;</td>
+                                    <td class="text-muted">&mdash;</td>
+                                    <td class="text-muted text-end">&mdash;</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -690,6 +695,35 @@
                     return new Date() < tripMoment;
                 };
 
+                const escapeRegex = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                let activeTripFilter = { type: 'all', statuses: [] };
+
+                const applyTripFilter = () => {
+                    if (!window.jQuery?.fn?.dataTable) {
+                        return;
+                    }
+                    if (!window.jQuery.fn.dataTable.isDataTable(table)) {
+                        return;
+                    }
+
+                    const dt = window.jQuery(table).DataTable();
+                    dt.search('');
+                    dt.columns().search('');
+
+                    if (activeTripFilter.type === 'status' && Array.isArray(activeTripFilter.statuses) && activeTripFilter.statuses.length > 0) {
+                        const tokens = activeTripFilter.statuses
+                            .map((item) => String(item || '').trim().toLowerCase())
+                            .filter(Boolean);
+                        if (tokens.length > 0) {
+                            const pattern = tokens.map((token) => '\\b' + escapeRegex(token) + '\\b').join('|');
+                            dt.column(4).search(pattern, true, false, true);
+                        }
+                    }
+
+                    dt.draw();
+                };
+
                 const renderRows = (rows) => {
                     if (window.jQuery && window.jQuery.fn.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
                         window.jQuery(table).DataTable().destroy();
@@ -813,6 +847,7 @@
                                     <small class="text-muted">${escapeHtml(trip.trip_time)}</small>
                                 </td>
                                 <td data-label="Status">
+                                    <span class="visually-hidden">${escapeHtml(String(trip.status || 'pending').toLowerCase())}</span>
                                     <span class="badge bg-${statusClass(trip.status)}${String(trip.status || '').toLowerCase() === 'pending' ? ' text-dark' : ''}">${escapeHtml(statusLabel)}</span>
                                     ${dueBadge}
                                 </td>
@@ -855,6 +890,8 @@
                             }
                         });
                     }
+
+                    applyTripFilter();
                 };
 
                 let poller = null;
@@ -957,6 +994,56 @@
                 // websocket connections but block private channel auth or events).
                 startPollingFallback();
 
+                const scrollToTable = () => {
+                    table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+
+                const parseTripStatuses = (value) => String(value || '')
+                    .split(',')
+                    .map((item) => item.trim().toLowerCase())
+                    .filter(Boolean);
+
+                const handleTripFilterClick = (node) => {
+                    const type = node.getAttribute('data-trip-filter');
+                    if (!type) {
+                        return;
+                    }
+
+                    if (type === 'all') {
+                        activeTripFilter = { type: 'all', statuses: [] };
+                        applyTripFilter();
+                        scrollToTable();
+                        return;
+                    }
+
+                    if (type === 'status') {
+                        const statuses = parseTripStatuses(node.getAttribute('data-trip-statuses') || node.getAttribute('data-trip-status'));
+                        activeTripFilter = { type: 'status', statuses };
+                        applyTripFilter();
+                        scrollToTable();
+                    }
+                };
+
+                document.addEventListener('click', (event) => {
+                    const target = event.target.closest('[data-trip-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    handleTripFilterClick(target);
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                    }
+                    const target = event.target.closest('[data-trip-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    event.preventDefault();
+                    handleTripFilterClick(target);
+                });
+
                 const historyTable = document.querySelector('.trip-history-table');
                 if (historyTable && window.jQuery && window.jQuery.fn.dataTable && !window.jQuery.fn.dataTable.isDataTable(historyTable)) {
                     window.jQuery(historyTable).DataTable({
@@ -1005,6 +1092,3 @@
         </script>
     @endpush
 </x-admin-layout>
-        .trip-table-wrap {
-            overflow-x: visible;
-        }
