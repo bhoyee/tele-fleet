@@ -927,6 +927,14 @@
         <!-- COMPACT Metrics Cards -->
         <div class="metrics-grid">
             <!-- Available Vehicles -->
+            @php
+                $canViewFleetVehicles = in_array(auth()->user()?->role, [
+                    \App\Models\User::ROLE_SUPER_ADMIN,
+                    \App\Models\User::ROLE_FLEET_MANAGER,
+                ], true);
+            @endphp
+
+            @if ($canViewFleetVehicles)
             <a class="metric-card metric-card-link"
                href="{{ route('vehicles.index', ['card' => 'available']) }}"
                data-tele-tooltip
@@ -945,10 +953,30 @@
                     <i class="bi bi-check-circle"></i> Ready for assignment
                 </div>
             </a>
+            @else
+            <div class="metric-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="metric-icon"><i class="bi bi-car-front"></i></span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Fleet</span>
+                </div>
+                <div class="metric-label">Available Vehicles</div>
+                <div class="metric-value">
+                    <span data-metric="availableVehicles">{{ $availableVehicles ?? 0 }}</span>
+                    /
+                    <span data-metric="totalVehicles">{{ $totalVehicles ?? 0 }}</span>
+                </div>
+                <div class="metric-footnote">
+                    <i class="bi bi-check-circle"></i> Ready for assignment
+                </div>
+            </div>
+            @endif
 
             <!-- Personal Trip Requests -->
             @if (!is_null($personalTripRequests))
-            <div class="metric-card">
+            <a class="metric-card metric-card-link"
+               href="{{ route('trips.index', ['month' => 'current', 'statuses' => 'pending,approved,assigned,completed,rejected']) }}"
+               data-tele-tooltip
+               title="View trips scheduled this month">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-clipboard-check"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Month</span>
@@ -958,11 +986,14 @@
                 <div class="metric-footnote">
                     <i class="bi bi-calendar-month"></i> Scheduled this month
                 </div>
-            </div>
+            </a>
             @endif
 
             @if (!is_null($branchTripRequests))
-            <div class="metric-card">
+            <a class="metric-card metric-card-link"
+               href="{{ route('trips.index', ['month' => 'current', 'statuses' => 'pending,approved,assigned,completed,rejected']) }}"
+               data-tele-tooltip
+               title="View branch trips scheduled this month">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-journal-text"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Branch</span>
@@ -972,11 +1003,14 @@
                 <div class="metric-footnote">
                     <i class="bi bi-calendar-month"></i> Scheduled this month
                 </div>
-            </div>
+            </a>
             @endif
 
             @if (!is_null($branchCompletedTrips))
-            <div class="metric-card">
+            <a class="metric-card metric-card-link"
+               href="{{ route('trips.index', ['month' => 'current', 'statuses' => 'completed']) }}"
+               data-tele-tooltip
+               title="View completed trips this month">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-check-circle"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Branch</span>
@@ -986,11 +1020,14 @@
                 <div class="metric-footnote">
                     <i class="bi bi-calendar-check"></i> Completed this month
                 </div>
-            </div>
+            </a>
             @endif
 
             @if (!is_null($branchRejectedTrips))
-            <div class="metric-card">
+            <a class="metric-card metric-card-link"
+               href="{{ route('trips.index', ['month' => 'current', 'statuses' => 'rejected']) }}"
+               data-tele-tooltip
+               title="View rejected trips this month">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="metric-icon"><i class="bi bi-x-circle"></i></span>
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 badge-sm">Branch</span>
@@ -1000,7 +1037,7 @@
                 <div class="metric-footnote">
                     <i class="bi bi-calendar-x"></i> Rejected this month
                 </div>
-            </div>
+            </a>
             @endif
 
             <!-- Drivers On Duty -->
