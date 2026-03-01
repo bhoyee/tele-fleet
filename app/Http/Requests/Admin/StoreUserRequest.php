@@ -27,7 +27,7 @@ class StoreUserRequest extends FormRequest
         } elseif (preg_match('/[A-Za-z]/', $rawPhoneText) === 1) {
             $phone = '__invalid__';
         } else {
-            $phone = TextNormalizer::phoneE164($rawPhoneText);
+            $phone = preg_replace('/\D+/', '', $rawPhoneText) ?? '';
         }
 
         $this->merge([
@@ -41,7 +41,7 @@ class StoreUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255', 'regex:/^\\p{L}+(?:[\\s\'-]\\p{L}+)*$/u'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'regex:/^\\+[1-9]\\d{7,14}$/'],
+            'phone' => ['nullable', 'string', 'regex:/^\\d{10,15}$/'],
             'role' => ['required', Rule::in([
                 User::ROLE_SUPER_ADMIN,
                 User::ROLE_FLEET_MANAGER,
@@ -58,7 +58,7 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'name.regex' => 'Name must contain only letters and spaces (e.g. "Ade Boye" or "O\'Connor").',
-            'phone.regex' => 'Phone number must be in international format (e.g. +2348065428869).',
+            'phone.regex' => 'Phone number must contain only digits (10–15 digits). Example: 08065428869.',
         ];
     }
 }

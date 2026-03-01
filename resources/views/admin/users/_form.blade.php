@@ -16,7 +16,7 @@
     </div>
     <div class="col-md-6">
         <label class="form-label" for="phone">Phone</label>
-        <input class="form-control" id="phone" name="phone" type="tel" inputmode="tel" placeholder="+2348065428869"
+        <input class="form-control" id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="08065428869"
                value="{{ old('phone', $user?->phone ?? '') }}">
         @error('phone') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
@@ -60,3 +60,18 @@
         <input class="form-control" id="password_confirmation" name="password_confirmation" type="password">
     </div>
 </div>
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('phone');
+            if (!input) {
+                return;
+            }
+
+            input.addEventListener('input', () => {
+                input.value = String(input.value || '').replace(/\D+/g, '');
+            });
+        });
+    </script>
+@endpush
