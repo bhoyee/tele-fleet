@@ -275,7 +275,8 @@
 
                     const statusLabel = status === 'active' ? 'Active' : 'Inactive';
                     clearFilters();
-                    dt.column(statusCol).search('^' + statusLabel + '$', true, false);
+                    // Status cells contain badge markup; the extracted text can include whitespace/newlines.
+                    dt.column(statusCol).search('^\\s*' + statusLabel + '\\s*$', true, false);
                 };
 
                 const scrollToTable = () => {
