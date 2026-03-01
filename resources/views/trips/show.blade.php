@@ -383,10 +383,11 @@
                             $tripStartAt = $tripRequest->tripStartAt();
                             $tripHasStarted = $tripRequest->hasStarted();
                             $startLabel = $tripStartAt ? $tripStartAt->format('M d, Y g:i A') : 'the scheduled start time';
+                            $unlockAtMs = $tripStartAt ? ((int) $tripStartAt->timestamp * 1000) : null;
                         @endphp
                         <a href="{{ route('trips.logbook', $tripRequest) }}"
                            class="btn btn-dark w-100"
-                           @if (! $tripHasStarted) data-logbook-locked="1" data-logbook-start="{{ $startLabel }}" @endif
+                           @if (! $tripHasStarted) data-logbook-locked="1" data-logbook-start="{{ $startLabel }}" data-logbook-unlock-at="{{ $unlockAtMs }}" @endif
                            data-tele-tooltip
                            title="{{ $tripHasStarted ? 'Enter logbook' : 'Locked until ' . $startLabel }}">
                             Enter Logbook
@@ -674,6 +675,45 @@
                 event.preventDefault();
                 const startAt = target.getAttribute('data-logbook-start') || 'the trip start time';
                 window.teleShowToast?.('Logbook locked', `You can enter the logbook once the trip starts (${startAt}).`, 'warning');
+            });
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const unlockButton = (button) => {
+                    button.removeAttribute('data-logbook-locked');
+                    button.removeAttribute('data-logbook-start');
+                    button.removeAttribute('data-logbook-unlock-at');
+                    button.setAttribute('title', 'Enter logbook');
+
+                    if (window.bootstrap?.Tooltip) {
+                        const instance = bootstrap.Tooltip.getInstance(button);
+                        if (instance) {
+                            instance.dispose();
+                        }
+                        bootstrap.Tooltip.getOrCreateInstance(button);
+                    }
+                };
+
+                const scheduleUnlock = (button) => {
+                    const unlockAt = Number(button.getAttribute('data-logbook-unlock-at') || 0);
+                    if (!unlockAt) {
+                        return;
+                    }
+
+                    const MAX_DELAY_MS = 2147483647;
+
+                    const tick = () => {
+                        const remaining = unlockAt - Date.now();
+                        if (remaining <= 0) {
+                            unlockButton(button);
+                            return;
+                        }
+                        setTimeout(tick, Math.min(remaining, MAX_DELAY_MS));
+                    };
+
+                    tick();
+                };
+
+                document.querySelectorAll('[data-logbook-locked][data-logbook-unlock-at]').forEach(scheduleUnlock);
             });
 
             // Realtime trip status refresh (handles cases where another user cancels/updates the trip
