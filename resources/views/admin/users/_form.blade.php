@@ -16,7 +16,8 @@
     </div>
     <div class="col-md-6">
         <label class="form-label" for="phone">Phone</label>
-        <input class="form-control" id="phone" name="phone" value="{{ old('phone', $user?->phone ?? '') }}">
+        <input class="form-control" id="phone" name="phone" type="tel" inputmode="tel" placeholder="+2348065428869"
+               value="{{ old('phone', $user?->phone ?? '') }}">
         @error('phone') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
