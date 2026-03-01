@@ -16,7 +16,7 @@
 
     <div class="row g-3 mb-4">
         <div class="col-12 col-md-4">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-user-filter" role="button" tabindex="0" data-user-filter="all" data-tele-tooltip title="Show all users">
                 <div class="card-body">
                     <div class="stat-label">Total Users</div>
                     <div class="stat-value">{{ $userStats['total'] ?? 0 }}</div>
@@ -32,10 +32,16 @@
                         @endphp
                         @foreach ($roleBadges as $roleKey => $meta)
                             <div class="col-6">
-                                <div class="p-2 rounded-3 border bg-white d-flex justify-content-between align-items-center" style="border-color: rgba(5, 108, 163, 0.12);">
+                                <button type="button"
+                                        class="p-2 rounded-3 border bg-white d-flex justify-content-between align-items-center w-100 tele-user-filter tele-user-filter-sub"
+                                        style="border-color: rgba(5, 108, 163, 0.12);"
+                                        data-user-filter="role"
+                                        data-user-role="{{ $roleKey }}"
+                                        data-tele-tooltip
+                                        title="Filter by {{ $meta['label'] }}">
                                     <span class="small text-muted">{{ $meta['label'] }}</span>
                                     <span class="badge bg-{{ $meta['class'] }}">{{ $roleCounts[$roleKey] ?? 0 }}</span>
-                                </div>
+                                </button>
                             </div>
                         @endforeach
                     </div>
@@ -43,7 +49,7 @@
             </div>
         </div>
         <div class="col-12 col-md-4">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-user-filter" role="button" tabindex="0" data-user-filter="status" data-user-status="active" data-tele-tooltip title="Filter active users">
                 <div class="card-body">
                     <div class="stat-label">Active Users</div>
                     <div class="stat-value">{{ $userStats['active'] ?? 0 }}</div>
@@ -51,7 +57,7 @@
             </div>
         </div>
         <div class="col-12 col-md-4">
-            <div class="card stat-card h-100">
+            <div class="card stat-card h-100 tele-user-filter" role="button" tabindex="0" data-user-filter="status" data-user-status="inactive" data-tele-tooltip title="Filter inactive users">
                 <div class="card-body">
                     <div class="stat-label">Inactive Users</div>
                     <div class="stat-value">{{ $userStats['inactive'] ?? 0 }}</div>
@@ -227,6 +233,103 @@
                         nameEl.textContent = name;
                     }
                 }
+            });
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const table = document.querySelector('table.datatable');
+                if (!table || !window.jQuery || !window.jQuery.fn || !window.jQuery.fn.dataTable) {
+                    return;
+                }
+
+                const dt = window.jQuery(table).DataTable();
+
+                const findColumnIndex = (label) => {
+                    const headers = dt.columns().header().toArray();
+                    const match = headers.findIndex((th) => (th?.textContent ?? '').trim().toLowerCase() === label.toLowerCase());
+                    return match >= 0 ? match : null;
+                };
+
+                const roleCol = findColumnIndex('Role');
+                const statusCol = findColumnIndex('Status');
+
+                const clearFilters = () => {
+                    dt.search('');
+                    dt.columns().search('');
+                };
+
+                const applyRoleFilter = (roleKey) => {
+                    if (roleCol === null) {
+                        return;
+                    }
+
+                    const roleLabel = String(roleKey || '').replaceAll('_', ' ').trim();
+                    clearFilters();
+                    dt.column(roleCol).search('^' + roleLabel + '$', true, false);
+                };
+
+                const applyStatusFilter = (status) => {
+                    if (statusCol === null) {
+                        return;
+                    }
+
+                    const statusLabel = status === 'active' ? 'Active' : 'Inactive';
+                    clearFilters();
+                    dt.column(statusCol).search('^' + statusLabel + '$', true, false);
+                };
+
+                const scrollToTable = () => {
+                    table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+
+                const handleFilterClick = (node) => {
+                    const filter = node.getAttribute('data-user-filter');
+                    if (!filter) {
+                        return;
+                    }
+
+                    if (filter === 'all') {
+                        clearFilters();
+                        dt.draw();
+                        scrollToTable();
+                        return;
+                    }
+
+                    if (filter === 'role') {
+                        const roleKey = node.getAttribute('data-user-role');
+                        applyRoleFilter(roleKey);
+                        dt.draw();
+                        scrollToTable();
+                        return;
+                    }
+
+                    if (filter === 'status') {
+                        const status = node.getAttribute('data-user-status');
+                        applyStatusFilter(status);
+                        dt.draw();
+                        scrollToTable();
+                    }
+                };
+
+                document.addEventListener('click', (event) => {
+                    const target = event.target.closest('[data-user-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    handleFilterClick(target);
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                    }
+                    const target = event.target.closest('[data-user-filter]');
+                    if (!target) {
+                        return;
+                    }
+                    event.preventDefault();
+                    handleFilterClick(target);
+                });
             });
         </script>
     @endpush
