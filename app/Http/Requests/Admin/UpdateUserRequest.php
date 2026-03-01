@@ -17,9 +17,12 @@ class UpdateUserRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $name = TextNormalizer::personName($this->input('name'));
+        $phone = TextNormalizer::phoneE164($this->input('phone'));
+
         $this->merge([
-            'name' => TextNormalizer::personName($this->input('name')),
-            'phone' => TextNormalizer::phoneE164($this->input('phone')),
+            'name' => $name,
+            'phone' => is_string($phone) && trim($phone) === '' ? null : $phone,
         ]);
     }
 
@@ -28,9 +31,9 @@ class UpdateUserRequest extends FormRequest
         $userId = $this->route('user')?->id;
 
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^\\p{L}+(?:[\\s\'-]\\p{L}+)*$/u'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'regex:/^\\+[1-9]\\d{7,14}$/'],
             'role' => ['required', Rule::in([
                 User::ROLE_SUPER_ADMIN,
                 User::ROLE_FLEET_MANAGER,
