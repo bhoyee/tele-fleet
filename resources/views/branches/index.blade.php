@@ -8,7 +8,7 @@
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-4">
             <div class="card stat-card h-100 tele-branch-filter" role="button" tabindex="0" data-branch-filter="all" data-tele-tooltip title="Show all branches">
                 <div class="card-body">
                     <div class="stat-label">Total Branches</div>
@@ -16,18 +16,19 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-4">
             <div class="card stat-card h-100 tele-branch-filter" role="button" tabindex="0" data-branch-filter="head_office" data-tele-tooltip title="Filter head office branch">
                 <div class="card-body">
                     <div class="stat-label">Head Office Branch</div>
                     <div class="stat-value">{{ $branchStats['head_office'] ?? 0 }}</div>
-                    <button type="button"
-                            class="btn btn-link p-0 small text-muted mt-2 tele-branch-filter"
-                            data-branch-filter="regular"
-                            data-tele-tooltip
-                            title="Filter regular branches">
-                        Regular: {{ $branchStats['regular'] ?? 0 }}
-                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card stat-card h-100 tele-branch-filter" role="button" tabindex="0" data-branch-filter="regular" data-tele-tooltip title="Filter regular branches">
+                <div class="card-body">
+                    <div class="stat-label">Regular Branches</div>
+                    <div class="stat-value">{{ $branchStats['regular'] ?? 0 }}</div>
                 </div>
             </div>
         </div>
