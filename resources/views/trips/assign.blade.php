@@ -22,7 +22,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label" for="assigned_vehicle_id">Vehicle</label>
-                        <select class="form-select" id="assigned_vehicle_id" name="assigned_vehicle_id" required @disabled($assignmentBlocked)>
+                        <select class="form-select tele-select2" id="assigned_vehicle_id" name="assigned_vehicle_id" data-placeholder="Search vehicle..." required @disabled($assignmentBlocked)>
                             <option value="">Select vehicle</option>
                             @foreach ($vehicles as $vehicle)
                                 <option value="{{ $vehicle->id }}">
@@ -34,7 +34,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="assigned_driver_id">Driver</label>
-                        <select class="form-select" id="assigned_driver_id" name="assigned_driver_id" required @disabled($assignmentBlocked)>
+                        <select class="form-select tele-select2" id="assigned_driver_id" name="assigned_driver_id" data-placeholder="Search driver..." required @disabled($assignmentBlocked)>
                             <option value="">Select driver</option>
                             @foreach ($drivers as $driver)
                                 <option value="{{ $driver->id }}">{{ $driver->full_name }} ({{ $driver->license_number }})</option>

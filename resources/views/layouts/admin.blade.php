@@ -14,6 +14,8 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
         <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
         <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
 
         <style>
             :root {
@@ -1426,6 +1428,7 @@
         @endif
 
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
         <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
@@ -1434,6 +1437,30 @@
         <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.4.0/dist/web/pusher.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
         <script>
+            const teleInitSelect2 = (root = document) => {
+                if (!window.jQuery?.fn?.select2) {
+                    return;
+                }
+
+                const selects = Array.from(root.querySelectorAll?.('select.tele-select2') ?? []);
+                selects.forEach((select) => {
+                    if (select.dataset.teleSelect2Init === 'true') {
+                        return;
+                    }
+                    select.dataset.teleSelect2Init = 'true';
+
+                    const placeholder = select.getAttribute('data-placeholder') || 'Search...';
+                    const $el = window.jQuery(select);
+                    $el.select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        placeholder,
+                        allowClear: false,
+                        dropdownParent: $el.closest('form'),
+                    });
+                });
+            };
+
             // Mobile sidebar toggle
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -1495,6 +1522,9 @@
             window.addEventListener('resize', syncMobileClass);
             window.addEventListener('pageshow', syncMobileClass);
             document.addEventListener('DOMContentLoaded', syncMobileClass);
+            document.addEventListener('DOMContentLoaded', () => teleInitSelect2(document), { once: true });
+            document.addEventListener('shown.bs.collapse', (event) => teleInitSelect2(event.target), true);
+            document.addEventListener('shown.bs.modal', (event) => teleInitSelect2(event.target), true);
             
             if (sidebarToggle) {
                 sidebarToggle.addEventListener('click', function() {
