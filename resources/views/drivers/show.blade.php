@@ -25,6 +25,10 @@
                     <div class="text-muted small">Phone</div>
                     <div class="fw-semibold">{{ $driver->phone ?? 'N/A' }}</div>
                 </div>
+                <div class="col-md-8">
+                    <div class="text-muted small">Address</div>
+                    <div class="fw-semibold">{{ $driver->address ? \App\Support\TextNormalizer::titleText($driver->address) : 'N/A' }}</div>
+                </div>
                 <div class="col-md-4">
                     <div class="text-muted small">License Expiry</div>
                     <div class="fw-semibold">{{ $driver->license_expiry?->format('M d, Y') ?? 'N/A' }}</div>
@@ -33,17 +37,60 @@
                     <div class="text-muted small">Status</div>
                     <div class="fw-semibold">
                         @php
-                            $statusClass = match ($driver->status) {
-                                'active' => 'success',
-                                'inactive' => 'secondary',
-                                'suspended' => 'danger',
-                                default => 'light text-dark',
-                            };
+                            $statusClass = \App\Models\Driver::statusBadgeClass($driver->status);
+                            $statusLabel = \App\Models\Driver::statusLabel($driver->status);
                         @endphp
                         <span class="badge bg-{{ $statusClass }}">
-                            {{ ucfirst($driver->status) }}
+                            {{ $statusLabel }}
                         </span>
                     </div>
+                </div>
+                @if (!empty($driver->note))
+                    <div class="col-12">
+                        <div class="alert alert-warning border-0 mb-0" style="border-left: 4px solid #d97706;">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-sticky text-warning"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">Status Note</div>
+                                    <div class="small text-muted mb-2">
+                                        This note explains why the driver is marked as {{ \App\Models\Driver::statusLabel($driver->status) }}.
+                                    </div>
+                                    <div class="fw-semibold">{!! nl2br(e($driver->note)) !!}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @elseif (in_array($driver->status, ['inactive', 'suspended'], true))
+                    <div class="col-12">
+                        <div class="alert alert-warning border-0 mb-0" style="border-left: 4px solid #d97706;">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-exclamation-circle text-warning"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">Status Note Missing</div>
+                                    <div class="small text-muted mb-2">
+                                        This driver is marked as {{ \App\Models\Driver::statusLabel($driver->status) }}, but no note was saved.
+                                    </div>
+                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('drivers.edit', $driver) }}" data-loading>Edit driver to add note</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+                <div class="col-md-4">
+                    <div class="text-muted small">Created By</div>
+                    <div class="fw-semibold">{{ $driver->createdBy?->name ?? 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Created At</div>
+                    <div class="fw-semibold">{{ $driver->created_at?->format('M d, Y g:i A') ?? 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Last Updated By</div>
+                    <div class="fw-semibold">{{ $driver->updatedBy?->name ?? 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Last Updated At</div>
+                    <div class="fw-semibold">{{ $driver->updated_at?->format('M d, Y g:i A') ?? 'N/A' }}</div>
                 </div>
             </div>
         </div>
