@@ -778,10 +778,62 @@
                     table.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 };
 
-                const parseStatuses = (value) => String(value || '')
-                    .split(',')
-                    .map((item) => item.trim().toLowerCase())
-                    .filter(Boolean);
+                function parseStatuses(value) {
+                    return String(value || '')
+                        .split(',')
+                        .map((item) => item.trim().toLowerCase())
+                        .filter(Boolean);
+                }
+
+                function applyIncidentUrlParamFilter() {
+                    if (showArchived) {
+                        return;
+                    }
+
+                    const params = new URLSearchParams(window.location.search);
+                    const monthParam = String(params.get('month') || '').trim().toLowerCase();
+                    const statusesParam = String(params.get('statuses') || params.get('status') || '').trim();
+
+                    const parseMonth = (value) => {
+                        if (!value) {
+                            return null;
+                        }
+                        if (value === 'current') {
+                            return currentMonth;
+                        }
+                        if (/^\d{4}-\d{2}$/.test(value)) {
+                            return value;
+                        }
+                        return null;
+                    };
+
+                    const month = parseMonth(monthParam);
+                    const statuses = parseStatuses(statusesParam);
+                    if (statuses.length === 0 && !month) {
+                        return;
+                    }
+
+                    if (statuses.length > 0) {
+                        activeIncidentFilter = { type: 'status', month, statuses };
+                    } else if (month) {
+                        activeIncidentFilter = { type: 'all', month, statuses: [] };
+                    }
+
+                    let attempts = 0;
+                    const MAX_ATTEMPTS = 25;
+                    const tick = () => {
+                        attempts += 1;
+                        if (window.jQuery?.fn?.dataTable && window.jQuery.fn.dataTable.isDataTable(table)) {
+                            applyIncidentFilter();
+                            scrollToTable();
+                            return;
+                        }
+                        if (attempts < MAX_ATTEMPTS) {
+                            setTimeout(tick, 120);
+                        }
+                    };
+                    tick();
+                }
 
                 const handleIncidentFilterClick = (node) => {
                     const type = node.getAttribute('data-incident-filter');
@@ -803,6 +855,8 @@
                         scrollToTable();
                     }
                 };
+
+                applyIncidentUrlParamFilter();
 
                 document.addEventListener('click', (event) => {
                     const target = event.target.closest('[data-incident-filter]');

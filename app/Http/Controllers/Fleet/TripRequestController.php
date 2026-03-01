@@ -38,6 +38,30 @@ use Throwable;
 
 class TripRequestController extends Controller
 {
+    private function applyCreatedFilter(Request $request, $query): void
+    {
+        $created = strtolower(trim((string) $request->query('created', '')));
+        if ($created === '') {
+            return;
+        }
+
+        $now = Carbon::now();
+
+        if ($created === 'today') {
+            $query->whereDate('created_at', $now->toDateString());
+            return;
+        }
+
+        if ($created === 'week') {
+            $query->whereBetween('created_at', [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()]);
+            return;
+        }
+
+        if ($created === 'month') {
+            $query->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()]);
+        }
+    }
+
     private function tripStartForAssignment(TripRequest $tripRequest): ?Carbon
     {
         if (! $tripRequest->trip_date) {
@@ -86,6 +110,9 @@ class TripRequestController extends Controller
         } elseif ($user->role === User::ROLE_BRANCH_HEAD) {
             $query->where('branch_id', $user->branch_id);
         }
+
+        $this->applyCreatedFilter($request, $query);
+        // Note: due/overdue filter is handled in view via client-side tokens to keep this endpoint lightweight.
 
         $trips = $query->get();
 
@@ -152,6 +179,8 @@ class TripRequestController extends Controller
         } elseif ($user->role === User::ROLE_BRANCH_HEAD) {
             $query->where('branch_id', $user->branch_id);
         }
+
+        $this->applyCreatedFilter($request, $query);
 
         $trips = $query->get();
 

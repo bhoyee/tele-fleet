@@ -159,6 +159,7 @@ class DashboardController extends Controller
         $incidentReview = null;
         $incidentResolved = null;
         $maintenanceDue = null;
+        $maintenanceOverdue = null;
         $maintenanceInProgress = null;
         $todayActiveTrips = null;
         $futureTrips = null;
@@ -286,7 +287,8 @@ class DashboardController extends Controller
             $incidentReview = IncidentReport::where('status', IncidentReport::STATUS_REVIEW)->count();
             $incidentResolved = IncidentReport::where('status', IncidentReport::STATUS_RESOLVED)->count();
 
-            $maintenanceDue = Vehicle::whereIn('maintenance_state', ['due', 'overdue'])->count();
+            $maintenanceDue = Vehicle::where('maintenance_state', 'due')->count();
+            $maintenanceOverdue = Vehicle::where('maintenance_state', 'overdue')->count();
             $maintenanceInProgress = Vehicle::where('status', 'maintenance')->count();
 
             $todayActiveTrips = TripRequest::whereDate('trip_date', Carbon::today())
@@ -360,6 +362,7 @@ class DashboardController extends Controller
             'incidentReview' => $incidentReview,
             'incidentResolved' => $incidentResolved,
             'maintenanceDue' => $maintenanceDue,
+            'maintenanceOverdue' => $maintenanceOverdue,
             'maintenanceInProgress' => $maintenanceInProgress,
             'todayActiveTrips' => $todayActiveTrips,
             'futureTrips' => $futureTrips,

@@ -428,65 +428,7 @@
         </div>
     </div>
 
-    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
-        <div class="card shadow-sm border-0 mt-4">
-            <div class="card-header">Trip History (Completed, Cancelled, Rejected)</div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table align-middle datatable dt-responsive dtr-inline trip-history-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="dtr-control" data-priority="1"></th>
-                                <th data-priority="1">Request #</th>
-                                <th data-priority="6">Requester</th>
-                                <th data-priority="7">Branch</th>
-                                <th data-priority="8">Trip Date</th>
-                                <th data-priority="2">Status</th>
-                                <th class="text-end action-col" data-priority="10">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($historyTrips ?? [] as $trip)
-                                <tr>
-                                    <td class="dtr-control" data-label=""></td>
-                                    <td>{{ $trip->request_number }}</td>
-                                    <td>{{ $trip->requestedBy?->name ?? 'N/A' }}</td>
-                                    <td>{{ $trip->branch?->name ?? 'N/A' }}</td>
-                                    <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
-                                    <td>
-                                        @php
-                                            $historyStatusClass = match ($trip->status) {
-                                                'completed' => 'success',
-                                                'cancelled' => 'secondary',
-                                                'rejected' => 'danger',
-                                                default => 'secondary',
-                                            };
-                                        @endphp
-                                        <span class="badge bg-{{ $historyStatusClass }}">
-                                            {{ ucfirst($trip->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="text-end action-col">
-                                        <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary" data-loading>View</a>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td class="text-muted">&mdash;</td>
-                                    <td class="text-muted">&mdash;</td>
-                                    <td class="text-muted">No history yet.</td>
-                                    <td class="text-muted">&mdash;</td>
-                                    <td class="text-muted">&mdash;</td>
-                                    <td class="text-muted">&mdash;</td>
-                                    <td class="text-muted text-end">&mdash;</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    @endif
+    {{-- Trip History removed (completed/cancelled/rejected). --}}
 
     @if ($hasDeleteAccess && !($showArchived ?? false))
         <div class="modal fade" id="deleteTripModal" tabindex="-1" aria-hidden="true">
@@ -633,7 +575,18 @@
                 const realtimeEnabled = {{ config('app.realtime_enabled') ? 'true' : 'false' }};
                 const currentMonth = @json(now()->format('Y-m'));
                 const todayIso = @json(now()->format('Y-m-d'));
-                const dataUrl = "{{ route('trips.data') }}" + (showArchived ? "?archived=1" : "");
+                const dataUrl = (() => {
+                    const url = new URL(@json(route('trips.data')), window.location.origin);
+                    if (showArchived) {
+                        url.searchParams.set('archived', '1');
+                    }
+                    const params = new URLSearchParams(window.location.search);
+                    const created = String(params.get('created') || '').trim().toLowerCase();
+                    if (created) {
+                        url.searchParams.set('created', created);
+                    }
+                    return url.toString();
+                })();
                 const editUrlTemplate = "{{ route('trips.edit', ['tripRequest' => '__ID__']) }}";
                 const showUrlTemplate = "{{ route('trips.show', ['tripRequest' => '__ID__']) }}";
                 const deleteUrlTemplate = "{{ route('trips.destroy', ['tripRequest' => '__ID__']) }}";
@@ -708,7 +661,7 @@
 
                 const escapeRegex = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-                let activeTripFilter = { type: 'none', month: null, statuses: [], activity: null };
+                let activeTripFilter = { type: 'none', month: null, statuses: [], activity: null, due: null };
 
                 const applyTripFilter = () => {
                     if (!window.jQuery?.fn?.dataTable) {
@@ -746,6 +699,13 @@
                         }
                     }
 
+                    if (activeTripFilter.type === 'due' && activeTripFilter.due) {
+                        const dueToken = String(activeTripFilter.due || '').trim().toLowerCase();
+                        if (dueToken) {
+                            dt.column(4).search('\\b' + escapeRegex(dueToken) + '\\b', true, false, true);
+                        }
+                    }
+
                     dt.draw();
                 };
 
@@ -762,6 +722,10 @@
                         const isTodayActive = isApprovedPipeline && Boolean(trip.assigned) && tripDateRaw === todayIso;
                         const isFuturePipeline = isApprovedPipeline && tripDateRaw && tripDateRaw > todayIso;
                         const isUnassignedPipeline = isApprovedPipeline && !Boolean(trip.assigned) && tripDateRaw && tripDateRaw >= todayIso;
+                        const isActiveTrip = Boolean(tripDateRaw) && !['completed', 'cancelled', 'rejected'].includes(status);
+                        const dueStatus = String(trip.due_status || '').toLowerCase();
+                        const isDueTrip = isActiveTrip && dueStatus === 'due';
+                        const isOverdueTrip = isActiveTrip && dueStatus === 'overdue';
 
                         const restrictedPurpose = currentUser.role === 'branch_admin'
                             && Number(trip.requested_by_user_id) !== Number(currentUser.id);
@@ -886,6 +850,9 @@
                                     ${isFuturePipeline ? '<span class="visually-hidden">activity_future</span>' : ''}
                                     ${isUnassignedPipeline ? '<span class="visually-hidden">activity_unassigned</span>' : ''}
                                     ${isActiveFutureCandidate ? '<span class="visually-hidden">activity_all_future</span>' : ''}
+                                    ${isActiveTrip ? '<span class="visually-hidden">trip_active</span>' : ''}
+                                    ${isDueTrip ? '<span class="visually-hidden">trip_due_due</span>' : ''}
+                                    ${isOverdueTrip ? '<span class="visually-hidden">trip_due_overdue</span>' : ''}
                                     <span class="badge bg-${statusClass(trip.status)}${String(trip.status || '').toLowerCase() === 'pending' ? ' text-dark' : ''}">${escapeHtml(statusLabel)}</span>
                                     ${dueBadge}
                                 </td>
@@ -1036,26 +1003,58 @@
                     table.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 };
 
-                function applyTripActivityParamFilter() {
+                function applyTripUrlParamFilter() {
                     if (showArchived) {
                         return;
                     }
 
                     const params = new URLSearchParams(window.location.search);
+                    const monthParam = String(params.get('month') || '').trim().toLowerCase();
                     const activity = String(params.get('activity') || '').trim().toLowerCase();
+                    const statusesParam = String(params.get('statuses') || params.get('status') || '').trim();
+                    const dueParam = String(params.get('due') || '').trim().toLowerCase();
                     const map = {
                         today_active: 'activity_today_active',
                         future: 'activity_future',
                         unassigned: 'activity_unassigned',
                         all_future: 'activity_all_future',
                     };
+                    const dueMap = {
+                        due: 'trip_due_due',
+                        overdue: 'trip_due_overdue',
+                        active: 'trip_active',
+                    };
 
                     const token = map[activity];
-                    if (!token) {
+                    const statuses = parseTripStatuses(statusesParam);
+                    const dueToken = dueMap[dueParam] || null;
+
+                    const parseMonth = (value) => {
+                        if (!value) {
+                            return null;
+                        }
+                        if (value === 'current') {
+                            return currentMonth;
+                        }
+                        if (/^\d{4}-\d{2}$/.test(value)) {
+                            return value;
+                        }
+                        return null;
+                    };
+
+                    const month = parseMonth(monthParam);
+
+                    if (token) {
+                        activeTripFilter = { type: 'activity', month: null, statuses: [], activity: token, due: null };
+                    } else if (dueToken) {
+                        activeTripFilter = { type: 'due', month: null, statuses: [], activity: null, due: dueToken };
+                    } else if (statuses.length > 0) {
+                        activeTripFilter = { type: 'status', month, statuses, activity: null, due: null };
+                    } else if (month) {
+                        activeTripFilter = { type: 'all', month, statuses: [], activity: null, due: null };
+                    } else {
                         return;
                     }
-
-                    activeTripFilter = { type: 'activity', month: null, statuses: [], activity: token };
 
                     let attempts = 0;
                     const MAX_ATTEMPTS = 25;
@@ -1073,12 +1072,14 @@
                     tick();
                 }
 
-                applyTripActivityParamFilter();
+                applyTripUrlParamFilter();
 
-                const parseTripStatuses = (value) => String(value || '')
-                    .split(',')
-                    .map((item) => item.trim().toLowerCase())
-                    .filter(Boolean);
+                function parseTripStatuses(value) {
+                    return String(value || '')
+                        .split(',')
+                        .map((item) => item.trim().toLowerCase())
+                        .filter(Boolean);
+                }
 
                 const handleTripFilterClick = (node) => {
                     const type = node.getAttribute('data-trip-filter');
@@ -1087,7 +1088,7 @@
                     }
 
                     if (type === 'all') {
-                        activeTripFilter = { type: 'all', month: currentMonth, statuses: [], activity: null };
+                        activeTripFilter = { type: 'all', month: currentMonth, statuses: [], activity: null, due: null };
                         applyTripFilter();
                         scrollToTable();
                         return;
@@ -1095,7 +1096,7 @@
 
                     if (type === 'status') {
                         const statuses = parseTripStatuses(node.getAttribute('data-trip-statuses') || node.getAttribute('data-trip-status'));
-                        activeTripFilter = { type: 'status', month: currentMonth, statuses, activity: null };
+                        activeTripFilter = { type: 'status', month: currentMonth, statuses, activity: null, due: null };
                         applyTripFilter();
                         scrollToTable();
                         return;
@@ -1113,7 +1114,7 @@
                         if (!token) {
                             return;
                         }
-                        activeTripFilter = { type: 'activity', month: null, statuses: [], activity: token };
+                        activeTripFilter = { type: 'activity', month: null, statuses: [], activity: token, due: null };
                         applyTripFilter();
                         scrollToTable();
                     }
@@ -1139,29 +1140,7 @@
                     handleTripFilterClick(target);
                 });
 
-                const historyTable = document.querySelector('.trip-history-table');
-                if (historyTable && window.jQuery && window.jQuery.fn.dataTable && !window.jQuery.fn.dataTable.isDataTable(historyTable)) {
-                    window.jQuery(historyTable).DataTable({
-                        pageLength: 10,
-                        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
-                        order: [],
-                        searching: true,
-                        paging: true,
-                        info: true,
-                        responsive: {
-                            details: {
-                                type: 'column',
-                                target: 0,
-                            },
-                        },
-                        columnDefs: [
-                            { orderable: false, className: 'dtr-control', targets: 0 },
-                            { responsivePriority: 1, targets: 1 },
-                            { responsivePriority: 2, targets: 5 },
-                            { responsivePriority: 100, targets: -1 },
-                        ],
-                    });
-                }
+                // Trip history table removed.
             });
 
             document.addEventListener('click', (event) => {
