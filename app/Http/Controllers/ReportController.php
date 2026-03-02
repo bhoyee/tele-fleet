@@ -32,6 +32,7 @@ class ReportController extends Controller
     {
         $report = $this->buildFleetReportData($request);
         $branchLabel = $report['filters']['branch_label'];
+        $exportScope = $report['filters']['export_scope'] ?? null;
         $filename = 'fleet-report-' . now()->format('Ymd-His') . '.csv';
         $auditLog->log('report.export_csv', null, [], [
             'report' => 'fleet',
@@ -45,7 +46,7 @@ class ReportController extends Controller
             ],
         ]);
 
-        return response()->streamDownload(function () use ($report, $branchLabel): void {
+        return response()->streamDownload(function () use ($report, $branchLabel, $exportScope): void {
             $handle = fopen('php://output', 'wb');
 
             $brandName = (string) config('app.name', 'Tele-Fleet');
@@ -63,6 +64,11 @@ class ReportController extends Controller
             fputcsv($handle, ['Generated', now()->format('M d, Y H:i')]);
             fputcsv($handle, [$brandName]);
             fputcsv($handle, []);
+
+            if (is_string($exportScope) && $exportScope !== '') {
+                fputcsv($handle, ['Export Scope', ucfirst($exportScope)]);
+                fputcsv($handle, []);
+            }
 
             $availability = $report['stats']['range_availability'] ?? null;
             if (is_array($availability)) {
@@ -85,6 +91,88 @@ class ReportController extends Controller
                     }
                     fputcsv($handle, []);
                 }
+            }
+
+            if ($exportScope === 'trips') {
+                fputcsv($handle, ['Trips']);
+                fputcsv($handle, ['Request #', 'Branch', 'Requester', 'Trip Date', 'Status']);
+                foreach ($report['tables']['trips'] as $trip) {
+                    fputcsv($handle, [
+                        $trip->request_number,
+                        $trip->branch?->name ?? 'N/A',
+                        $trip->requestedBy?->name ?? 'N/A',
+                        $trip->trip_date?->format('Y-m-d') ?? '',
+                        $trip->status,
+                    ]);
+                }
+                fclose($handle);
+                return;
+            }
+
+            if ($exportScope === 'vehicles') {
+                fputcsv($handle, ['Vehicles']);
+                fputcsv($handle, ['Registration', 'Make', 'Model', 'Status', 'Maintenance State', 'Mileage']);
+                foreach ($report['tables']['vehicles'] as $vehicle) {
+                    fputcsv($handle, [
+                        $vehicle->registration_number,
+                        $vehicle->make,
+                        $vehicle->model,
+                        $vehicle->report_status,
+                        $vehicle->maintenance_state ?? 'ok',
+                        $vehicle->current_mileage ?? 0,
+                    ]);
+                }
+                fclose($handle);
+                return;
+            }
+
+            if ($exportScope === 'drivers') {
+                fputcsv($handle, ['Drivers']);
+                fputcsv($handle, ['Driver', 'Status', 'License Expiry', 'Trips In Range']);
+                foreach ($report['tables']['drivers'] as $driverRow) {
+                    $driver = $driverRow['driver'];
+                    fputcsv($handle, [
+                        $driver?->full_name ?? 'N/A',
+                        $driver ? Driver::statusLabel((string) $driver->status) : 'N/A',
+                        $driver?->license_expiry?->format('Y-m-d') ?? 'N/A',
+                        $driverRow['trips_count'] ?? 0,
+                    ]);
+                }
+                fclose($handle);
+                return;
+            }
+
+            if ($exportScope === 'incidents') {
+                fputcsv($handle, ['Incidents']);
+                fputcsv($handle, ['Reference', 'Branch', 'Severity', 'Status', 'Incident Date']);
+                foreach ($report['tables']['incidents'] as $incident) {
+                    fputcsv($handle, [
+                        $incident->reference,
+                        $incident->branch?->name ?? 'N/A',
+                        $incident->severity,
+                        $incident->status,
+                        $incident->incident_date?->format('Y-m-d'),
+                    ]);
+                }
+                fclose($handle);
+                return;
+            }
+
+            if ($exportScope === 'maintenance') {
+                fputcsv($handle, ['Maintenance']);
+                fputcsv($handle, ['Vehicle', 'Status', 'Scheduled For', 'Started At', 'Completed At', 'Cost']);
+                foreach ($report['tables']['maintenances'] as $maintenance) {
+                    fputcsv($handle, [
+                        $maintenance->vehicle?->registration_number ?? 'N/A',
+                        $maintenance->status,
+                        $maintenance->scheduled_for?->format('Y-m-d'),
+                        $maintenance->started_at?->format('Y-m-d H:i'),
+                        $maintenance->completed_at?->format('Y-m-d H:i'),
+                        $maintenance->cost ?? 'N/A',
+                    ]);
+                }
+                fclose($handle);
+                return;
             }
 
             fputcsv($handle, ['Trip Summary']);
@@ -135,8 +223,8 @@ class ReportController extends Controller
                 fputcsv($handle, ['Driver Summary']);
                 fputcsv($handle, ['Total Drivers', $report['stats']['total_drivers']]);
                 fputcsv($handle, ['Active', $report['stats']['drivers_active']]);
-                fputcsv($handle, ['Inactive', $report['stats']['drivers_inactive']]);
-                fputcsv($handle, ['Suspended', $report['stats']['drivers_suspended']]);
+                fputcsv($handle, ['Assigned to Officer', $report['stats']['drivers_inactive']]);
+                fputcsv($handle, ['On Leave', $report['stats']['drivers_suspended']]);
                 fputcsv($handle, []);
             }
 
@@ -180,7 +268,7 @@ class ReportController extends Controller
                 $driver = $driverRow['driver'];
                 fputcsv($handle, [
                     $driver?->full_name ?? 'N/A',
-                    $driver?->status ?? 'N/A',
+                    $driver ? Driver::statusLabel((string) $driver->status) : 'N/A',
                     $driver?->license_expiry?->format('Y-m-d') ?? 'N/A',
                     $driverRow['trips_count'] ?? 0,
                 ]);
@@ -576,6 +664,32 @@ class ReportController extends Controller
         $preset = $request->input('range');
         $rangeLabel = $this->buildRangeLabel($fromDate, $toDate, $preset);
 
+        $tripsStatusFilter = $request->input('trips_status');
+        $vehiclesStatusFilter = $request->input('vehicles_status');
+        $driversStatusFilter = $request->input('drivers_status');
+        $incidentsStatusFilter = $request->input('incidents_status');
+        $maintenanceStatusFilter = $request->input('maintenance_status');
+        $exportScope = $request->input('export_scope');
+
+        if (! in_array($tripsStatusFilter, ['pending', 'approved', 'assigned', 'completed', 'rejected', 'cancelled'], true)) {
+            $tripsStatusFilter = null;
+        }
+        if (! in_array($vehiclesStatusFilter, ['available', 'in_use', 'maintenance', 'offline'], true)) {
+            $vehiclesStatusFilter = null;
+        }
+        if (! in_array($driversStatusFilter, ['active', 'inactive', 'suspended'], true)) {
+            $driversStatusFilter = null;
+        }
+        if (! in_array($incidentsStatusFilter, ['open', 'under_review', 'resolved', 'cancelled'], true)) {
+            $incidentsStatusFilter = null;
+        }
+        if (! in_array($maintenanceStatusFilter, ['scheduled', 'in_progress', 'completed', 'cancelled'], true)) {
+            $maintenanceStatusFilter = null;
+        }
+        if (! in_array($exportScope, ['trips', 'vehicles', 'drivers', 'incidents', 'maintenance'], true)) {
+            $exportScope = null;
+        }
+
         $reportContext = 'all';
         if ($fromDate && $toDate) {
             $isTodayRange = $fromDate->isSameDay(now()) && $toDate->isSameDay(now());
@@ -592,6 +706,14 @@ class ReportController extends Controller
             ->when($toDate, function ($query) use ($toDate): void {
                 $query->whereDate('trip_date', '<=', $toDate);
             });
+
+        if ($tripsStatusFilter) {
+            if ($tripsStatusFilter === 'approved') {
+                $tripQuery->whereIn('status', ['approved', 'assigned', 'completed']);
+            } else {
+                $tripQuery->where('status', $tripsStatusFilter);
+            }
+        }
 
         $totalTrips = (clone $tripQuery)->count();
         $completedTrips = (clone $tripQuery)->where('status', 'completed')->count();
@@ -655,6 +777,19 @@ class ReportController extends Controller
             }
             $vehicleStatusCounts[$displayStatus] = ($vehicleStatusCounts[$displayStatus] ?? 0) + 1;
             $vehicle->report_status = $displayStatus;
+        }
+
+        if ($vehiclesStatusFilter) {
+            $vehicles = $vehicles->filter(function (Vehicle $vehicle) use ($vehiclesStatusFilter): bool {
+                return (string) ($vehicle->report_status ?? '') === $vehiclesStatusFilter;
+            })->values();
+            $vehicleStatusCounts = [
+                'available' => 0,
+                'in_use' => 0,
+                'maintenance' => 0,
+                'offline' => 0,
+            ];
+            $vehicleStatusCounts[$vehiclesStatusFilter] = $vehicles->count();
         }
 
         $vehiclesTable = $vehicles->take(20);
@@ -773,31 +908,31 @@ class ReportController extends Controller
                 $query->where('branch_id', $branchId);
             });
         $drivers = $driversQuery->get();
+
+        if ($driversStatusFilter) {
+            $drivers = $drivers->where('status', $driversStatusFilter)->values();
+        }
+
         $totalDrivers = $drivers->where('status', '!=', 'suspended')->count();
         $driversActive = $drivers->where('status', 'active')->count();
         $driversInactive = $drivers->where('status', 'inactive')->count();
         $driversSuspended = $drivers->where('status', 'suspended')->count();
 
-        $driverTripRows = (clone $tripQuery)
+        $driverTripCounts = (clone $tripQuery)
             ->whereNotNull('assigned_driver_id')
             ->select('assigned_driver_id', DB::raw('COUNT(*) as trips_count'))
             ->groupBy('assigned_driver_id')
-            ->orderByDesc('trips_count')
-            ->limit(10)
-            ->get();
-        $driverIds = $driverTripRows->pluck('assigned_driver_id')->all();
-        $driverLookup = Driver::whereIn('id', $driverIds)
-            ->when($branchId, function ($query) use ($branchId): void {
-                $query->where('branch_id', $branchId);
-            })
-            ->get()
-            ->keyBy('id');
-        $driverPerformance = $driverTripRows->map(function ($row) use ($driverLookup): array {
-            return [
-                'driver' => $driverLookup->get($row->assigned_driver_id),
-                'trips_count' => (int) $row->trips_count,
-            ];
-        });
+            ->pluck('trips_count', 'assigned_driver_id');
+
+        $driverPerformance = $drivers
+            ->sortBy('full_name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()
+            ->map(function (Driver $driver) use ($driverTripCounts): array {
+                return [
+                    'driver' => $driver,
+                    'trips_count' => (int) ($driverTripCounts[$driver->id] ?? 0),
+                ];
+            });
 
         $incidentQuery = IncidentReport::with(['branch'])
             ->when($branchId, function ($query) use ($branchId): void {
@@ -809,6 +944,10 @@ class ReportController extends Controller
             ->when($toDate, function ($query) use ($toDate): void {
                 $query->whereDate('incident_date', '<=', $toDate);
             });
+
+        if ($incidentsStatusFilter) {
+            $incidentQuery->where('status', $incidentsStatusFilter);
+        }
 
         $incidentsOpen = (clone $incidentQuery)->where('status', IncidentReport::STATUS_OPEN)->count();
         $incidentsReview = (clone $incidentQuery)->where('status', IncidentReport::STATUS_REVIEW)->count();
@@ -869,6 +1008,10 @@ class ReportController extends Controller
                 $query->whereDate('scheduled_for', '<=', $toDate);
             });
 
+        if ($maintenanceStatusFilter) {
+            $maintenanceQuery->where('status', $maintenanceStatusFilter);
+        }
+
         $maintenancesScheduled = (clone $maintenanceQuery)->where('status', VehicleMaintenance::STATUS_SCHEDULED)->count();
         $maintenancesInProgress = (clone $maintenanceQuery)->where('status', VehicleMaintenance::STATUS_IN_PROGRESS)->count();
         $maintenancesCompleted = (clone $maintenanceQuery)->where('status', VehicleMaintenance::STATUS_COMPLETED)->count();
@@ -903,6 +1046,12 @@ class ReportController extends Controller
                 'branch_label' => $branch?->name ?? 'All Branches',
                 'range_label' => $rangeLabel,
                 'context' => $reportContext,
+                'trips_status' => $tripsStatusFilter,
+                'vehicles_status' => $vehiclesStatusFilter,
+                'drivers_status' => $driversStatusFilter,
+                'incidents_status' => $incidentsStatusFilter,
+                'maintenance_status' => $maintenanceStatusFilter,
+                'export_scope' => $exportScope,
             ],
             'stats' => [
                 'total_trips' => $totalTrips,
@@ -954,7 +1103,7 @@ class ReportController extends Controller
                     ],
                 ],
                 'driver_status' => [
-                    'labels' => ['Active', 'Inactive', 'Suspended'],
+                    'labels' => ['Active', 'Assigned to Officer', 'On Leave'],
                     'values' => [$driversActive, $driversInactive, $driversSuspended],
                 ],
                 'incident_status' => [
@@ -1008,6 +1157,7 @@ class ReportController extends Controller
         $fromDate = $from ? Carbon::parse($from)->startOfDay() : null;
         $toDate = $to ? Carbon::parse($to)->endOfDay() : null;
         $rangeLabel = $this->buildRangeLabel($fromDate, $toDate, $request->input('range'));
+        $statusFilter = $request->input('status');
 
         $summary = [];
         $columns = [];
@@ -1025,6 +1175,14 @@ class ReportController extends Controller
                     $query->whereDate('trip_date', '<=', $toDate);
                 })
                 ->orderByDesc('trip_date');
+
+            if ($statusFilter) {
+                if ($statusFilter === 'approved') {
+                    $tripQuery->whereIn('status', ['approved', 'assigned', 'completed']);
+                } elseif (in_array($statusFilter, ['pending', 'rejected', 'completed', 'assigned', 'cancelled'], true)) {
+                    $tripQuery->where('status', $statusFilter);
+                }
+            }
 
             $trips = $tripQuery->get();
             $summary = [
@@ -1084,11 +1242,18 @@ class ReportController extends Controller
             ];
 
             $columns = ['Registration', 'Make', 'Model', 'Status', 'Maintenance', 'Mileage'];
-            $rows = $vehicles->map(function (Vehicle $vehicle) use ($activeAssignedVehicleIds, &$statusCounts): array {
+            $vehicleStatusFilter = in_array($statusFilter, ['available', 'in_use', 'maintenance', 'offline'], true) ? $statusFilter : null;
+
+            $rows = $vehicles->map(function (Vehicle $vehicle) use ($activeAssignedVehicleIds, &$statusCounts, $vehicleStatusFilter): ?array {
                 $displayStatus = $vehicle->status;
                 if (! in_array($vehicle->status, ['maintenance', 'offline'], true)) {
                     $displayStatus = $activeAssignedVehicleIds->contains($vehicle->id) ? 'in_use' : 'available';
                 }
+
+                if ($vehicleStatusFilter && $displayStatus !== $vehicleStatusFilter) {
+                    return null;
+                }
+
                 $statusCounts[$displayStatus] = ($statusCounts[$displayStatus] ?? 0) + 1;
                 return [
                     $vehicle->registration_number,
@@ -1098,10 +1263,10 @@ class ReportController extends Controller
                     ucfirst($vehicle->maintenance_state ?? 'ok'),
                     $vehicle->current_mileage ?? 0,
                 ];
-            })->all();
+            })->filter()->values()->all();
 
             $summary = [
-                'Total Vehicles' => $vehicles->count(),
+                'Total Vehicles' => count($rows),
                 'Available' => $statusCounts['available'],
                 'In Use' => $statusCounts['in_use'],
                 'Maintenance' => $statusCounts['maintenance'],
@@ -1119,11 +1284,16 @@ class ReportController extends Controller
             }
             $drivers = $driverQuery->orderBy('full_name')->get();
 
+            $driverStatusFilter = in_array($statusFilter, ['active', 'inactive', 'suspended'], true) ? $statusFilter : null;
+            if ($driverStatusFilter) {
+                $drivers = $drivers->where('status', $driverStatusFilter)->values();
+            }
+
             $summary = [
                 'Total Drivers' => $drivers->count(),
                 'Active' => $drivers->where('status', 'active')->count(),
-                'Inactive' => $drivers->where('status', 'inactive')->count(),
-                'Suspended' => $drivers->where('status', 'suspended')->count(),
+                'Assigned to Officer' => $drivers->where('status', 'inactive')->count(),
+                'On Leave' => $drivers->where('status', 'suspended')->count(),
             ];
 
             $tripCountQuery = TripRequest::query()
@@ -1166,6 +1336,11 @@ class ReportController extends Controller
                 })
                 ->orderByDesc('incident_date');
 
+            $incidentStatusFilter = in_array($statusFilter, ['open', 'under_review', 'resolved', 'cancelled'], true) ? $statusFilter : null;
+            if ($incidentStatusFilter) {
+                $incidentQuery->where('status', $incidentStatusFilter);
+            }
+
             $incidents = $incidentQuery->get();
 
             $summary = [
@@ -1197,6 +1372,11 @@ class ReportController extends Controller
                     $query->whereDate('scheduled_for', '<=', $toDate);
                 })
                 ->orderByDesc('scheduled_for');
+
+            $maintenanceFilter = in_array($statusFilter, ['scheduled', 'in_progress', 'completed', 'cancelled'], true) ? $statusFilter : null;
+            if ($maintenanceFilter) {
+                $maintenanceQuery->where('status', $maintenanceFilter);
+            }
 
             $maintenances = $maintenanceQuery->get();
 
@@ -1231,6 +1411,7 @@ class ReportController extends Controller
                 'branch_id' => $branchId,
                 'branch_label' => $branch?->name ?? 'All Branches',
                 'range_label' => $rangeLabel,
+                'status' => $statusFilter,
             ],
             'summary' => $summary,
             'columns' => $columns,

@@ -1,47 +1,96 @@
 <x-admin-layout>
+    <style>
+        .tele-report-filter-card {
+            cursor: pointer;
+        }
+
+        .tele-report-filter-card:focus-visible {
+            outline: 3px solid rgba(5, 108, 163, 0.35);
+            outline-offset: 2px;
+        }
+
+        .tele-report-filter-card.tele-report-filter-active {
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(5, 108, 163, 0.35);
+        }
+    </style>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">My Requests Report</h1>
             <p class="text-muted mb-0">Analyze and export your trip requests.</p>
         </div>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-primary" href="{{ route('reports.my-requests.excel', request()->query()) }}" data-download>Export Excel (CSV)</a>
-            <a class="btn btn-outline-dark" href="{{ route('reports.my-requests.pdf', request()->query()) }}" data-download>Export PDF</a>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="{{ route('reports.my-requests.excel', request()->query()) }}" data-download>
+                            Export CSV (Current)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('reports.my-requests.pdf', request()->query()) }}" data-download>
+                            Export PDF (Current)
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('reports.my-requests.excel', request()->except(['status'])) }}" data-download>
+                            Export CSV (All statuses)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('reports.my-requests.pdf', request()->except(['status'])) }}" data-download>
+                            Export PDF (All statuses)
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card stat-card">
+            <a class="card stat-card tele-report-filter-card text-decoration-none {{ request('status') ? '' : 'tele-report-filter-active' }}"
+               href="{{ route('reports.my-requests', request()->except(['status'])) }}"
+               aria-label="Show all requests">
                 <div class="card-body">
                     <div class="stat-label">Total Requests</div>
                     <div class="stat-value">{{ $stats['total'] }}</div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card">
+            <a class="card stat-card tele-report-filter-card text-decoration-none {{ request('status') === 'approved' ? 'tele-report-filter-active' : '' }}"
+               href="{{ route('reports.my-requests', array_merge(request()->except(['status']), ['status' => 'approved'])) }}"
+               aria-label="Filter requests: approved">
                 <div class="card-body">
                     <div class="stat-label">Approved</div>
                     <div class="stat-value">{{ $stats['approved'] }}</div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card">
+            <a class="card stat-card tele-report-filter-card text-decoration-none {{ request('status') === 'pending' ? 'tele-report-filter-active' : '' }}"
+               href="{{ route('reports.my-requests', array_merge(request()->except(['status']), ['status' => 'pending'])) }}"
+               aria-label="Filter requests: pending">
                 <div class="card-body">
                     <div class="stat-label">Pending</div>
                     <div class="stat-value">{{ $stats['pending'] }}</div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card">
+            <a class="card stat-card tele-report-filter-card text-decoration-none {{ request('status') === 'rejected' ? 'tele-report-filter-active' : '' }}"
+               href="{{ route('reports.my-requests', array_merge(request()->except(['status']), ['status' => 'rejected'])) }}"
+               aria-label="Filter requests: rejected">
                 <div class="card-body">
                     <div class="stat-label">Rejected</div>
                     <div class="stat-value">{{ $stats['rejected'] }}</div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
@@ -86,7 +135,7 @@
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table align-middle datatable">
+                <table class="table align-middle datatable" id="myRequestsTable">
                     <thead class="table-light">
                         <tr>
                             <th>Request #</th>

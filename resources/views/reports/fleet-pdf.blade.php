@@ -29,6 +29,7 @@
             @php
                 $reportContext = $report['filters']['context'] ?? 'all';
                 $availability = $report['stats']['range_availability'] ?? null;
+                $exportScope = $report['filters']['export_scope'] ?? null;
             @endphp
             <tr>
                 <td><strong>Total Trips:</strong> {{ $report['stats']['total_trips'] }}</td>
@@ -64,8 +65,8 @@
                 </tr>
                 <tr>
                     <td><strong>Drivers Active:</strong> {{ $report['stats']['drivers_active'] }}</td>
-                    <td><strong>Drivers Inactive:</strong> {{ $report['stats']['drivers_inactive'] }}</td>
-                    <td><strong>Drivers Suspended:</strong> {{ $report['stats']['drivers_suspended'] }}</td>
+                    <td><strong>Drivers Assigned to Officer:</strong> {{ $report['stats']['drivers_inactive'] }}</td>
+                    <td><strong>Drivers On Leave:</strong> {{ $report['stats']['drivers_suspended'] }}</td>
                     <td><strong>Incidents Open:</strong> {{ $report['stats']['incidents_open'] }}</td>
                 </tr>
             @endif
@@ -107,147 +108,159 @@
             @endif
         @endif
 
-        <h2>Trips</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Request #</th>
-                    <th>Branch</th>
-                    <th>Requester</th>
-                    <th>Trip Date</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($report['tables']['trips'] as $trip)
+        @if (! $exportScope || $exportScope === 'trips')
+            <h2>Trips</h2>
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ $trip->request_number }}</td>
-                        <td>{{ $trip->branch?->name ?? 'N/A' }}</td>
-                        <td>{{ $trip->requestedBy?->name ?? 'N/A' }}</td>
-                        <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
-                        <td>{{ ucfirst($trip->status) }}</td>
+                        <th>Request #</th>
+                        <th>Branch</th>
+                        <th>Requester</th>
+                        <th>Trip Date</th>
+                        <th>Status</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach ($report['tables']['trips'] as $trip)
+                        <tr>
+                            <td>{{ $trip->request_number }}</td>
+                            <td>{{ $trip->branch?->name ?? 'N/A' }}</td>
+                            <td>{{ $trip->requestedBy?->name ?? 'N/A' }}</td>
+                            <td>{{ $trip->trip_date?->format('M d, Y') }}</td>
+                            <td>{{ ucfirst($trip->status) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
-        <h2>Vehicles</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Registration</th>
-                    <th>Make</th>
-                    <th>Model</th>
-                    <th>Status</th>
-                    <th>Maintenance</th>
-                    <th>Mileage</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($report['tables']['vehicles'] as $vehicle)
+        @if (! $exportScope || $exportScope === 'vehicles')
+            <h2>Vehicles</h2>
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ $vehicle->registration_number }}</td>
-                        <td>{{ $vehicle->make }}</td>
-                        <td>{{ $vehicle->model }}</td>
-                        <td>{{ ucfirst(str_replace('_', ' ', $vehicle->report_status)) }}</td>
-                        <td>{{ ucfirst($vehicle->maintenance_state ?? 'ok') }}</td>
-                        <td>{{ number_format($vehicle->current_mileage ?? 0) }}</td>
+                        <th>Registration</th>
+                        <th>Make</th>
+                        <th>Model</th>
+                        <th>Status</th>
+                        <th>Maintenance</th>
+                        <th>Mileage</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach ($report['tables']['vehicles'] as $vehicle)
+                        <tr>
+                            <td>{{ $vehicle->registration_number }}</td>
+                            <td>{{ $vehicle->make }}</td>
+                            <td>{{ $vehicle->model }}</td>
+                            <td>{{ ucfirst(str_replace('_', ' ', $vehicle->report_status)) }}</td>
+                            <td>{{ ucfirst($vehicle->maintenance_state ?? 'ok') }}</td>
+                            <td>{{ number_format($vehicle->current_mileage ?? 0) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
-        <h2>Drivers</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Driver</th>
-                    <th>Status</th>
-                    <th>License Expiry</th>
-                    <th>Trips</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($report['tables']['drivers'] as $driverRow)
+        @if (! $exportScope || $exportScope === 'drivers')
+            <h2>Drivers</h2>
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ $driverRow['driver']?->full_name ?? 'N/A' }}</td>
-                        <td>{{ ucfirst($driverRow['driver']?->status ?? 'N/A') }}</td>
-                        <td>{{ $driverRow['driver']?->license_expiry?->format('M d, Y') ?? 'N/A' }}</td>
-                        <td>{{ $driverRow['trips_count'] }}</td>
+                        <th>Driver</th>
+                        <th>Status</th>
+                        <th>License Expiry</th>
+                        <th>Trips</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach ($report['tables']['drivers'] as $driverRow)
+                        <tr>
+                            <td>{{ $driverRow['driver']?->full_name ?? 'N/A' }}</td>
+                            <td>{{ $driverRow['driver'] ? \App\Models\Driver::statusLabel((string) $driverRow['driver']->status) : 'N/A' }}</td>
+                            <td>{{ $driverRow['driver']?->license_expiry?->format('M d, Y') ?? 'N/A' }}</td>
+                            <td>{{ $driverRow['trips_count'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
-        <h2>Incidents</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Reference</th>
-                    <th>Branch</th>
-                    <th>Severity</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($report['tables']['incidents'] as $incident)
+        @if (! $exportScope || $exportScope === 'incidents')
+            <h2>Incidents</h2>
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ $incident->reference }}</td>
-                        <td>{{ $incident->branch?->name ?? 'N/A' }}</td>
-                        <td>{{ ucfirst($incident->severity) }}</td>
-                        <td>{{ ucfirst(str_replace('_', ' ', $incident->status)) }}</td>
-                        <td>{{ $incident->incident_date?->format('M d, Y') }}</td>
+                        <th>Reference</th>
+                        <th>Branch</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Date</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach ($report['tables']['incidents'] as $incident)
+                        <tr>
+                            <td>{{ $incident->reference }}</td>
+                            <td>{{ $incident->branch?->name ?? 'N/A' }}</td>
+                            <td>{{ ucfirst($incident->severity) }}</td>
+                            <td>{{ ucfirst(str_replace('_', ' ', $incident->status)) }}</td>
+                            <td>{{ $incident->incident_date?->format('M d, Y') }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
-        <h2>Maintenance</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Vehicle</th>
-                    <th>Status</th>
-                    <th>Scheduled For</th>
-                    <th>Started At</th>
-                    <th>Completed At</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($report['tables']['maintenances'] as $maintenance)
+        @if (! $exportScope || $exportScope === 'maintenance')
+            <h2>Maintenance</h2>
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ $maintenance->vehicle?->registration_number ?? 'N/A' }}</td>
-                        <td>{{ ucfirst(str_replace('_', ' ', $maintenance->status)) }}</td>
-                        <td>{{ $maintenance->scheduled_for?->format('M d, Y') }}</td>
-                        <td>{{ $maintenance->started_at?->format('M d, Y H:i') ?? 'N/A' }}</td>
-                        <td>{{ $maintenance->completed_at?->format('M d, Y H:i') ?? 'N/A' }}</td>
+                        <th>Vehicle</th>
+                        <th>Status</th>
+                        <th>Scheduled For</th>
+                        <th>Started At</th>
+                        <th>Completed At</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach ($report['tables']['maintenances'] as $maintenance)
+                        <tr>
+                            <td>{{ $maintenance->vehicle?->registration_number ?? 'N/A' }}</td>
+                            <td>{{ ucfirst(str_replace('_', ' ', $maintenance->status)) }}</td>
+                            <td>{{ $maintenance->scheduled_for?->format('M d, Y') }}</td>
+                            <td>{{ $maintenance->started_at?->format('M d, Y H:i') ?? 'N/A' }}</td>
+                            <td>{{ $maintenance->completed_at?->format('M d, Y H:i') ?? 'N/A' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
-        <h2>Branch Comparison</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Branch</th>
-                    <th>Trip Requests</th>
-                    <th>Driver Usage</th>
-                    <th>Incident Reports</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($report['rankings']['branch_table'] as $row)
+        @if (! $exportScope)
+            <h2>Branch Comparison</h2>
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ $row['branch'] }}</td>
-                        <td>{{ $row['trips'] }}</td>
-                        <td>{{ $row['driver_usage'] }}</td>
-                        <td>{{ $row['incidents'] }}</td>
+                        <th>Branch</th>
+                        <th>Trip Requests</th>
+                        <th>Driver Usage</th>
+                        <th>Incident Reports</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach ($report['rankings']['branch_table'] as $row)
+                        <tr>
+                            <td>{{ $row['branch'] }}</td>
+                            <td>{{ $row['trips'] }}</td>
+                            <td>{{ $row['driver_usage'] }}</td>
+                            <td>{{ $row['incidents'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
         @include('reports._pdf_pagination')
     </body>
