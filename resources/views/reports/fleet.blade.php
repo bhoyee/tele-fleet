@@ -100,6 +100,20 @@
             --bs-gutter-y: 1rem;
         }
 
+        .tele-report-filter-card {
+            cursor: pointer;
+        }
+
+        .tele-report-filter-card:focus-visible {
+            outline: 3px solid rgba(5, 108, 163, 0.35);
+            outline-offset: 2px;
+        }
+
+        .tele-report-filter-card.tele-report-filter-active {
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(5, 108, 163, 0.35);
+        }
+
         /* Stats cards - responsive typography */
         .stat-value {
             font-size: clamp(1.25rem, 4vw, 1.75rem);
@@ -204,8 +218,8 @@
             <p class="text-muted mb-0">Operational insights across vehicles, drivers, trips, incidents, and maintenance.</p>
         </div>
         <div class="fleet-report-actions mt-3 mt-md-0">
-            <a class="btn btn-outline-primary" href="{{ route('reports.fleet.csv', request()->query()) }}" data-download>Export CSV</a>
-            <a class="btn btn-outline-dark" href="{{ route('reports.fleet.pdf', request()->query()) }}" data-download>Export PDF</a>
+            <a class="btn btn-outline-primary" id="fleetExportCsv" href="{{ route('reports.fleet.csv', request()->query()) }}" data-download>Export CSV</a>
+            <a class="btn btn-outline-dark" id="fleetExportPdf" href="{{ route('reports.fleet.pdf', request()->query()) }}" data-download>Export PDF</a>
         </div>
     </div>
 
@@ -640,7 +654,7 @@
         <div class="tab-pane fade" id="trips-tabpane" role="tabpanel">
             <div class="row g-3 mb-3">
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="trips" data-fleet-filter-value="completed" aria-label="Filter trips: completed">
                         <div class="card-body">
                             <div class="stat-label">Completed Trips</div>
                             <div class="stat-value">{{ $stats['completed_trips'] }}</div>
@@ -648,7 +662,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="trips" data-fleet-filter-value="pending" aria-label="Filter trips: pending">
                         <div class="card-body">
                             <div class="stat-label">Pending Trips</div>
                             <div class="stat-value">{{ $stats['pending_trips'] }}</div>
@@ -656,7 +670,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="trips" data-fleet-filter-value="rejected" aria-label="Filter trips: rejected">
                         <div class="card-body">
                             <div class="stat-label">Rejected Trips</div>
                             <div class="stat-value">{{ $stats['rejected_trips'] }}</div>
@@ -664,7 +678,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="trips" data-fleet-filter-value="assigned" aria-label="Filter trips: assigned">
                         <div class="card-body">
                             <div class="stat-label">Assigned Trips</div>
                             <div class="stat-value">{{ $stats['assigned_trips'] }}</div>
@@ -676,7 +690,7 @@
             <div class="card shadow-sm border-0 fleet-report-table">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table align-middle datatable">
+                        <table class="table align-middle datatable" id="fleetTripsTable">
                             <thead class="table-light">
                                 <tr>
                                     <th>Request #</th>
@@ -719,7 +733,7 @@
         <div class="tab-pane fade" id="vehicles-tabpane" role="tabpanel">
             <div class="row g-3 mb-3">
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="vehicles" data-fleet-filter-value="available" aria-label="Filter vehicles: available">
                         <div class="card-body">
                             <div class="stat-label">Available</div>
                             <div class="stat-value">{{ $stats['vehicles_available'] }}</div>
@@ -727,7 +741,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="vehicles" data-fleet-filter-value="in_use" aria-label="Filter vehicles: in use">
                         <div class="card-body">
                             <div class="stat-label">In Use</div>
                             <div class="stat-value">{{ $stats['vehicles_in_use'] }}</div>
@@ -735,7 +749,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="vehicles" data-fleet-filter-value="maintenance" aria-label="Filter vehicles: maintenance">
                         <div class="card-body">
                             <div class="stat-label">Maintenance</div>
                             <div class="stat-value">{{ $stats['vehicles_maintenance'] }}</div>
@@ -743,7 +757,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="vehicles" data-fleet-filter-value="offline" aria-label="Filter vehicles: offline">
                         <div class="card-body">
                             <div class="stat-label">Offline</div>
                             <div class="stat-value">{{ $stats['vehicles_offline'] }}</div>
@@ -755,7 +769,7 @@
             <div class="card shadow-sm border-0 fleet-report-table">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table align-middle datatable">
+                        <table class="table align-middle datatable" id="fleetVehiclesTable">
                             <thead class="table-light">
                                 <tr>
                                     <th>Registration</th>
@@ -802,7 +816,7 @@
         <div class="tab-pane fade" id="drivers-tabpane" role="tabpanel">
             <div class="row g-3 mb-3">
                 <div class="col-6 col-md-4">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="drivers" data-fleet-filter-value="active" aria-label="Filter drivers: active">
                         <div class="card-body">
                             <div class="stat-label">Active Drivers</div>
                             <div class="stat-value">{{ $stats['drivers_active'] }}</div>
@@ -810,17 +824,17 @@
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="drivers" data-fleet-filter-value="inactive" aria-label="Filter drivers: assigned to officer">
                         <div class="card-body">
-                            <div class="stat-label">Inactive Drivers</div>
+                            <div class="stat-label">Assigned to Officer</div>
                             <div class="stat-value">{{ $stats['drivers_inactive'] }}</div>
                         </div>
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="drivers" data-fleet-filter-value="suspended" aria-label="Filter drivers: on leave">
                         <div class="card-body">
-                            <div class="stat-label">Suspended Drivers</div>
+                            <div class="stat-label">On Leave</div>
                             <div class="stat-value">{{ $stats['drivers_suspended'] }}</div>
                         </div>
                     </div>
@@ -830,7 +844,7 @@
             <div class="card shadow-sm border-0 fleet-report-table">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table align-middle datatable">
+                        <table class="table align-middle datatable" id="fleetDriversTable">
                             <thead class="table-light">
                                 <tr>
                                     <th>Driver</th>
@@ -851,8 +865,12 @@
                                                 'suspended' => 'danger',
                                                 default => 'secondary',
                                             };
+                                            $driverStatusLabel = \App\Models\Driver::statusLabel($driverStatus);
                                         @endphp
-                                        <td><span class="badge bg-{{ $driverStatusClass }}">{{ ucfirst($driverStatus) }}</span></td>
+                                        <td>
+                                            <span class="visually-hidden">{{ $driverStatus }} </span>
+                                            <span class="badge bg-{{ $driverStatusClass }}">{{ $driverStatusLabel }}</span>
+                                        </td>
                                         <td>{{ $driverRow['driver']?->license_expiry?->format('M d, Y') ?? 'N/A' }}</td>
                                         <td>{{ $driverRow['trips_count'] }}</td>
                                     </tr>
@@ -868,7 +886,7 @@
         <div class="tab-pane fade" id="incidents-tabpane" role="tabpanel">
             <div class="row g-3 mb-3">
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="incidents" data-fleet-filter-value="open" aria-label="Filter incidents: open">
                         <div class="card-body">
                             <div class="stat-label">Open</div>
                             <div class="stat-value">{{ $stats['incidents_open'] }}</div>
@@ -876,7 +894,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="incidents" data-fleet-filter-value="under_review" aria-label="Filter incidents: under review">
                         <div class="card-body">
                             <div class="stat-label">Under Review</div>
                             <div class="stat-value">{{ $stats['incidents_review'] }}</div>
@@ -884,7 +902,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="incidents" data-fleet-filter-value="resolved" aria-label="Filter incidents: resolved">
                         <div class="card-body">
                             <div class="stat-label">Resolved</div>
                             <div class="stat-value">{{ $stats['incidents_resolved'] }}</div>
@@ -892,7 +910,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-sm-3">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="incidents" data-fleet-filter-value="cancelled" aria-label="Filter incidents: cancelled">
                         <div class="card-body">
                             <div class="stat-label">Cancelled</div>
                             <div class="stat-value">{{ $stats['incidents_cancelled'] }}</div>
@@ -904,7 +922,7 @@
             <div class="card shadow-sm border-0 fleet-report-table">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table align-middle datatable">
+                        <table class="table align-middle datatable" id="fleetIncidentsTable">
                             <thead class="table-light">
                                 <tr>
                                     <th>Reference</th>
@@ -952,7 +970,7 @@
         <div class="tab-pane fade" id="maintenance-tabpane" role="tabpanel">
             <div class="row g-3 mb-3">
                 <div class="col-6 col-md-4">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="maintenance" data-fleet-filter-value="scheduled" aria-label="Filter maintenance: scheduled">
                         <div class="card-body">
                             <div class="stat-label">Scheduled</div>
                             <div class="stat-value">{{ $stats['maintenances_scheduled'] }}</div>
@@ -960,7 +978,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="maintenance" data-fleet-filter-value="in_progress" aria-label="Filter maintenance: in progress">
                         <div class="card-body">
                             <div class="stat-label">In Progress</div>
                             <div class="stat-value">{{ $stats['maintenances_in_progress'] }}</div>
@@ -968,7 +986,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="card stat-card">
+                    <div class="card stat-card tele-report-filter-card" role="button" tabindex="0" data-fleet-filter="maintenance" data-fleet-filter-value="completed" aria-label="Filter maintenance: completed">
                         <div class="card-body">
                             <div class="stat-label">Completed</div>
                             <div class="stat-value">{{ $stats['maintenances_completed'] }}</div>
@@ -980,7 +998,7 @@
             <div class="card shadow-sm border-0 fleet-report-table">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table align-middle datatable">
+                        <table class="table align-middle datatable" id="fleetMaintenanceTable">
                             <thead class="table-light">
                                 <tr>
                                     <th>Vehicle</th>
@@ -1097,6 +1115,16 @@
 
             // Initialize charts
             document.addEventListener('DOMContentLoaded', function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const initialTab = urlParams.get('tab');
+                if (initialTab) {
+                    const tabButtonId = initialTab + '-tab';
+                    const button = document.getElementById(tabButtonId);
+                    if (button && window.bootstrap?.Tab) {
+                        bootstrap.Tab.getOrCreateInstance(button).show();
+                    }
+                }
+
                 buildBar('tripStatusChart', chartData.trip_status.labels, chartData.trip_status.values, '#056CA3');
                 buildDoughnut('vehicleStatusChart', chartData.vehicle_status.labels, chartData.vehicle_status.values, ['#16a34a', '#2563eb', '#f59e0b', '#94a3b8']);
                 buildDoughnut('driverStatusChart', chartData.driver_status.labels, chartData.driver_status.values, ['#0ea5e9', '#f59e0b', '#ef4444']);
@@ -1125,6 +1153,172 @@
                                 });
                             }
                         }, 100);
+                    });
+                });
+
+                const fleetFilterConfigs = {
+                    trips: {
+                        tabButtonId: 'trips-tab',
+                        tableSelector: '#fleetTripsTable',
+                        statusColumn: 4,
+                        patterns: {
+                            completed: '^Completed$',
+                            pending: '^Pending$',
+                            rejected: '^Rejected$',
+                            assigned: '^Assigned$',
+                        },
+                    },
+                    vehicles: {
+                        tabButtonId: 'vehicles-tab',
+                        tableSelector: '#fleetVehiclesTable',
+                        statusColumn: 3,
+                        patterns: {
+                            available: '^Available$',
+                            in_use: '^In Use$',
+                            maintenance: '^Maintenance$',
+                            offline: '^Offline$',
+                        },
+                    },
+                    drivers: {
+                        tabButtonId: 'drivers-tab',
+                        tableSelector: '#fleetDriversTable',
+                        statusColumn: 1,
+                        patterns: {
+                            active: '\\bactive\\b',
+                            inactive: '\\binactive\\b',
+                            suspended: '\\bsuspended\\b',
+                        },
+                    },
+                    incidents: {
+                        tabButtonId: 'incidents-tab',
+                        tableSelector: '#fleetIncidentsTable',
+                        statusColumn: 3,
+                        patterns: {
+                            open: '^Open$',
+                            under_review: '^Under Review$',
+                            resolved: '^Resolved$',
+                            cancelled: '^Cancelled$',
+                        },
+                    },
+                    maintenance: {
+                        tabButtonId: 'maintenance-tab',
+                        tableSelector: '#fleetMaintenanceTable',
+                        statusColumn: 1,
+                        patterns: {
+                            scheduled: '^Scheduled$',
+                            in_progress: '^In Progress$',
+                            completed: '^Completed$',
+                        },
+                    },
+                };
+
+                const clearFleetCardActiveState = (fleetKey) => {
+                    document.querySelectorAll(`[data-fleet-filter="${fleetKey}"]`).forEach((card) => {
+                        card.classList.remove('tele-report-filter-active');
+                    });
+                };
+
+                const applyFleetFilter = (fleetKey, filterValue) => {
+                    const config = fleetFilterConfigs[fleetKey];
+                    if (!config || !window.bootstrap?.Tab) {
+                        return;
+                    }
+
+                    const tabButton = document.getElementById(config.tabButtonId);
+                    if (tabButton) {
+                        bootstrap.Tab.getOrCreateInstance(tabButton).show();
+                    }
+
+                    const pattern = config.patterns?.[filterValue] ?? '';
+
+                    setTimeout(() => {
+                        if (!window.jQuery || !$.fn.dataTable) {
+                            return;
+                        }
+
+                        const table = document.querySelector(config.tableSelector);
+                        if (!table) {
+                            return;
+                        }
+
+                        const dt = $(table).DataTable();
+                        const current = dt.column(config.statusColumn).search();
+                        const nextPattern = current === pattern ? '' : pattern;
+
+                        const paramKeyByFleet = {
+                            trips: 'trips_status',
+                            vehicles: 'vehicles_status',
+                            drivers: 'drivers_status',
+                            incidents: 'incidents_status',
+                            maintenance: 'maintenance_status',
+                        };
+
+                        const params = new URLSearchParams(window.location.search);
+                        const paramKey = paramKeyByFleet[fleetKey] || null;
+                        if (paramKey) {
+                            if (nextPattern) {
+                                params.set(paramKey, filterValue);
+                                params.set('tab', fleetKey);
+                                params.set('export_scope', fleetKey);
+                            } else {
+                                params.delete(paramKey);
+                            }
+                        }
+                        if (!nextPattern && params.get('tab') === fleetKey) {
+                            params.delete('tab');
+                        }
+                        if (!nextPattern && params.get('export_scope') === fleetKey) {
+                            params.delete('export_scope');
+                        }
+                        const nextUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+                        window.history.replaceState({}, '', nextUrl);
+
+                        const exportCsv = document.getElementById('fleetExportCsv');
+                        const exportPdf = document.getElementById('fleetExportPdf');
+                        [exportCsv, exportPdf].forEach((link) => {
+                            if (!link) return;
+                            link.dataset.baseHref ??= link.getAttribute('href')?.split('?')[0] ?? '';
+                            if (!link.dataset.baseHref) return;
+                            link.setAttribute('href', link.dataset.baseHref + (params.toString() ? `?${params.toString()}` : ''));
+                        });
+
+                        dt.search('');
+                        dt.columns().search('');
+                        if (nextPattern) {
+                            dt.column(config.statusColumn).search(nextPattern, true, false);
+                        }
+                        dt.draw();
+
+                        clearFleetCardActiveState(fleetKey);
+                        if (nextPattern) {
+                            document.querySelectorAll(`[data-fleet-filter="${fleetKey}"][data-fleet-filter-value="${filterValue}"]`).forEach((card) => {
+                                card.classList.add('tele-report-filter-active');
+                            });
+                        }
+
+                        table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 150);
+                };
+
+                document.querySelectorAll('[data-fleet-filter][data-fleet-filter-value]').forEach((card) => {
+                    const fleetKey = card.getAttribute('data-fleet-filter');
+                    const filterValue = card.getAttribute('data-fleet-filter-value');
+                    if (!fleetKey || !filterValue) {
+                        return;
+                    }
+
+                    const trigger = () => applyFleetFilter(fleetKey, filterValue);
+
+                    card.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        trigger();
+                    });
+
+                    card.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            trigger();
+                        }
                     });
                 });
 
