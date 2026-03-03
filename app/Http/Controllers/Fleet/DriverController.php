@@ -177,6 +177,18 @@ class DriverController extends Controller
             ->orderBy('trip_time')
             ->get();
 
+        $pastTrips = \App\Models\TripRequest::with(['branch', 'requestedBy'])
+            ->where('assigned_driver_id', $driver->id)
+            ->where(function ($query): void {
+                $query->where('status', 'completed')
+                    ->orWhere('is_completed', true)
+                    ->orWhereIn('status', ['cancelled', 'rejected']);
+            })
+            ->orderByDesc('trip_date')
+            ->orderByDesc('trip_time')
+            ->limit(300)
+            ->get();
+
         $analytics = null;
         if (request()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN) {
             $rangeDays = 30;
@@ -214,7 +226,7 @@ class DriverController extends Controller
             ];
         }
 
-        return view('drivers.show', compact('driver', 'analytics', 'activeTrips'));
+        return view('drivers.show', compact('driver', 'analytics', 'activeTrips', 'pastTrips'));
     }
 
     public function update(UpdateDriverRequest $request, Driver $driver, AuditLogService $auditLog): RedirectResponse

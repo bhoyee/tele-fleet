@@ -194,6 +194,18 @@ class VehicleController extends Controller
             ->orderBy('trip_time')
             ->get();
 
+        $pastTrips = TripRequest::with(['branch', 'requestedBy'])
+            ->where('assigned_vehicle_id', $vehicle->id)
+            ->where(function ($query): void {
+                $query->where('status', 'completed')
+                    ->orWhere('is_completed', true)
+                    ->orWhereIn('status', ['cancelled', 'rejected']);
+            })
+            ->orderByDesc('trip_date')
+            ->orderByDesc('trip_time')
+            ->limit(300)
+            ->get();
+
         $analytics = null;
         if (request()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN) {
             $rangeDays = 30;
@@ -246,7 +258,7 @@ class VehicleController extends Controller
             ];
         }
 
-        return view('vehicles.show', compact('vehicle', 'maintenanceTimeline', 'analytics', 'activeTrips', 'currentStatus', 'statusWasCorrected', 'previousStatus'));
+        return view('vehicles.show', compact('vehicle', 'maintenanceTimeline', 'analytics', 'activeTrips', 'pastTrips', 'currentStatus', 'statusWasCorrected', 'previousStatus'));
     }
 
     public function update(UpdateVehicleRequest $request, Vehicle $vehicle, AuditLogService $auditLog): RedirectResponse
