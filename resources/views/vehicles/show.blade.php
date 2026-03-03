@@ -37,17 +37,27 @@
                     <div class="text-muted small">Status</div>
                     <div class="fw-semibold">
                         @php
-                            $statusClass = match ($vehicle->status) {
+                            $statusClass = match ($currentStatus ?? $vehicle->status) {
                                 'available' => 'success',
                                 'in_use' => 'primary',
                                 'maintenance' => 'warning',
                                 'offline' => 'secondary',
                                 default => 'light text-dark',
                             };
+                            $displayStatusValue = $currentStatus ?? $vehicle->status;
                         @endphp
                         <span class="badge bg-{{ $statusClass }}">
-                            {{ ucfirst(str_replace('_', ' ', $vehicle->status)) }}
+                            {{ ucfirst(str_replace('_', ' ', $displayStatusValue)) }}
                         </span>
+                        @if (! empty($statusWasCorrected))
+                            <div class="text-muted small mt-1">
+                                Status was corrected from {{ ucfirst(str_replace('_', ' ', $previousStatus ?? '')) }}.
+                            </div>
+                        @elseif (! empty($currentStatus) && $vehicle->status !== $currentStatus)
+                            <div class="text-muted small mt-1">
+                                Stored status: {{ ucfirst(str_replace('_', ' ', $vehicle->status)) }}
+                            </div>
+                        @endif
                     </div>
                 </div>
                 <div class="col-md-4">
