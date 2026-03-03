@@ -63,7 +63,7 @@
     <div class="col-md-4">
         <label class="form-label" for="status">Status</label>
         <select class="form-select" id="status" name="status" required>
-            @foreach (['available' => 'Available', 'in_use' => 'In Use', 'maintenance' => 'Maintenance', 'offline' => 'Offline'] as $value => $label)
+            @foreach (['available' => 'Available', 'maintenance' => 'Maintenance', 'offline' => 'Offline'] as $value => $label)
                 <option value="{{ $value }}" @selected(old('status', $vehicle?->status ?? 'available') === $value)>{{ $label }}</option>
             @endforeach
         </select>

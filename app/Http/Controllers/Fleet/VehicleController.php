@@ -17,38 +17,12 @@ use Illuminate\Support\Carbon;
 
 class VehicleController extends Controller
 {
-    private function buildVehicleStats($vehicles, $activeAssignedIds): array
+    private function activeAssignedVehicleIds()
     {
-        $stats = [
-            'total' => 0,
-            'available' => 0,
-            'in_use' => 0,
-            'offline' => 0,
-            'maintenance' => 0,
-        ];
-
-        foreach ($vehicles as $vehicle) {
-            $stats['total'] += 1;
-
-            $displayStatus = $vehicle->status;
-            if (! in_array($vehicle->status, ['maintenance', 'offline'], true)) {
-                $displayStatus = $activeAssignedIds->contains($vehicle->id) ? 'in_use' : 'available';
-            }
-
-            if (isset($stats[$displayStatus])) {
-                $stats[$displayStatus] += 1;
-            }
-        }
-
-        return $stats;
-    }
-
-    public function index(Request $request): View
-    {
-        $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
         $now = now();
         $today = $now->toDateString();
-        $activeAssignedIds = TripRequest::whereNotNull('assigned_vehicle_id')
+
+        return TripRequest::whereNotNull('assigned_vehicle_id')
             ->whereIn('status', ['approved', 'assigned'])
             ->where(function ($query): void {
                 $query->whereNull('is_completed')->orWhere('is_completed', false);
@@ -65,6 +39,44 @@ class VehicleController extends Controller
             })
             ->pluck('assigned_vehicle_id')
             ->unique();
+    }
+
+    private function displayStatus(Vehicle $vehicle, $activeAssignedIds): string
+    {
+        if (in_array($vehicle->status, ['maintenance', 'offline'], true)) {
+            return $vehicle->status;
+        }
+
+        return $activeAssignedIds->contains($vehicle->id) ? 'in_use' : 'available';
+    }
+
+    private function buildVehicleStats($vehicles, $activeAssignedIds): array
+    {
+        $stats = [
+            'total' => 0,
+            'available' => 0,
+            'in_use' => 0,
+            'offline' => 0,
+            'maintenance' => 0,
+        ];
+
+        foreach ($vehicles as $vehicle) {
+            $stats['total'] += 1;
+
+            $displayStatus = $this->displayStatus($vehicle, $activeAssignedIds);
+
+            if (isset($stats[$displayStatus])) {
+                $stats[$displayStatus] += 1;
+            }
+        }
+
+        return $stats;
+    }
+
+    public function index(Request $request): View
+    {
+        $showArchived = $request->boolean('archived') && $request->user()?->role === User::ROLE_SUPER_ADMIN;
+        $activeAssignedIds = $this->activeAssignedVehicleIds();
 
         $vehiclesQuery = Vehicle::orderBy('registration_number');
         if ($showArchived) {
@@ -93,25 +105,7 @@ class VehicleController extends Controller
     public function indexData(Request $request): JsonResponse
     {
         $showArchived = $request->boolean('archived') && $request->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN;
-        $now = now();
-        $today = $now->toDateString();
-        $activeAssignedIds = TripRequest::whereNotNull('assigned_vehicle_id')
-            ->whereIn('status', ['approved', 'assigned'])
-            ->where(function ($query): void {
-                $query->whereNull('is_completed')->orWhere('is_completed', false);
-            })
-            ->where(function ($query) use ($today, $now): void {
-                $query->whereDate('trip_date', '<', $today)
-                    ->orWhere(function ($sub) use ($today, $now): void {
-                        $sub->whereDate('trip_date', $today)
-                            ->where(function ($timeQuery) use ($now): void {
-                                $timeQuery->whereNull('trip_time')
-                                    ->orWhere('trip_time', '<=', $now->format('H:i'));
-                            });
-                    });
-            })
-            ->pluck('assigned_vehicle_id')
-            ->unique();
+        $activeAssignedIds = $this->activeAssignedVehicleIds();
 
         $vehiclesQuery = Vehicle::orderBy('registration_number');
         if ($showArchived) {
@@ -120,9 +114,11 @@ class VehicleController extends Controller
         $vehicles = $vehiclesQuery->get();
 
         $payload = $vehicles->map(function (Vehicle $vehicle) use ($activeAssignedIds): array {
-            $displayStatus = $vehicle->status;
-            if (! in_array($vehicle->status, ['maintenance', 'offline'], true)) {
-                $displayStatus = $activeAssignedIds->contains($vehicle->id) ? 'in_use' : 'available';
+            $displayStatus = $this->displayStatus($vehicle, $activeAssignedIds);
+
+            // Auto-correct stale DB status (e.g., manually set to in_use without an active trip).
+            if ($vehicle->status === 'in_use' && $displayStatus === 'available') {
+                $vehicle->update(['status' => 'available']);
             }
 
             $publicId = is_string($vehicle->uuid ?? null) && $vehicle->uuid !== '' ? $vehicle->uuid : (string) $vehicle->id;
@@ -171,8 +167,19 @@ class VehicleController extends Controller
         return view('vehicles.edit', compact('vehicle', 'maintenanceTimeline'));
     }
 
-    public function show(Vehicle $vehicle): View
+    public function show(Vehicle $vehicle, Request $request, AuditLogService $auditLog): View
     {
+        $activeAssignedIds = $this->activeAssignedVehicleIds();
+        $currentStatus = $this->displayStatus($vehicle, $activeAssignedIds);
+        $statusWasCorrected = false;
+        $previousStatus = $vehicle->status;
+
+        if ($vehicle->status === 'in_use' && $currentStatus === 'available') {
+            $vehicle->update(['status' => 'available']);
+            $statusWasCorrected = true;
+            $auditLog->log('vehicle.status_synced', $vehicle, ['status' => $previousStatus], ['status' => $vehicle->status]);
+        }
+
         $maintenanceTimeline = $vehicle->maintenances()
             ->orderByDesc('scheduled_for')
             ->orderByDesc('created_at')
@@ -239,7 +246,7 @@ class VehicleController extends Controller
             ];
         }
 
-        return view('vehicles.show', compact('vehicle', 'maintenanceTimeline', 'analytics', 'activeTrips'));
+        return view('vehicles.show', compact('vehicle', 'maintenanceTimeline', 'analytics', 'activeTrips', 'currentStatus', 'statusWasCorrected', 'previousStatus'));
     }
 
     public function update(UpdateVehicleRequest $request, Vehicle $vehicle, AuditLogService $auditLog): RedirectResponse
