@@ -1,4 +1,16 @@
 <x-admin-layout>
+    <style>
+        #vehicleCurrentTripsTable_wrapper,
+        #vehiclePastTripsTable_wrapper {
+            width: 100% !important;
+            display: block !important;
+        }
+
+        #vehicleCurrentTripsTable,
+        #vehiclePastTripsTable {
+            width: 100% !important;
+        }
+    </style>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Vehicle Details</h1>
@@ -124,58 +136,174 @@
     @endif
 
     <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header">Current & Upcoming Trips</div>
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>Vehicle Trips</span>
+            <ul class="nav nav-tabs card-header-tabs" id="vehicleTripTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="vehicle-current-tab" data-bs-toggle="tab" data-bs-target="#vehicle-current" type="button" role="tab">
+                        Current & Upcoming
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="vehicle-past-tab" data-bs-toggle="tab" data-bs-target="#vehicle-past" type="button" role="tab">
+                        Past Trips
+                    </button>
+                </li>
+            </ul>
+        </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Request #</th>
-                            <th>Trip Date</th>
-                            <th>Destination</th>
-                            <th>Status</th>
-                            <th class="text-end">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($activeTrips as $trip)
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="vehicle-current" role="tabpanel" aria-labelledby="vehicle-current-tab">
+                    <table class="table align-middle datatable" id="vehicleCurrentTripsTable">
+                        <thead class="table-light">
                             <tr>
-                                <td>{{ $trip->request_number }}</td>
-                                <td>
-                                    <div>{{ $trip->trip_date?->format('M d, Y') }}</div>
-                                    <small class="text-muted">{{ $trip->trip_time ? \Illuminate\Support\Carbon::parse($trip->trip_time)->format('g:i A') : 'N/A' }}</small>
-                                </td>
-                                <td>{{ $trip->destination }}</td>
-                                <td>
-                                    @php
-                                        $dueStatus = $trip->dueStatus();
-                                        $statusLabel = $dueStatus ? ucfirst($dueStatus) : ucfirst($trip->status);
-                                        $statusClass = $dueStatus === 'overdue'
-                                            ? 'danger'
-                                            : ($dueStatus === 'due'
-                                                ? 'warning'
-                                                : ($trip->status === 'assigned'
-                                                    ? 'primary'
-                                                    : 'success'));
-                                    @endphp
-                                    <span class="badge bg-{{ $statusClass }}">
-                                        {{ $statusLabel }}
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                </td>
+                                <th>Request #</th>
+                                <th>Trip Date</th>
+                                <th>Destination</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
                             </tr>
-                        @empty
+                        </thead>
+                        <tbody>
+                            @forelse ($activeTrips as $trip)
+                                <tr>
+                                    <td>{{ $trip->request_number }}</td>
+                                    <td>
+                                        <div>{{ $trip->trip_date?->format('M d, Y') }}</div>
+                                        <small class="text-muted">{{ $trip->trip_time ? \Illuminate\Support\Carbon::parse($trip->trip_time)->format('g:i A') : 'N/A' }}</small>
+                                    </td>
+                                    <td>{{ $trip->destination }}</td>
+                                    <td>
+                                        @php
+                                            $dueStatus = $trip->dueStatus();
+                                            $statusLabel = $dueStatus ? ucfirst($dueStatus) : ucfirst($trip->status);
+                                            $statusClass = $dueStatus === 'overdue'
+                                                ? 'danger'
+                                                : ($dueStatus === 'due'
+                                                    ? 'warning'
+                                                    : ($trip->status === 'assigned'
+                                                        ? 'primary'
+                                                        : 'success'));
+                                        @endphp
+                                        <span class="badge bg-{{ $statusClass }}">
+                                            {{ $statusLabel }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    </td>
+                                </tr>
+                            @empty
+                                {{-- Let DataTables render its built-in empty state. --}}
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="tab-pane fade" id="vehicle-past" role="tabpanel" aria-labelledby="vehicle-past-tab">
+                    <table class="table align-middle" id="vehiclePastTripsTable">
+                        <thead class="table-light">
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-3">No active or upcoming trips for this vehicle.</td>
+                                <th>Request #</th>
+                                <th>Trip Date</th>
+                                <th>Destination</th>
+                                <th>Final Status</th>
+                                <th class="text-end">Action</th>
                             </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse ($pastTrips as $trip)
+                                @php
+                                    $statusValue = (string) ($trip->status ?? '');
+                                    $statusClass = match ($statusValue) {
+                                        'completed' => 'success',
+                                        'rejected' => 'danger',
+                                        'cancelled' => 'secondary',
+                                        default => 'secondary',
+                                    };
+                                @endphp
+                                <tr>
+                                    <td>{{ $trip->request_number }}</td>
+                                    <td>
+                                        <div>{{ $trip->trip_date?->format('M d, Y') }}</div>
+                                        <small class="text-muted">{{ $trip->trip_time ? \Illuminate\Support\Carbon::parse($trip->trip_time)->format('g:i A') : 'N/A' }}</small>
+                                    </td>
+                                    <td>{{ $trip->destination }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ $statusClass }}">
+                                            {{ ucfirst(str_replace('_', ' ', $statusValue ?: 'N/A')) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ route('trips.show', $trip) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    </td>
+                                </tr>
+                            @empty
+                                {{-- Let DataTables render its built-in empty state. --}}
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
+
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('#vehicleTripTabs button[data-bs-toggle="tab"]').forEach((tab) => {
+                    const ensurePastTable = () => {
+                        if (!window.jQuery || !window.jQuery.fn?.dataTable) {
+                            return;
+                        }
+
+                        const pastTable = document.getElementById('vehiclePastTripsTable');
+                        if (!pastTable) {
+                            return;
+                        }
+
+                        let dt;
+                        if (window.jQuery.fn.dataTable.isDataTable(pastTable)) {
+                            dt = window.jQuery(pastTable).DataTable();
+                        } else {
+                            dt = window.jQuery(pastTable).DataTable({
+                                pageLength: 10,
+                                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+                                order: [],
+                                searching: true,
+                                paging: true,
+                                info: true,
+                                responsive: true,
+                                autoWidth: false,
+                            });
+                        }
+
+                        const fixLayout = () => {
+                            try {
+                                dt.columns.adjust();
+                                dt.responsive?.recalc?.();
+                                dt.draw(false);
+                            } catch (error) {
+                                // ignore
+                            }
+                            window.jQuery(pastTable).css('width', '100%');
+                            window.jQuery(pastTable).closest('.dataTables_wrapper').css('width', '100%');
+                        };
+
+                        fixLayout();
+                        setTimeout(fixLayout, 350);
+                    };
+
+                    tab.addEventListener('shown.bs.tab', (event) => {
+                        if (event?.target?.id !== 'vehicle-past-tab') {
+                            return;
+                        }
+                        setTimeout(ensurePastTable, 50);
+                    });
+                });
+            });
+        </script>
+    @endpush
 
     <div class="card shadow-sm border-0">
         <div class="card-header d-flex justify-content-between align-items-center">
