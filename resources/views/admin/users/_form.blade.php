@@ -33,7 +33,7 @@
     </div>
     <div class="col-md-6">
         <label class="form-label" for="branch_id">Branch</label>
-        <select class="form-select" id="branch_id" name="branch_id">
+        <select class="form-select tele-select2" id="branch_id" name="branch_id" data-placeholder="Search branch...">
             <option value="">Select branch</option>
             @foreach ($branches as $branch)
                 <option value="{{ $branch->id }}" @selected((string) old('branch_id', $user?->branch_id ?? '') === (string) $branch->id)>{{ $branch->name }}</option>
