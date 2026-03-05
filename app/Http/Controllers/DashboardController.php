@@ -318,9 +318,24 @@ class DashboardController extends Controller
                 })
                 ->count();
 
+            $today = $now->toDateString();
+
+            // "Uncompleted Trips" should only include trips that have started (not future trips).
+            // This matches the dashboard card label "Total active".
             $activeTrips = TripRequest::whereNotNull('trip_date')
                 ->whereNotIn('status', ['completed', 'cancelled', 'rejected'])
-                ->get();
+                ->where(function ($query) use ($today, $now): void {
+                    $query->whereDate('trip_date', '<', $today)
+                        ->orWhere(function ($sub) use ($today, $now): void {
+                            $sub->whereDate('trip_date', $today)
+                                ->where(function ($timeQuery) use ($now): void {
+                                    $timeQuery->whereNull('trip_time')
+                                        ->orWhere('trip_time', '<=', $now->format('H:i'));
+                                });
+                        });
+                })
+                ->get(['id', 'status', 'trip_date', 'trip_time', 'estimated_distance_km']);
+
             $uncompletedTrips = $activeTrips->count();
             $dueTrips = 0;
             $overdueTrips = 0;
