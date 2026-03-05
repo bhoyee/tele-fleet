@@ -18,7 +18,7 @@
     <div class="col-md-6">
         <label class="form-label" for="phone">Phone</label>
         <input class="form-control" id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="08065428869"
-               value="{{ old('phone', $user?->phone ?? '') }}">
+               value="{{ old('phone', $user?->phone ?? '') }}" required>
         @error('phone') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
@@ -73,6 +73,39 @@
             input.addEventListener('input', () => {
                 input.value = String(input.value || '').replace(/\D+/g, '');
             });
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const roleSelect = document.getElementById('role');
+            const branchSelect = document.getElementById('branch_id');
+            if (!roleSelect || !branchSelect) {
+                return;
+            }
+
+            const rolesRequiringBranch = new Set(['branch_admin', 'branch_head']);
+
+            const syncBranchRequired = () => {
+                const role = String(roleSelect.value || '').trim();
+                const required = rolesRequiringBranch.has(role);
+                branchSelect.required = required;
+                if (!required) {
+                    branchSelect.classList.remove('is-invalid');
+                    branchSelect.setCustomValidity('');
+                }
+            };
+
+            roleSelect.addEventListener('change', syncBranchRequired);
+            branchSelect.addEventListener('change', () => {
+                branchSelect.classList.remove('is-invalid');
+                branchSelect.setCustomValidity('');
+            });
+            branchSelect.addEventListener('invalid', () => {
+                branchSelect.classList.add('is-invalid');
+                branchSelect.setCustomValidity('Branch is required for Branch Admin and Branch Head users.');
+            });
+
+            syncBranchRequired();
         });
     </script>
     <script>
