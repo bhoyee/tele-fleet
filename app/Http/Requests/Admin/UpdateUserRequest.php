@@ -39,18 +39,22 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         $userId = $this->route('user')?->id;
+        $role = (string) $this->input('role', '');
+        $requiresBranch = in_array($role, [User::ROLE_BRANCH_HEAD, User::ROLE_BRANCH_ADMIN], true);
 
         return [
             'name' => ['required', 'string', 'max:255', 'regex:/^\\p{L}+(?:[\\s\'-]\\p{L}+)*$/u'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'phone' => ['nullable', 'string', 'regex:/^\\d{10,15}$/'],
+            'phone' => ['required', 'string', 'regex:/^\\d{10,15}$/'],
             'role' => ['required', Rule::in([
                 User::ROLE_SUPER_ADMIN,
                 User::ROLE_FLEET_MANAGER,
                 User::ROLE_BRANCH_HEAD,
                 User::ROLE_BRANCH_ADMIN,
             ])],
-            'branch_id' => ['nullable', 'exists:branches,id'],
+            'branch_id' => $requiresBranch
+                ? ['required', 'integer', 'exists:branches,id']
+                : ['nullable', 'integer', 'exists:branches,id'],
             'status' => ['required', Rule::in([User::STATUS_ACTIVE, User::STATUS_INACTIVE])],
             'password' => ['nullable', 'confirmed', Password::defaults()],
         ];
