@@ -722,10 +722,33 @@
                         const isTodayActive = isApprovedPipeline && Boolean(trip.assigned) && tripDateRaw === todayIso;
                         const isFuturePipeline = isApprovedPipeline && tripDateRaw && tripDateRaw > todayIso;
                         const isUnassignedPipeline = isApprovedPipeline && !Boolean(trip.assigned) && tripDateRaw && tripDateRaw >= todayIso;
-                        const isActiveTrip = Boolean(tripDateRaw) && !['completed', 'cancelled', 'rejected'].includes(status);
+                        const isUncompletedTrip = Boolean(tripDateRaw) && !['completed', 'cancelled', 'rejected'].includes(status);
+                        const isStartedTrip = (() => {
+                            if (!isUncompletedTrip) {
+                                return false;
+                            }
+
+                            if (tripDateRaw < todayIso) {
+                                return true;
+                            }
+
+                            if (tripDateRaw > todayIso) {
+                                return false;
+                            }
+
+                            let timeValue = String(trip.trip_time_raw || '').trim();
+                            if (!timeValue) {
+                                timeValue = '00:00:00';
+                            } else if (timeValue.length === 5) {
+                                timeValue = timeValue + ':00';
+                            }
+
+                            const startMoment = new Date(`${tripDateRaw}T${timeValue}`);
+                            return new Date() >= startMoment;
+                        })();
                         const dueStatus = String(trip.due_status || '').toLowerCase();
-                        const isDueTrip = isActiveTrip && dueStatus === 'due';
-                        const isOverdueTrip = isActiveTrip && dueStatus === 'overdue';
+                        const isDueTrip = isStartedTrip && dueStatus === 'due';
+                        const isOverdueTrip = isStartedTrip && dueStatus === 'overdue';
 
                         const restrictedPurpose = currentUser.role === 'branch_admin'
                             && Number(trip.requested_by_user_id) !== Number(currentUser.id);
@@ -850,7 +873,7 @@
                                     ${isFuturePipeline ? '<span class="visually-hidden">activity_future</span>' : ''}
                                     ${isUnassignedPipeline ? '<span class="visually-hidden">activity_unassigned</span>' : ''}
                                     ${isActiveFutureCandidate ? '<span class="visually-hidden">activity_all_future</span>' : ''}
-                                    ${isActiveTrip ? '<span class="visually-hidden">trip_active</span>' : ''}
+                                    ${isStartedTrip ? '<span class="visually-hidden">trip_active</span>' : ''}
                                     ${isDueTrip ? '<span class="visually-hidden">trip_due_due</span>' : ''}
                                     ${isOverdueTrip ? '<span class="visually-hidden">trip_due_overdue</span>' : ''}
                                     <span class="badge bg-${statusClass(trip.status)}${String(trip.status || '').toLowerCase() === 'pending' ? ' text-dark' : ''}">${escapeHtml(statusLabel)}</span>
