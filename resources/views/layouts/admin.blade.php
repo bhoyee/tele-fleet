@@ -54,6 +54,20 @@
                 overflow-x: hidden;
             }
 
+            /* Branch-required lockout for branch-scoped users missing a branch assignment. */
+            body.tele-branch-lock .sidebar-nav a.nav-link,
+            body.tele-branch-lock .sidebar-nav button.nav-link {
+                pointer-events: none;
+                opacity: 0.55;
+                filter: grayscale(0.2);
+            }
+
+            body.tele-branch-lock .sidebar-nav .tele-allowed {
+                pointer-events: auto;
+                opacity: 1;
+                filter: none;
+            }
+
             .page-progress {
                 position: fixed;
                 top: 0;
@@ -992,7 +1006,16 @@
         </style>
         @stack('styles')
     </head>
-    <body>
+    @php
+        $teleBranchLockUser = auth()->user();
+        $teleBranchLock = $teleBranchLockUser
+            && in_array($teleBranchLockUser->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true)
+            && empty($teleBranchLockUser->branch_id);
+        $teleBranchLockShowModal = $teleBranchLock
+            && ! request()->routeIs('helpdesk.*')
+            && ! request()->routeIs('profile.*');
+    @endphp
+    <body class="{{ $teleBranchLock ? 'tele-branch-lock' : '' }}">
         <div class="page-progress" id="pageProgress" aria-hidden="true"></div>
         <div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
             <div id="teleToastContainer" class="d-flex flex-column gap-2"></div>
@@ -1132,8 +1155,7 @@
                             </li>
                         @endif
 
-
-                        @if (config('app.realtime_enabled') && in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                        @if (! $teleBranchLock && config('app.realtime_enabled') && in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
                                 <button class="nav-link w-100 text-start" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget" aria-controls="chatWidget">
                                     <i class="bi bi-chat-dots nav-icon"></i>
@@ -1142,7 +1164,16 @@
                             </li>
                         @endif
 
-                        @if (! config('app.realtime_enabled') && in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
+                        @if ($teleBranchLock)
+                            <li class="nav-item">
+                                <a class="nav-link tele-allowed @if (request()->routeIs('helpdesk.*')) active @endif" href="{{ route('helpdesk.index') }}">
+                                    <i class="bi bi-life-preserver nav-icon"></i>
+                                    <span>Help Desk</span>
+                                </a>
+                            </li>
+                        @endif
+
+                        @if (! $teleBranchLock && ! config('app.realtime_enabled') && in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER, \App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true))
                             <li class="nav-item">
                                 <a class="nav-link @if (request()->routeIs('helpdesk.*')) active @endif" href="{{ route('helpdesk.index') }}">
                                     <i class="bi bi-life-preserver nav-icon"></i>
@@ -1225,7 +1256,7 @@
                     <div class="d-flex align-items-center gap-3">
                         <div class="d-none d-md-flex flex-column text-end pe-3 border-end" style="border-color: rgba(5, 108, 163, 0.15);">
                             <span class="text-muted small">Branch</span>
-                            <span class="fw-semibold text-primary">{{ auth()->user()?->branch?->name ?? 'Head Office' }}</span>
+                            <span class="fw-semibold text-primary">{{ $teleBranchLock ? 'Unassigned' : (auth()->user()?->branch?->name ?? 'Head Office') }}</span>
                         </div>
                         @php
                             $excludedNotificationTypes = [\App\Notifications\ChatMessageNotification::class];
@@ -1238,30 +1269,32 @@
                                 ->take(5)
                                 ->get() ?? collect();
                         @endphp
-                        <div class="dropdown position-relative" id="notificationDropdown">
-                            <button class="btn btn-light position-relative" id="notificationDropdownButton" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 10px; border: 1px solid rgba(5, 108, 163, 0.2);">
-                                <i class="bi bi-bell" style="color: #056CA3;"></i>
-                                <span class="notification-badge" style="{{ $unreadCount > 0 ? '' : 'display:none;' }}">{{ $unreadCount }}</span>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-0" style="min-width: 320px; border: 1px solid rgba(5, 108, 163, 0.1);">
-                                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-light">
-                                    <span class="fw-semibold text-primary">Notifications</span>
-                                    @if ($unreadCount > 0)
-                                        <form method="POST" action="{{ route('notifications.read_all') }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button class="btn btn-link btn-sm text-decoration-none text-primary" type="submit">Mark all read</button>
-                                        </form>
-                                    @endif
-                                </div>
-                                <div class="notification-list" id="notificationDropdownList">
-                                    @include('notifications._dropdown_list', ['latestNotifications' => $latestNotifications])
-                                </div>
-                                <div class="px-3 py-2 text-center border-top">
-                                    <a class="text-decoration-none fw-semibold text-primary" href="{{ route('notifications.index') }}">View all notifications</a>
+                        @if (! $teleBranchLock)
+                            <div class="dropdown position-relative" id="notificationDropdown">
+                                <button class="btn btn-light position-relative" id="notificationDropdownButton" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 10px; border: 1px solid rgba(5, 108, 163, 0.2);">
+                                    <i class="bi bi-bell" style="color: #056CA3;"></i>
+                                    <span class="notification-badge" style="{{ $unreadCount > 0 ? '' : 'display:none;' }}">{{ $unreadCount }}</span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-0" style="min-width: 320px; border: 1px solid rgba(5, 108, 163, 0.1);">
+                                    <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-light">
+                                        <span class="fw-semibold text-primary">Notifications</span>
+                                        @if ($unreadCount > 0)
+                                            <form method="POST" action="{{ route('notifications.read_all') }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button class="btn btn-link btn-sm text-decoration-none text-primary" type="submit">Mark all read</button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                    <div class="notification-list" id="notificationDropdownList">
+                                        @include('notifications._dropdown_list', ['latestNotifications' => $latestNotifications])
+                                    </div>
+                                    <div class="px-3 py-2 text-center border-top">
+                                        <a class="text-decoration-none fw-semibold text-primary" href="{{ route('notifications.index') }}">View all notifications</a>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @endif
 
                         <div class="dropdown">
                             <button class="btn user-dropdown d-flex align-items-center" type="button" data-bs-toggle="dropdown">
@@ -1341,7 +1374,7 @@
             </div>
         </div>
 
-        @if (config('app.realtime_enabled'))
+        @if (config('app.realtime_enabled') && ! $teleBranchLock)
             <button class="btn btn-primary chat-widget-button" type="button" data-bs-toggle="offcanvas" data-bs-target="#chatWidget" aria-controls="chatWidget">
                 <i class="bi bi-chat-dots"></i>
                 <span class="d-none d-sm-inline">Chat</span>
@@ -1421,6 +1454,27 @@
                                     <button class="btn btn-outline-danger w-100" type="button" id="chatWidgetDecline">Decline</button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        @if ($teleBranchLockShowModal)
+            <div class="modal fade" id="teleBranchRequiredModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Branch Assignment Required</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-2">Your account is missing a branch assignment.</p>
+                            <p class="mb-0 text-muted">Please contact support to add your branch to your profile before you can use the system.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                            <a href="{{ route('helpdesk.create') }}" class="btn btn-primary tele-allowed" id="teleBranchRequiredContactSupport">Contact Support</a>
                         </div>
                     </div>
                 </div>
@@ -2606,6 +2660,33 @@
                 }
             }
         </script>
+        @if ($teleBranchLockShowModal)
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const modalEl = document.getElementById('teleBranchRequiredModal');
+                    if (!modalEl || !window.bootstrap?.Modal) {
+                        return;
+                    }
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+
+                    const contact = document.getElementById('teleBranchRequiredContactSupport');
+                    if (contact) {
+                        contact.addEventListener('click', (event) => {
+                            const href = contact.getAttribute('href');
+                            if (!href) {
+                                return;
+                            }
+                            event.preventDefault();
+                            modal.hide();
+                            setTimeout(() => {
+                                window.location.href = href;
+                            }, 150);
+                        });
+                    }
+                });
+            </script>
+        @endif
         @stack('scripts')
     </body>
 </html>
