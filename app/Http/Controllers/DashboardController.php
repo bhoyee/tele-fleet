@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\IncidentReport;
 use App\Models\Driver;
 use App\Models\TripRequest;
+use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleAvailabilitySnapshot;
@@ -87,6 +88,25 @@ class DashboardController extends Controller
         return response()->json([
             'data' => $payload,
         ]);
+    }
+
+    public function navCounters(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user || ! in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_FLEET_MANAGER], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $key = sprintf('telefleet.nav.counters.%s', $user->role);
+        $payload = Cache::remember($key, now()->addSeconds(15), function () {
+            return [
+                'trips_pending' => TripRequest::where('status', 'pending')->count(),
+                'incidents_open' => IncidentReport::where('status', IncidentReport::STATUS_OPEN)->count(),
+                'helpdesk_open' => SupportTicket::where('status', SupportTicket::STATUS_OPEN)->count(),
+            ];
+        });
+
+        return response()->json($payload);
     }
 
     private function cachedMetrics(User $user): array

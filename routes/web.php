@@ -142,6 +142,9 @@ Route::get('/dashboard/trip-status', [DashboardController::class, 'tripStatus'])
 Route::get('/dashboard/upcoming-trips', [DashboardController::class, 'upcomingTrips'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard.upcoming-trips');
+Route::get('/nav/counters', [DashboardController::class, 'navCounters'])
+    ->middleware(['auth', 'verified', 'role:super_admin,fleet_manager'])
+    ->name('nav.counters');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

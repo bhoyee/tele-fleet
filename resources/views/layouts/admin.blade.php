@@ -219,6 +219,13 @@
                 text-align: center;
             }
 
+            .nav-counter-badge {
+                font-size: 0.7rem;
+                font-weight: 700;
+                line-height: 1;
+                padding: 0.25rem 0.45rem;
+            }
+
             /* Main Content */
             .main-content {
                 margin-left: var(--sidebar-width);
@@ -1082,6 +1089,9 @@
                                 <a class="nav-link @if (request()->routeIs('trips.*') && ! request()->routeIs('trips.my')) active @endif" href="{{ route('trips.index') }}">
                                     <i class="bi bi-map nav-icon"></i>
                                     <span>Trips</span>
+                                    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                                        <span class="badge rounded-pill bg-danger nav-counter-badge ms-auto" id="navBadgeTrips" style="display:none;"></span>
+                                    @endif
                                 </a>
                             </li>
                         @endif
@@ -1109,6 +1119,9 @@
                                 <a class="nav-link @if (request()->routeIs('incidents.*')) active @endif" href="{{ route('incidents.index') }}">
                                     <i class="bi bi-exclamation-triangle nav-icon"></i>
                                     <span>Incidents</span>
+                                    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                                        <span class="badge rounded-pill bg-danger nav-counter-badge ms-auto" id="navBadgeIncidents" style="display:none;"></span>
+                                    @endif
                                 </a>
                             </li>
                         @endif
@@ -1178,6 +1191,9 @@
                                 <a class="nav-link @if (request()->routeIs('helpdesk.*')) active @endif" href="{{ route('helpdesk.index') }}">
                                     <i class="bi bi-life-preserver nav-icon"></i>
                                     <span>Help Desk</span>
+                                    @if (in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true))
+                                        <span class="badge rounded-pill bg-danger nav-counter-badge ms-auto" id="navBadgeHelpDesk" style="display:none;"></span>
+                                    @endif
                                 </a>
                             </li>
                         @endif
@@ -1900,6 +1916,45 @@
                 refreshNotificationDropdown();
                 setInterval(refreshNotificationDropdown, 30000);
             }
+
+            const navCountersEnabled = {{ in_array(auth()->user()?->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_FLEET_MANAGER], true) ? 'true' : 'false' }};
+            const navCountersUrl = "{{ route('nav.counters') }}";
+
+            const setNavBadge = (id, value) => {
+                const el = document.getElementById(id);
+                if (!el) {
+                    return;
+                }
+                const count = Number(value ?? 0);
+                if (count > 0) {
+                    el.textContent = count > 99 ? '99+' : String(count);
+                    el.style.display = 'inline-flex';
+                } else {
+                    el.style.display = 'none';
+                }
+            };
+
+            const refreshNavCounters = () => {
+                if (!navCountersEnabled) {
+                    return;
+                }
+                fetch(navCountersUrl, { cache: 'no-store', headers: { 'Accept': 'application/json' } })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error('Failed');
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        setNavBadge('navBadgeTrips', data?.trips_pending);
+                        setNavBadge('navBadgeIncidents', data?.incidents_open);
+                        setNavBadge('navBadgeHelpDesk', data?.helpdesk_open);
+                    })
+                    .catch(() => {});
+            };
+
+            refreshNavCounters();
+            setInterval(refreshNavCounters, 15000);
 
             const notificationDropdown = document.getElementById('notificationDropdown');
             if (notificationDropdown) {
