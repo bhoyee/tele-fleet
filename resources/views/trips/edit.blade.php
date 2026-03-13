@@ -1,4 +1,9 @@
 <x-admin-layout>
+    @php
+        $restrictPastTrips = in_array(auth()->user()?->role, [\App\Models\User::ROLE_BRANCH_ADMIN, \App\Models\User::ROLE_BRANCH_HEAD], true);
+        $todayDate = now()->format('Y-m-d');
+        $todayTime = now()->format('H:i');
+    @endphp
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-1">Edit Trip Request</h1>
@@ -28,7 +33,7 @@
                     @endif
                     <div class="col-md-6">
                         <label class="form-label" for="trip_date">Trip Date</label>
-                        <input class="form-control" id="trip_date" name="trip_date" type="date" value="{{ old('trip_date', optional($tripRequest->trip_date)->format('Y-m-d')) }}" required>
+                        <input class="form-control" id="trip_date" name="trip_date" type="date" value="{{ old('trip_date', optional($tripRequest->trip_date)->format('Y-m-d')) }}" @if ($restrictPastTrips) min="{{ $todayDate }}" @endif required>
                         @error('trip_date') <div class="text-danger small">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6">
@@ -75,4 +80,32 @@
             </form>
         </div>
     </div>
+
+    @if ($restrictPastTrips)
+        @push('scripts')
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const dateInput = document.getElementById('trip_date');
+                    const timeInput = document.getElementById('trip_time');
+                    if (!dateInput || !timeInput) {
+                        return;
+                    }
+
+                    const today = @json($todayDate);
+                    const nowTime = @json($todayTime);
+
+                    const syncMinTime = () => {
+                        if (String(dateInput.value || '') === String(today)) {
+                            timeInput.min = String(nowTime);
+                        } else {
+                            timeInput.removeAttribute('min');
+                        }
+                    };
+
+                    dateInput.addEventListener('change', syncMinTime);
+                    syncMinTime();
+                });
+            </script>
+        @endpush
+    @endif
 </x-admin-layout>

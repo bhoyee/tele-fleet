@@ -2,6 +2,21 @@
     $driver = $driver ?? null;
     $selectedStatus = old('status', $driver?->status ?? 'active');
     $requiresNote = in_array($selectedStatus, ['inactive', 'suspended'], true);
+
+    $phoneValue = old('phone');
+    if ($phoneValue === null) {
+        $phoneValue = $driver?->phone ?? '';
+    }
+
+    if (is_string($phoneValue) && str_starts_with($phoneValue, '+')) {
+        $digits = preg_replace('/\D+/', '', $phoneValue) ?? '';
+        // Display Nigeria E.164 numbers in local format for editing (e.g. +234806... -> 0806...).
+        if (str_starts_with($digits, '234') && strlen($digits) >= 13) {
+            $phoneValue = '0' . substr($digits, 3);
+        } else {
+            $phoneValue = $digits;
+        }
+    }
 @endphp
 @csrf
 
@@ -28,7 +43,7 @@
     </div>
     <div class="col-md-4">
         <label class="form-label" for="phone">Phone</label>
-        <input class="form-control" id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="08065428869" value="{{ old('phone', $driver?->phone ?? '') }}" required>
+        <input class="form-control" id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="08065428869" value="{{ $phoneValue }}" required>
         @error('phone') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-4">
