@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Trip;
 
+use App\Models\User;
 use App\Support\TextNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\Validator;
 
 class StoreTripRequest extends FormRequest
 {
@@ -53,5 +56,60 @@ class StoreTripRequest extends FormRequest
             'attachments' => ['nullable', 'array'],
             'attachments.*' => ['file', 'max:5120', 'mimes:jpg,jpeg,png,pdf'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $user = $this->user();
+            if (! $user) {
+                return;
+            }
+
+            if (! in_array($user->role, [User::ROLE_BRANCH_ADMIN, User::ROLE_BRANCH_HEAD], true)) {
+                return;
+            }
+
+            $tripDateValue = $this->input('trip_date');
+            if (! is_string($tripDateValue) || trim($tripDateValue) === '') {
+                return;
+            }
+
+            try {
+                $tripDate = Carbon::parse($tripDateValue)->startOfDay();
+            } catch (\Throwable) {
+                return;
+            }
+
+            $now = Carbon::now();
+            $today = $now->toDateString();
+            $tripDay = $tripDate->toDateString();
+
+            if ($tripDay < $today) {
+                $validator->errors()->add('trip_date', 'Trip date cannot be in the past.');
+                return;
+            }
+
+            if ($tripDay !== $today) {
+                return;
+            }
+
+            $tripTime = $this->input('trip_time');
+            if (! is_string($tripTime) || trim($tripTime) === '') {
+                $validator->errors()->add('trip_time', 'Trip time is required for trips scheduled today.');
+                return;
+            }
+
+            $tripTime = trim($tripTime);
+            try {
+                $tripStart = Carbon::createFromFormat('Y-m-d H:i', $today . ' ' . $tripTime);
+            } catch (\Throwable) {
+                return;
+            }
+
+            if ($tripStart->lt($now->copy()->startOfMinute())) {
+                $validator->errors()->add('trip_time', 'Trip time cannot be earlier than the current time.');
+            }
+        });
     }
 }

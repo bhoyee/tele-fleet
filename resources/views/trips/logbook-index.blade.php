@@ -78,9 +78,7 @@
                             <th>Trip Date</th>
                             <th>Vehicle</th>
                             <th>Driver</th>
-                            <th>Status</th>
-                            <th>Due Status</th>
-                            <th>Logbook</th>
+                            <th>Logbook Status</th>
                             @if ($isSuperAdmin)
                                 <th>Entered By</th>
                                 <th>Last Edited By</th>
@@ -99,23 +97,6 @@
                                 </td>
                                 <td>{{ $trip->assignedVehicle?->registration_number ?? 'N/A' }}</td>
                                 <td>{{ $trip->assignedDriver?->full_name ? \App\Support\TextNormalizer::personName($trip->assignedDriver->full_name) : 'N/A' }}</td>
-                                <td>
-                                    <span class="badge bg-{{ $trip->status === 'completed' ? 'dark' : 'primary' }}">
-                                        {{ ucfirst($trip->status) }}
-                                    </span>
-                                </td>
-                                <td>
-                                    @php
-                                        $dueStatus = $trip->dueStatus();
-                                        $dueLabel = $dueStatus ? ucfirst($dueStatus) : 'On Schedule';
-                                        $dueClass = $dueStatus === 'overdue'
-                                            ? 'danger'
-                                            : ($dueStatus === 'due'
-                                                ? 'warning text-dark'
-                                                : 'secondary');
-                                    @endphp
-                                    <span class="badge bg-{{ $dueClass }}">{{ $dueLabel }}</span>
-                                </td>
                                 <td>
                                     @if ($trip->log)
                                         <span class="visually-hidden">logbook_completed</span>
@@ -209,7 +190,7 @@
 
                 const currentMonth = @json(now()->format('Y-m'));
                 const tripDateCol = 2;
-                const logbookCol = 7;
+                const logbookCol = 5;
 
                 document.addEventListener('click', (event) => {
                     const target = event.target.closest('[data-logbook-locked]');
