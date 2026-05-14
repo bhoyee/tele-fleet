@@ -39,7 +39,7 @@
         <div class="mt-4">
             <x-input-label for="branch_id" :value="__('Branch (optional)')" />
             <select id="branch_id" name="branch_id" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                <option value="">Select branch</option>
+                <option value="">Select Office</option>
                 @foreach ($branches as $branch)
                     <option value="{{ $branch->id }}" @selected(old('branch_id') == $branch->id)>{{ $branch->name }}</option>
                 @endforeach

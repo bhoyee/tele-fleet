@@ -32,9 +32,9 @@
         @error('role') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
-        <label class="form-label" for="branch_id">Branch</label>
+        <label class="form-label" for="branch_id">Office</label>
         <select class="form-select tele-select2" id="branch_id" name="branch_id" data-placeholder="Search branch...">
-            <option value="">Select branch</option>
+            <option value="">Select Office</option>
             @foreach ($branches as $branch)
                 <option value="{{ $branch->id }}" @selected((string) old('branch_id', $user?->branch_id ?? '') === (string) $branch->id)>{{ $branch->name }}</option>
             @endforeach

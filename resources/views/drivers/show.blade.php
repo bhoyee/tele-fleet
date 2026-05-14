@@ -30,7 +30,7 @@
                     <div class="fw-semibold">{{ $driver->full_name }}</div>
                 </div>
                 <div class="col-md-4">
-                    <div class="text-muted small">License Number</div>
+                    <div class="text-muted small">CS Number</div>
                     <div class="fw-semibold">{{ $driver->license_number }}</div>
                 </div>
                 <div class="col-md-4">
@@ -46,6 +46,10 @@
                 <div class="col-md-8">
                     <div class="text-muted small">Address</div>
                     <div class="fw-semibold">{{ $driver->address ? \App\Support\TextNormalizer::titleText($driver->address) : 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">License Number</div>
+                    <div class="fw-semibold">{{ $driver->license_type }}</div>
                 </div>
                 <div class="col-md-4">
                     <div class="text-muted small">License Expiry</div>
