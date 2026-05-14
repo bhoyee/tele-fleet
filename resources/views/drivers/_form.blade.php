@@ -28,12 +28,12 @@
         @error('full_name') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
-        <label class="form-label" for="license_number">License Number</label>
+        <label class="form-label" for="license_number">CS Number</label>
         <input class="form-control" id="license_number" name="license_number" value="{{ old('license_number', $driver?->license_number ?? '') }}" required>
         @error('license_number') <div class="text-danger small">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6">
-        <label class="form-label" for="license_type">License Type</label>
+        <label class="form-label" for="license_type">License Number</label>
         <input class="form-control" id="license_type" name="license_type" value="{{ old('license_type', $driver?->license_type ?? '') }}">
     </div>
     <div class="col-md-6">

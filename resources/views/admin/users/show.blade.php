@@ -35,7 +35,7 @@
                             </span>
                         </div>
                         <div class="col-md-6">
-                            <div class="text-muted small">Branch</div>
+                            <div class="text-muted small">Office</div>
                             <div class="fw-semibold">{{ $user->branch?->name ?? 'Head Office' }}</div>
                         </div>
                         <div class="col-md-6">
