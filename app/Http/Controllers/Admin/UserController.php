@@ -200,10 +200,10 @@ class UserController extends Controller
     private function roleOptions(): array
     {
         return [
-            User::ROLE_SUPER_ADMIN => 'Super Admin',
+            User::ROLE_SUPER_ADMIN => 'Head Fleet',
             User::ROLE_FLEET_MANAGER => 'Fleet Manager',
-            User::ROLE_BRANCH_HEAD => 'Branch Head',
-            User::ROLE_BRANCH_ADMIN => 'Branch Admin',
+            User::ROLE_BRANCH_HEAD => 'Office Head',
+            User::ROLE_BRANCH_ADMIN => 'Office Admin',
         ];
     }
 
