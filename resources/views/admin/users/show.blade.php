@@ -1,4 +1,14 @@
 <x-admin-layout>
+    @php
+        $roleLabels = [
+            \App\Models\User::ROLE_SUPER_ADMIN => 'Head Fleet',
+            \App\Models\User::ROLE_FLEET_MANAGER => 'Fleet Manager',
+            \App\Models\User::ROLE_BRANCH_HEAD => 'Office Head',
+            \App\Models\User::ROLE_BRANCH_ADMIN => 'Office Admin',
+        ];
+        $roleLabel = $roleLabels[$user->role] ?? str_replace('_', ' ', $user->role);
+    @endphp
+
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="h3 mb-1">User Details</h1>
@@ -26,7 +36,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="text-muted small">Role</div>
-                            <div class="fw-semibold text-capitalize">{{ str_replace('_', ' ', $user->role) }}</div>
+                            <div class="fw-semibold">{{ $roleLabel }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="text-muted small">Status</div>
@@ -70,7 +80,7 @@
                     <div class="text-muted small mb-2">Recent activity summary</div>
                     <div class="d-flex flex-wrap gap-2">
                         <span class="badge bg-light text-dark">Logs: {{ $activities->count() }}</span>
-                        <span class="badge bg-light text-dark">Role: {{ str_replace('_', ' ', $user->role) }}</span>
+                        <span class="badge bg-light text-dark">Role: {{ $roleLabel }}</span>
                         <span class="badge bg-light text-dark">Status: {{ ucfirst($user->status) }}</span>
                     </div>
                     <p class="text-muted small mt-3 mb-0">Activity logs capture actions triggered by this user across the system.</p>

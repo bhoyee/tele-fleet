@@ -24,10 +24,10 @@
                         @php
                             $roleCounts = (array) ($userStats['roles'] ?? []);
                             $roleBadges = [
-                                \App\Models\User::ROLE_SUPER_ADMIN => ['label' => 'Super Admin', 'class' => 'primary'],
+                                \App\Models\User::ROLE_SUPER_ADMIN => ['label' => 'Head Fleet', 'class' => 'primary'],
                                 \App\Models\User::ROLE_FLEET_MANAGER => ['label' => 'Fleet Manager', 'class' => 'info text-dark'],
-                                \App\Models\User::ROLE_BRANCH_HEAD => ['label' => 'Branch Head', 'class' => 'warning text-dark'],
-                                \App\Models\User::ROLE_BRANCH_ADMIN => ['label' => 'Branch Admin', 'class' => 'secondary'],
+                                \App\Models\User::ROLE_BRANCH_HEAD => ['label' => 'Office Head', 'class' => 'warning text-dark'],
+                                \App\Models\User::ROLE_BRANCH_ADMIN => ['label' => 'Office Admin', 'class' => 'secondary'],
                             ];
                         @endphp
                         @foreach ($roleBadges as $roleKey => $meta)

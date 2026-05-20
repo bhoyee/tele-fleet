@@ -102,7 +102,7 @@
             });
             branchSelect.addEventListener('invalid', () => {
                 branchSelect.classList.add('is-invalid');
-                branchSelect.setCustomValidity('Branch is required for Branch Admin and Branch Head users.');
+                branchSelect.setCustomValidity('Office is required for Office Admin and Office Head users.');
             });
 
             syncBranchRequired();
